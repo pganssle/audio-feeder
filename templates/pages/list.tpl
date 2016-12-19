@@ -42,7 +42,7 @@
                 <img src="{{ book.qr_img_url }}" class="qr_img" />
             </td>
             <td class="book_body" id="{{ book.id }}">
-                <h3 class="book_title"><a class="book_link" src="{{ book.rss_url }}">{{ book.name }} </a></h3><br/>
+                <h3 class="book_title"><a class="book_link" src="{{ book.rss_url }}">{{ book.name }}</a></h3><br/>
                 {{ book.description[0:book.truncation_point] }}{% if not book.truncation_point is sameas none and book.description|length > book.truncation_point %}<span class="hidden_description_section">{{ book.description[book.trunction_point:] }}</span><span class="hidden_expander_span" id="{{ book.id }}">(Read More)</span>
                 {% endif %}
             </td>

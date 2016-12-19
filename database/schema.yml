@@ -1,0 +1,91 @@
+tables:
+  books: Book
+  series: Series
+  authors: Author
+  users: User
+  entries: Entry
+
+
+types:  
+    Entry:
+        fields:
+            - id
+            - path
+            - url
+            - cover_images
+
+            - date_added
+            - last_modified
+
+            - type
+            - data_id
+            - hashseed
+            - other_formats
+
+    User:
+        fields:
+            - id
+            - username
+            - password
+
+            - permissions
+
+            - account_creation_time
+            - last_login
+
+    Book:
+        docstring:
+            "Represents a book."
+
+        fields:
+            # Metadata
+            - id
+
+            # Book information
+            - isbn
+            - isbn13
+            - google_id
+            - goodreads_id
+            - ASIN
+
+            - pub_date
+            - original_pub_date
+            - publisher
+
+            - tags
+
+            - duration
+            - pages
+
+            - title
+            - subtitle
+
+            - authors                # Foreign key to the authors title
+            - roles                  # Author = 0, Narrator = 1, Contributor = 2, Editor = 3
+            - description
+
+            - series_name
+            - series_id              # Foreign key to the series table
+            - series_number
+
+            - language
+
+    Author:
+        fields:
+            # Metadata
+            - id
+
+            # Author information
+            - name
+            - sort_name
+            - books                  # Foreign key to the "books" table
+            - tags
+
+    Series:
+        fields:
+            # Metadata
+            - id
+
+            # Series information
+            - authors
+            - books

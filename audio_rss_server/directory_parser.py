@@ -8,7 +8,7 @@ class AudiobookLoader:
     """
     This is a more or less static class that can be used to load audiobooks.
     """
-    AUDIOBOOK_EXTENSIONS = ['.mp3', '.mp4', '.ogg', '.ac3',
+    AUDIO_EXTENSIONS = ['.mp3', '.mp4', '.ogg', '.ac3',
                             '.aac', '.m4b', '.m4a']
 
     COVER_EXTENSIONS = ['.png', '.jpg', '.svg', '.gif', '.tif', '.bmp']
@@ -23,11 +23,11 @@ class AudiobookLoader:
 
 
     @classmethod
-    def is_audiobook(cls, dirloc):
+    def is_audio(cls, dirloc):
         """
         Function to determine if a directory contains an audiobook. The
         assumption is that in this context, any directory containing at least
-        one file with the AUDIOBOOK_EXTENSIONS is, itself, an audiobook.
+        one file with the AUDIO_EXTENSIONS is, itself, an audiobook.
 
         :param dirloc:
             The directory to test.
@@ -39,7 +39,7 @@ class AudiobookLoader:
             for fpath in os.listdir(dirloc):
                 fbase, fext = os.path.splitext(fpath)
 
-                if fext.lower() in AUDIOBOOK_EXTENSIONS:
+                if fext.lower() in cls.AUDIO_EXTENSIONS:
                     return True
 
         return False
@@ -62,18 +62,20 @@ class AudiobookLoader:
         return list(o)
 
     @classmethod
-    def parse_audiobook_info(cls, dir_name):
+    def parse_audio_info(cls, dir_path):
         """
         Try to parse audiobook information the directory name.
         """
-        m = self.DIR_NAME_RE.match(dir_name)
+        base_path, dir_name = os.path.split(dir_path)
+
+        m = cls.DIR_NAME_RE.match(dir_name)
         if m is None:
             msg = 'Directory name does not match the format: {}'
             msg = msg.format(dir_name)
 
             raise NoAudiobookInformation(msg)
 
-        authors = self.parse_author_names(m.authors)
+        authors = cls.parse_author_names(m.group('authors'))
         series = m.group('series_name')
         series_number = m.group('series_number')
         if series_number is not None:
@@ -89,7 +91,7 @@ class AudiobookLoader:
         return audiobook_data
 
     @classmethod
-    def audiobook_files(cls, dir_loc):
+    def audio_files(cls, dir_loc):
         """
         Load all audiobook files and sort them appropriately.
 
@@ -103,12 +105,12 @@ class AudiobookLoader:
         for fname in os.listdir(dir_loc):
             fname_base, fname_ext = os.path.splitext(fname)
 
-            if fname_ext in cls.AUDIOBOOK_EXTENSIONS:
+            if fname_ext in cls.AUDIO_EXTENSIONS:
                 o.append(os.path.join(dir_loc, fname))
 
         return sorted(o, key=cls.book_name_sort_key)
 
-    @classname
+    @classmethod
     def book_name_sort_key(cls, book_name):
         """
         The sort key used to sort book names - the string is broken up into
@@ -127,8 +129,8 @@ class AudiobookLoader:
 
         return tuple(o)
 
-    @classname
-    def audiobook_cover(cls, dir_loc):
+    @classmethod
+    def audio_cover(cls, dir_loc):
         """
         Retrieve the best candidate for an audiobook cover.
 
@@ -152,7 +154,7 @@ class AudiobookLoader:
                     break
 
             # Second sort index is its position in the cover extension index.
-            ext_loc = cls.COVER_EXTENSIONS.index()
+            ext_loc = cls.COVER_EXTENSIONS.index(fname_ext)
 
             candidates.append((match_num, ext_loc,
                                os.path.join(dir_loc, fname)))
@@ -165,8 +167,8 @@ class AudiobookLoader:
         return cover_loc
 
 
-def load_all_audiobooks(base_dir, *, visited_dirs=None,
-                        audio_loader_class=AudiobookLoader):
+def load_all_audio(base_dir, *, visited_dirs=None,
+                   audio_loader_class=AudiobookLoader):
     """
     Traverse a directory and find all the directories that contain an
     audiobook (as returned by is_audiobook)
@@ -193,10 +195,10 @@ def load_all_audiobooks(base_dir, *, visited_dirs=None,
         if dirpath in visited_dirs or not os.path.isdir(dirpath):
             continue    # Avoid infinite recursion
 
-        if audio_loader_class.is_audiobook(dirpath):
+        if audio_loader_class.is_audio(dirpath):
             audiobook_paths.append(dirpath)
         else:
-            audiobook_paths += load_all_audiobooks(dirpath,
+            audiobook_paths += load_all_audio(dirpath,
                 visited_dirs=visited_dirs,
                 audio_loader_class=audio_loader_class)
 

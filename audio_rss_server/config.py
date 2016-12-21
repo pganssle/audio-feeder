@@ -7,7 +7,7 @@ import warnings
 import yaml
 
 CONFIG_LOCATIONS = [
-    '~/.config/audio_rss_server.yml',
+    '~/.config/audio_rss_server/config.yml',
 ]
 
 class Configuration:
@@ -16,7 +16,10 @@ class Configuration:
         'templates_base_loc': 'templates',
         'entry_templates_loc': 'entry_types',
         'RSS_templates_loc': 'RSS',
-        'schema_loc': 'database/schema.yml'
+        'schema_loc': 'database/schema.yml',
+        'static_media_path': 'static/',
+        'rss_feed_urls': 'rss/{id}.xml',
+        'qr_cache_path': 'qr_cache/'
     }
     def __init__(self, **kwargs):
         base_kwarg = self.PROPERTIES.copy()
@@ -43,7 +46,7 @@ class Configuration:
         return cls(**config)
 
 
-def get_configuration():
+def get_configuration(field=None):
     """
     On first call, this loads the configuration object, on subsequent calls,
     this returns the original configuration object.
@@ -79,6 +82,9 @@ def get_configuration():
 
     get_configuration._configuration = Configuration.from_file(config_location)
 
-    return get_configuration._configuration
+    if field is None:
+        return get_configuration._configuration
+    else:
+        return get_configuration._configuration[field]
 
 

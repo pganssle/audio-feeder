@@ -11,8 +11,8 @@
             <td colspan=3><center>
                 <table width="100%">
                     <tr>
-                        <td><a href="index.html"><img class="nav_arrow", id="firstnav" src="audiobook_images/double_left_arrow.png" align="left"></a></td>
-                        <td><a href="{{prev_index}}"><img class="nav_arrow" id="backnav" src="audiobook_images/left_arrow.png" align="left"></a></td>
+                        <td><a href="index.html"><img class="nav_arrow", id="firstnav" src="{{ site_images_url }}/double_left_arrow.png" align="left"></a></td>
+                        <td><a href="{{prev_index}}"><img class="nav_arrow" id="backnav" src="{{ site_images_url }}/left_arrow.png" align="left"></a></td>
                         <td>
                             {% block navlist %}
                             {% for nav_item in nav_list %}
@@ -24,26 +24,26 @@
                             {% endfor %}
                             {% endblock %}
                         </td>
-                        <td><a href="{{next_index}}"><img class="nav_arrow" id="fwdnav" src="audiobook_images/right_arrow.png" align="right"></a></td>
-                        <td><a href="{{final_index}}"><img class="nav_arrow" id="lastnav" src="audiobook_images/double_right_arrow.jpg" align="right"></a></td>
+                        <td><a href="{{next_index}}"><img class="nav_arrow" id="fwdnav" src="{{ site_images_url }}/right_arrow.png" align="right"></a></td>
+                        <td><a href="{{final_index}}"><img class="nav_arrow" id="lastnav" src="{{ site_images_url }}/double_right_arrow.jpg" align="right"></a></td>
                     </tr>
                 </table>
                 </center>
             </td>
         </tr>
     {% endblock %}
-    {% block audiobooks %}
-    {% for book in books %}
-        <tr class="book_row {{ loop.cycle('odd', 'even') }}" id="{{ book.id }}">
-            <td class="cover_col" id="{{ book.id }}">
-                <img src="{% book.cover_url if not book.cover_url is sameas none else default_cover %}" class="cover_img" />
+    {% block mainlist %}
+    {% for entry in entries %}
+        <tr class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
+            <td class="cover_col" id="{{ entry.id }}">
+                <img src="{% entry.cover_url if not entry.cover_url is sameas none else default_cover %}" class="cover_img" />
             </td>
-            <td class="qr_col" id="{{ book.id }}">
-                <img src="{{ book.qr_img_url }}" class="qr_img" />
+            <td class="qr_col" id="{{ entry.id }}">
+                <img src="{{ entry.qr_img_url }}" class="qr_img" />
             </td>
-            <td class="book_body" id="{{ book.id }}">
-                <h3 class="book_title"><a class="book_link" src="{{ book.rss_url }}">{{ book.name }}</a></h3><br/>
-                {{ book.description[0:book.truncation_point] }}{% if not book.truncation_point is sameas none and book.description|length > book.truncation_point %}<span class="hidden_description_section">{{ book.description[book.trunction_point:] }}</span><span class="hidden_expander_span" id="{{ book.id }}">(Read More)</span>
+            <td class="entry_body" id="{{ entry.id }}">
+                <h3 class="entry_title"><a class="entry_link" src="{{ entry.rss_url }}">{{ entry.name }}</a></h3><br/>
+                {{ entry.description[0:entry.truncation_point] }}{% if not entry.truncation_point is sameas none and entry.description|length > entry.truncation_point %}<span class="hidden_description_section">{{ entry.description[entry.trunction_point:] }}</span><span class="hidden_expander_span" id="{{ entry.id }}">(Read More)</span>
                 {% endif %}
             </td>
         </tr>

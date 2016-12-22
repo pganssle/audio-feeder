@@ -5,6 +5,8 @@ Metadata loading
 import datetime
 import time
 
+import requests
+from collections import OrderedDict
 
 class MetaDataLoader:
     """
@@ -20,8 +22,8 @@ class MetaDataLoader:
         self._poll_delay = datetime.timedelta(seconds=self.POLL_DELAY)
 
         if self.API_ENDPOINT is None:
-            msg = 'This is an abstract base class, all subclasses are reuqired '
-                  'to specify a non-None value for API_ENDPOINT.'
+            msg = ('This is an abstract base class, all subclasses are reuqired'
+                  ' to specify a non-None value for API_ENDPOINT.')
             raise NotImplementedError(msg)
 
     def make_request(self, *args, raise_on_early_=False, **kwargs):
@@ -49,11 +51,169 @@ class MetaDataLoader:
         self._last_poll = datetime.datetime.utcnow()
 
         try:
-            return self.make_request_raw(self, *args, **kwargs)
+            return self.make_request_raw(*args, **kwargs)
         except Exception as e:
             # We'll say last poll only counts if there was no exception.
             self._last_poll = old_poll
             raise e
+
+    def make_request_raw(self, *args, **kwargs):
+        return requests.get(*args, **kwargs)
+
+
+class GoogleBooksLoader(MetaDataLoader):
+    """
+    Metadata loader pulling from Google Books.
+    """
+    API_ENDPOINT = 'https://www.googleapis.com/books/v1/volumes'
+    SOURCE_NAME = 'google_books'
+
+    def get_volume(self, authors=None, title=None, isbn=None,
+                         isbn13=None, oclc=None, lccn=None, google_id=None):
+        
+        if google_id is not None:
+            r = self.retrieve_volume(google_id)
+
+            if r.status_code == 200:
+                return self.parse_volume_metadata(r.json())
+
+        # If we don't have a google_id, let's try to use one of the identifiers.
+        identifiers = OrderedDict(isbn13=isbn13,
+                                  isbn=isbn,
+                                  oclc=oclc,
+                                  lccn=lccn)
+
+        # Try pulling the data based on the first existing identifier
+        for id_type, identifier in identifiers.items():
+            if identifier is not None:
+                if id_type == 'isbn13':
+                    id_type = 'isbn'
+
+                query_list = [id_type + ':' + identifier]
+
+                r_json = self.retrieve_search_results(query_list)
+                total_items = r_json.get('totalItems', 0)
+                if total_items >= 1:
+                    # In the unlikely event that there's more than one, we'll
+                    # just pick the first one
+                    return self.parse_volume_metadata(r_json['items'][0])
+
+        query_list = []
+        if authors is not None:
+            for author in authors:
+                query_list.append('inauthor:' + author)
+
+        if title is not None:
+            query_list.append('intitle:' + title)
+
+        r_json = self.retrieve_search_results(query_list)
+
+        total_items = r_json.get('totalItems', 0)
+        if total_items >= 1:
+            return self.parse_volume_metadata(r_json['items'][0])
+        else:
+            return None
+
+
+    def retrieve_search_results(self, query_list, **params):
+        params_base = {'orderBy': 'relevance'}
+        params_base.update(params)
+        params = params_base
+
+        query_text = '+'.join(query_list)
+        params['q'] = query_text
+
+        # Not catching exceptions for the moment.
+        r = self.make_request(self.API_ENDPOINT, params=params)
+
+        return r.json()
+
+    def retrieve_volume(self, google_id):
+        r = self.make_request(os.path.join(self.API_ENDPOINT, google_id))
+
+        return r.json()
+
+    def parse_volume_metadata(self, j_item):
+        """
+        Parse the volume metadata from the response JSON.
+        """
+
+        out = {}
+        v_info = j_item['volumeInfo']
+        out['title'] = v_info['title']
+        out['subtitle'] = v_info.get('subtitle', None)
+        out['authors'] = v_info['authors']
+        out['google_id'] = j_item['id']
+        out['description'] = v_info['description']
+        out['pub_date'] = v_info.get('publishedDate', None)
+        out['publisher'] = v_info.get('publisher', None)
+
+        for identifier_dict in v_info['industryIdentifiers']:
+            if identifier_dict['type'] == 'ISBN_13':
+                out['isbn13'] = identifier_dict['identifier']
+            elif identifier_dict['type'] == 'ISBN_10':
+                out['isbn13'] = identifier_dict['identifier']
+            elif identifier_dict['type'] == 'ISSN':
+                out['issn'] = identifier_dict['identifier']
+
+        out['pages'] = v_info.get('pageCount', None)
+        out['language'] = v_info.get('language', None)
+
+        image_links = v_info.get('imageLinks', {})
+        out['image_link'] = None
+        out['image_link_type'] = None
+        for k in ['extraLarge', 'large', 'medium',
+                  'small', 'thumbnail', 'smallThumbnail']:
+            if k not in image_links:
+                continue
+
+            out['image_link'] = image_links[k]
+            out['image_link_type'] = k
+
+            break
+
+        out['categories'] = v_info.get('categories', [])
+        out['categories'] = [x.lower() for x in out['categories']]
+
+        return out
+
+    def update_book_info(self, book_obj, overwrite_existing=False):
+        if (not overwrite_existing and
+            self.SOURCE_NAME in book_obj.metadata_sources):
+            return book_obj
+
+        book_obj.metadata_sources.append(self.SOURCE_NAME)
+
+        get_volume_params = {k: getattr(book_obj, k, None) for k in
+            ('title', 'author', 'isbn', 'isbn13',
+             'oclc', 'lccn', 'issn', 'google_id')
+        }
+
+        get_volume_params = {k: v for k, v in get_volume_params.items()
+                             if v is not None}
+
+        md = self.get_volume(**get_volume_params)
+
+        # These are keys where the value is set only if it didn't exist before.
+        keep_existing_keys = (
+            'author', 'title', 'isbn', 'isbn13', 'issn', 'pages',
+            'pub_date', 'publisher', 'language'
+        )
+
+        for key in keep_existing_keys:
+            if getattr(book_obj, key, None) is None:
+                setattr(book_obj, key, md[key])
+
+        # Add a Google Books description if it doesn't exist already.
+        book_obj.descriptions[self.SOURCE_NAME] = md['description']
+
+        # Append any tags that aren't in there already
+        for category in out['categories']:
+            if category not in book_obj.tags:
+                book_obj.tags.append(category)
+
+        return book_obj
+
 
 
 class PollDelayIncomplete(Exception):

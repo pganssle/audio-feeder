@@ -44,9 +44,13 @@ types:
             # Book information
             - isbn
             - isbn13
+            - oclc
+            - lccn
+            - issn
             - google_id
             - goodreads_id
             - ASIN
+            - metadata_sources
 
             - pub_date
             - original_pub_date
@@ -63,10 +67,13 @@ types:
             - authors                # Foreign key to the authors title
             - roles                  # Author = 0, Narrator = 1, Contributor = 2, Editor = 3
             - description
+            - descriptions           # Cache multiple descriptions by source.
 
             - series_name
             - series_id              # Foreign key to the series table
             - series_number
+
+            - cover_images
 
             - language
 

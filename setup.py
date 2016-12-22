@@ -19,7 +19,7 @@ datetime module available in the Python standard library.
 """,
       packages=["audio_rss_server"],
       zip_safe=True,
-      requires=["Flask", "qrcode", "pillow", "jinja2", "pyyaml"],
+      requires=["Flask", "qrcode", "pillow", "jinja2", "pyyaml", 'requests'],
       install_requires=["Flask>=0.11.1"]
       classifiers=[
           'Development Status :: 1 - Planning',

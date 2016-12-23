@@ -8,6 +8,8 @@ import time
 import requests
 from collections import OrderedDict
 
+LOCAL_DATA_SOURCE = 'local'
+
 class MetaDataLoader:
     """
     This is a base class for metadata loaders which poll databases for
@@ -159,18 +161,7 @@ class GoogleBooksLoader(MetaDataLoader):
         out['pages'] = v_info.get('pageCount', None)
         out['language'] = v_info.get('language', None)
 
-        image_links = v_info.get('imageLinks', {})
-        out['image_link'] = None
-        out['image_link_type'] = None
-        for k in ['extraLarge', 'large', 'medium',
-                  'small', 'thumbnail', 'smallThumbnail']:
-            if k not in image_links:
-                continue
-
-            out['image_link'] = image_links[k]
-            out['image_link_type'] = k
-
-            break
+        out['image_link'] = v_info.get('imageLinks', {})
 
         out['categories'] = v_info.get('categories', [])
         out['categories'] = [x.lower() for x in out['categories']]
@@ -212,8 +203,12 @@ class GoogleBooksLoader(MetaDataLoader):
             if category not in book_obj.tags:
                 book_obj.tags.append(category)
 
-        return book_obj
+        if self.SOURCE_NAME not in book.cover_images:
+            book.cover_images[self.SOURCE_NAME] = {}
 
+        book.cover_images[self.SOURCE_NAME].update(md['image_link'])
+
+        return book_obj
 
 
 class PollDelayIncomplete(Exception):

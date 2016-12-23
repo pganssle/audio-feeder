@@ -1,0 +1,319 @@
+import datetime
+import os
+import shutil
+
+from . import directory_parser as dp
+from . import metadata_loader as mdl
+from . import schema_handler as sh
+from . import object_handler as oh
+
+from .config import read_from_config
+
+from ruamel import yaml
+import math
+from random import SystemRandom
+_rand = SystemRandom()
+
+DB_VERSION = 0
+
+def load_table(table_loc, table_type):
+    """
+    Loads a table of type ``table_type`` from the YAML file ``table_loc``.
+    """
+    with open(table_loc, 'r') as yf:
+        table_file = yaml.safe_load(yf)
+
+    assert table_file['db_version'] == DB_VERSION
+    table_list = table_file['data']
+
+    raw_table = (table_type(**params) for params in table_list)
+    table_by_id = {x.id: x for x in raw_table}
+
+    return table_by_id
+
+
+def save_table(table_loc, table):
+    """
+    Saves a table of type ``table_type`` to a YAML file ``table_loc``
+    """
+    table_list = [obj.to_dict_sparse() for obj_id, obj in table.items()]
+    table_obj = {
+        'db_version': DB_VERSION,
+        'data': table_list
+    }
+
+    if os.path.exists(table_loc):
+        # Cache a backup of this
+        shutil.copy2(table_loc, _get_bak_loc(table_loc))
+
+    with open(table_loc, 'w') as yf:
+        yaml.dump(table_obj, stream=yf, default_flow_style=False)
+
+
+def load_database(schema_loc=None, db_loc=None):
+    """
+    Loads the 'database' into memory.
+
+    For now, the 'database' is a directory full of YAML files, because I
+    have not yet implemented the ability to make hand-modifications to the
+    metadata, and I don't know how to easily edit SQL databases.
+    """
+    schema_loc, db_loc = _get_schema_db_locs(schema_loc=schema_loc,
+                                             db_loc=db_loc)
+
+    schema = sh.load_schema(schema_loc)
+
+    # The tables will just be "table.yml"
+    tables = {}
+    for table, type_name in schema['tables'].items():
+        table_type = oh.TYPE_MAPPING[type_name]
+
+        table_loc = _get_table_loc(db_loc, table)
+        if not os.path.exists(table_loc):
+            tables[table] = {}
+        else:
+            # Load the table
+            tables[table] = load_table(table_loc, table_type)
+
+    return tables
+
+
+def save_database(database, schema_loc=None, db_loc=None):
+    """
+    Saves the 'database' into memory. See :func:`load_database` for details.
+    """
+    schema_loc, db_loc = _get_schema_db_locs(schema_loc=schema_loc,
+                                             db_loc=db_loc)
+
+    schema = sh.load_schema(schema_loc)
+
+    if not os.path.exists(db_loc):
+        os.makedirs(db_loc)
+
+    # Try and do this as a pseudo-atomic operation
+    tables_saved = []
+    try:
+        for table in schema['tables'].keys():
+            table_loc = _get_table_loc(db_loc, table)
+            save_table(table_loc, database[table])
+            tables_saved.append(table_loc)
+    except Exception as e:
+        # Restore the .bak files that were made
+        for table_loc in tables_saved:
+            bak_loc = _get_bak_loc(table_loc)
+            if os.path.exists(bak_loc):
+                shutil.move(bak_loc, table_loc)
+
+        raise e
+
+
+class IDHandler:
+    """
+    This is a class for handling the assignment of new IDs.
+    """
+    def __init__(self, invalid_ids=None):
+        if invalid_ids is None:
+            invalid_ids = set()
+        else:
+            invalid_ids = set(invalid_ids)
+
+        self.invalid_ids = invalid_ids
+
+    def new_id(self):
+        """
+        Generates a new ID and adds it to the invalid ID list.
+        """
+
+        # The default method selects a random ID from a space of 1e6 numbers,
+        # or 10x the number of values as are in the invalid list, so that the
+        # chance of a collision is capped at 1:10.
+        int_max = 10 ** (math.ceil(math.log10(len(self.invalid_ids) + 1)) + 1)
+        int_max = max((int_max, 1000000))
+
+        while True:
+            new_id_val = _rand.randint(0, int_max)
+            if new_id_val not in self.invalid_ids:
+                break
+
+        self.invalid_ids.add(new_id_val)
+        return new_id_val
+
+
+class BookDatabaseUpdater:
+    def __init__(self, books_location,
+                 entry_table='entries', table='books',
+                 book_loader=dp.AudiobookLoader,
+                 metadata_loaders={'Books': (mdl.GoogleBooksLoader)},
+                 id_handler=IDHandler):
+        self.table = table
+        self.entry_table = entry_table
+        self.books_location = books_location
+        self.book_loader = book_loader
+        self.metadata_loaders = metadata_loaders
+        self.id_handler = id_handler
+
+    def load_book_paths(self):
+        return dp.load_all_audio(self.books_location)
+
+    def cover_image_path(self, path, book_obj):
+        pass
+
+    def update_db(self, database):
+        # Load all audio from the audiobooks location
+        book_paths = self.load_book_paths()
+
+        book_table = database[self.table]
+        entry_table = database[self.entry_table]
+
+        # Find out which ones already exist
+        id_by_path = {}
+        for c_id, entry in entry_table.items():
+            path = entry.path
+            if path in id_by_path:
+                raise DuplicateEntryError('Path duplicate found: {}'.format(path))
+
+            id_by_path[path] = c_id
+
+        new_paths = [path for path in book_paths if path not in id_by_path]
+        new_paths = list(set(new_paths))        # Enforce unique paths only
+
+        entry_id_handler = self.id_handler(invalid_ids=entry_table.items())
+        book_id_handler = self.id_handler(invalid_ids=book_table.items())
+        
+        for path in new_paths:
+            book_obj = self.load_book(path, book_table, book_id_handler)
+
+            if book_obj.id not in book_table:
+                book_table[book_obj.id] = book_obj
+
+            entry_obj = self.make_new_entry(path, book_obj.id, entry_id_handler)
+            entry_table[entry_obj.id] = entry_obj
+
+        return database
+
+    def make_new_entry(self, path, book_id, id_handler):
+        """
+        Generates a new entry for the specified path.
+
+        Note: This will mutate the id_handler!
+        """
+        # Try to match to an existing book.
+        e_id = id_handler.new_id()
+
+        entry_obj = oh.Entry(id=e_id, path=path,
+            date_added=datetime.datetime.utcnow(),
+            last_modified=datetime.datetime.utcnow(),
+            type='Book', data_id=book_id,
+            hashseed=_rand.randint(0, 2**32))
+
+        return entry_obj
+
+    def load_book(self, path, book_table, id_handler):
+        """
+        If the book is already in the table, load it by ID, otherwise create
+        a new entry for it.
+
+        :param path:
+            The path to the book.
+
+        :param book_table:
+            The table in the database from which to do lookups (treated as
+            immutable).
+
+        :param id_handler:
+            The handler for book IDs (this will be treated as mutable)
+
+        :return:
+            Returns a :class:`object_handler.Book` object.
+        """
+
+        # First load title and author from the path.
+        audio_info = self.book_loader.parse_audio_info(path)
+        audio_cover = self.book_loader.audio_cover(path)
+
+        # Load books by title and author into a cache if necessary
+        books_by_key = getattr(self, '_books_by_key', {})
+        cached_book_ids = getattr(self, '_cached_book_ids', {})
+
+        bt_id = id(book_table)
+        if (bt_id not in books_by_key or 
+            len(books_by_key[bt_id]) < len(book_table.items())):
+
+            if bt_id in books_by_key:
+                books_by_key_cache = books_by_key[bt_id]
+                cached_book_id_set = cached_book_ids[bt_id]
+                missing_keys = set(book_table.keys()) - cached_book_id_set
+                book_gen = ((k, book_table[k]) for k in missing_keys)
+            else:
+                books_by_key_cache = {}
+                cached_book_id_set = set()
+                book_gen = book_table.items()
+
+            for book_id, book_obj in book_gen:
+                # Want to make sure each of these is unique and reproducible
+                key_id = self._book_key(book_obj.authors, book_obj.title)
+
+                if key_id in books_by_key_cache:
+                    msg = ('Book table has duplicate author-title combination:'+
+                           ' {}'.format(key_id))
+                    raise DuplicateEntryError(msg)
+
+                books_by_key_cache[key_id] = book_id
+                cached_book_id_set.add(book_id)
+
+            books_by_key[bt_id] = books_by_key_cache
+            cached_book_ids[bt_id] = cached_book_id_set
+
+            self._books_by_key = books_by_key
+            self._cached_book_ids = cached_book_ids
+        else:
+            books_by_key_cache = books_by_key[bt_id]
+
+        # Try and find the book in the lookup table
+        key_id = self._book_key(audio_info['authors'], audio_info['title'])
+        if key_id in books_by_key_cache:
+            return book_table[books_by_key_cache[key_id]]
+
+        # If we didn't find the book, we'll have to create a new barebones
+        # book object.
+        book_id = id_handler.new_id()
+        series_name, series_number = audio_info['series']
+        if audio_cover is None:
+            cover_images = None
+        else:
+            cover_images = {mdl.LOCAL_DATA_SOURCE: audio_cover}
+
+        book_obj = oh.Book(id=book_id,
+            title=audio_info['title'],
+            authors=audio_info['authors'],
+            series_name=series_name,
+            series_number=series_number,
+            cover_images=cover_images
+        )
+
+        return book_obj
+
+    @classmethod
+    def _book_key(cls, authors, title):
+        """ The key should be hashable and reproducible """
+        return (tuple(sorted(authors)), title)
+
+
+def _get_bak_loc(table_loc):
+    return table_loc + '.bak'
+
+def _get_table_loc(db_loc, table_loc):
+    return os.path.join(db_loc, table_loc + '.yml')
+
+def _get_schema_db_locs(schema_loc=None, db_loc=None):
+    if schema_loc is None:
+        schema_loc = read_from_config('schema_loc') 
+
+    if db_loc is None:
+        db_loc = read_from_config('database_loc')
+
+    return schema_loc, db_loc
+
+class DuplicateEntryError(ValueError):
+    """ Raised when a duplicate entry is found in the database. """
+    pass

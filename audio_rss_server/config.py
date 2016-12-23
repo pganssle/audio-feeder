@@ -7,7 +7,7 @@ import warnings
 import yaml
 
 CONFIG_LOCATIONS = [
-    '~/.config/audio_rss_server/config.yml',
+    os.path.expanduser('~/.config/audio_rss_server/config.yml'),
 ]
 
 class Configuration:
@@ -17,6 +17,7 @@ class Configuration:
         'entry_templates_loc': 'entry_types',
         'RSS_templates_loc': 'RSS',
         'schema_loc': 'database/schema.yml',
+        'database_loc': 'database/db',
         'static_media_path': 'static/',
         'rss_feed_urls': 'rss/{id}.xml',
         'qr_cache_path': 'qr_cache/'
@@ -45,8 +46,14 @@ class Configuration:
         
         return cls(**config)
 
+    def __getitem__(self, key):
+        return getattr(self, key)
 
-def get_configuration(field=None):
+    def get(self, key, default):
+        return getattr(self, key, default)
+
+
+def get_configuration():
     """
     On first call, this loads the configuration object, on subsequent calls,
     this returns the original configuration object.
@@ -80,11 +87,19 @@ def get_configuration(field=None):
 
         warnings.warn(msg, RuntimeWarning)
 
-    get_configuration._configuration = Configuration.from_file(config_location)
-
-    if field is None:
-        return get_configuration._configuration
+    if found_config:
+        get_configuration._configuration = Configuration.from_file(config_location)
     else:
-        return get_configuration._configuration[field]
+        get_configuration._configuration = Configuration()
+
+    return get_configuration._configuration
+
+
+def read_from_config(field):
+    """
+    Convenience method for accessing specific fields from the configuration
+    object.
+    """
+    return get_configuration()[field]
 
 

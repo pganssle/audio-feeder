@@ -11,7 +11,6 @@ types:
         fields:
             - id
             - path
-            - url
             - cover_images
 
             - date_added
@@ -20,7 +19,6 @@ types:
             - type
             - data_id
             - hashseed
-            - other_formats
 
     User:
         fields:
@@ -69,8 +67,8 @@ types:
             - description
             - descriptions           # Cache multiple descriptions by source.
 
-            - series_name
             - series_id              # Foreign key to the series table
+            - series_name
             - series_number
 
             - cover_images

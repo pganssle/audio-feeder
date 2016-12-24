@@ -5,24 +5,45 @@ import os
 import warnings
 
 import yaml
+from collections import OrderedDict
 
 CONFIG_LOCATIONS = [
     os.path.expanduser('~/.config/audio_rss_server/config.yml'),
 ]
 
+class _ConfigProperty:
+    def __init__(self, prop_name):
+        self.prop_name = prop_name
+
+    def __repr__(self):
+        return self.__class__.__name__ + '({})'.format(self.prop_name)
+
 class Configuration:
-    PROPERTIES = {
-        'base_truncation_point': 500,
-        'templates_base_loc': 'templates',
-        'entry_templates_loc': 'entry_types',
-        'RSS_templates_loc': 'RSS',
-        'schema_loc': 'database/schema.yml',
-        'database_loc': 'database/db',
-        'static_media_path': 'static/',
-        'rss_feed_urls': 'rss/{id}.xml',
-        'qr_cache_path': 'qr_cache/'
+    PROPERTIES = OrderedDict((
+        ('base_truncation_point', 500),
+        ('templates_base_loc', '{{CONFIG}}/templates'),
+        ('entry_templates_loc', '{{TEMPLATES}}/entry_types'),
+        ('RSS_templates_loc', '{{TEMPLATES}}/RSS'),
+        ('schema_loc', '{{CONFIG}}/database/schema.yml'),
+        ('database_loc', '{{CONFIG}}/database/db'),
+        ('static_media_path', '{{CONFIG}}/static'),
+        ('qr_cache_path', '{{STATIC}}/images/qr_cache'),
+        ('rss_feed_urls', 'rss/{id}.xml'),)
+    )
+
+    REPLACEMENTS = {
+        '{{CONFIG}}': _ConfigProperty('config_location'),
+        '{{TEMPLATES}}': _ConfigProperty('templates_base_loc'),
+        '{{STATIC}}': _ConfigProperty('static_media_path')
     }
-    def __init__(self, **kwargs):
+
+    def __init__(self, config_loc_=None, **kwargs):
+        if config_loc_ is None:
+            # If configuration location is not specified, we'll use pwd.
+            config_loc = os.getcwd()
+
+        self.config_location = config_loc
+
         base_kwarg = self.PROPERTIES.copy()
 
         for kwarg in kwargs.keys():
@@ -35,6 +56,9 @@ class Configuration:
 
         for kwarg, value in kwargs.items():
             setattr(self, kwarg, value)
+
+        for kwarg in self.PROPERTIES.keys():
+            setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
 
     @classmethod
     def from_file(cls, file_loc):
@@ -49,8 +73,35 @@ class Configuration:
     def __getitem__(self, key):
         return getattr(self, key)
 
-    def get(self, key, default):
-        return getattr(self, key, default)
+    def get(self, key, *args):
+        return getattr(self, key, *args)
+
+    def keys(self):
+        return self.PROPERTIES.keys()
+
+    def values(self):
+        return (self.get(k) for k in self.keys())
+
+    def items(self):
+        return ((k, self.get(k)) for k in self.keys())
+
+    def make_replacements(self, value):
+        if not isinstance(value, str):
+            return value
+
+        for k, repl in self.REPLACEMENTS.items():
+            if k not in value:
+                continue
+
+            if isinstance(repl, _ConfigProperty):
+                return value.replace(k, self.get(repl.prop_name))
+            else:
+                return value.replace(k, repl)
+
+        return value
+
+    def to_dict(self):
+        return OrderedDict(self.items())
 
 
 def get_configuration():
@@ -103,3 +154,5 @@ def read_from_config(field):
     return get_configuration()[field]
 
 
+class _Sentinel:
+    pass

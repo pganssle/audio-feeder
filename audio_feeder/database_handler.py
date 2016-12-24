@@ -107,6 +107,19 @@ def save_database(database, schema_loc=None, db_loc=None):
         raise e
 
 
+def get_database_table(table_name):
+    """
+    Loads a database table from a cached read-only database.
+    """
+    db = getattr(get_database_table, '_database', None)
+    if db is None:
+        db = load_database()
+
+    get_database_table._database = db
+
+    return db[table_name]
+
+
 class IDHandler:
     """
     This is a class for handling the assignment of new IDs.
@@ -247,7 +260,7 @@ class BookDatabaseUpdater:
         entry_obj = oh.Entry(id=e_id, path=path,
             date_added=datetime.datetime.utcnow(),
             last_modified=datetime.datetime.utcnow(),
-            type='Book', data_id=None,
+            type='Book', table='books', data_id=None,
             hashseed=_rand.randint(0, 2**32))
 
         return entry_obj

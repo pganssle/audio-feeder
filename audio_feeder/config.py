@@ -24,13 +24,17 @@ class Configuration:
         ('base_truncation_point', 500),
         ('templates_base_loc', '{{CONFIG}}/templates'),
         ('entry_templates_loc', '{{TEMPLATES}}/entry_types'),
+        ('pages_templates_loc', '{{TEMPLATES}}/pages'),
         ('RSS_templates_loc', '{{TEMPLATES}}/RSS'),
         ('schema_loc', '{{CONFIG}}/database/schema.yml'),
         ('database_loc', '{{CONFIG}}/database/db'),
         ('static_media_path', '{{CONFIG}}/static'),
+        ('site_images_path', '{{STATIC}}/images/site-images'),
         ('qr_cache_path', '{{STATIC}}/images/qr_cache'),
-        ('rss_feed_urls', 'rss/{id}.xml'),)
-    )
+        ('rss_feed_urls', 'rss/{id}.xml'),
+        ('base_host', 'localhost'),
+        ('base_port', 9090),
+    ))
 
     REPLACEMENTS = {
         '{{CONFIG}}': _ConfigProperty('config_directory'),
@@ -49,7 +53,7 @@ class Configuration:
         base_kwarg = self.PROPERTIES.copy()
 
         for kwarg in kwargs.keys():
-            if kwarg not in PROPERTIES:
+            if kwarg not in self.PROPERTIES:
                 raise TypeError('Unexpected keyword argument: {}'.format(kwarg))
 
         base_kwarg.update(kwargs)
@@ -65,14 +69,21 @@ class Configuration:
         for kwarg in self.PROPERTIES.keys():
             setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
 
+        if self.base_port is None:
+            self.base_url = self.base_host
+        else:
+            self.base_url = '{}:{}'.format(self.base_host, self.base_port)
+    
     @classmethod
-    def from_file(cls, file_loc):
+    def from_file(cls, file_loc, **kwargs):
         if not os.path.exists(file_loc):
             raise IOError('File not found: {}'.format(file_loc))
 
         with open(file_loc, 'r') as yf:
             config = yaml.safe_load(yf)
-        
+
+        config.update(kwargs)
+
         return cls(**config)
 
     def to_file(self, file_loc):
@@ -119,6 +130,78 @@ class Configuration:
         return dict(*self.items())
 
 
+def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
+    """
+    Initializes the configuration from config_loc or from the default
+    configuration location.
+    """
+
+    config_locations = []
+    found_config = False
+    if config_loc is not None:
+        if not os.path.exists(config_loc):
+            if config_loc_must_exist:
+               raise ValueError('Configuration location does not exist.')
+
+            # Make sure we can write to this directory
+            if not os.access(config_loc, os.W_OK):
+                raise ValueError('Cannot write to {}'.format(config_loc))
+
+        config_location = config_loc
+        found_config = True
+
+    if not found_config:
+        config_location = os.environ.get('AUDIO_FEEDER_CONFIG', None)
+        falling_back = False
+        found_config = False
+        if config_location is not None:
+            if not os.path.exists(config_location):
+                falling_back = True
+            else:
+                found_config = True
+
+        if not found_config:
+            config_locs = [config_location] if config_location else []
+            for config_location in CONFIG_LOCATIONS:
+                config_locs.append(config_location)
+                if os.path.exists(config_location):
+                    found_config = True
+                    break
+
+        if falling_back:
+            msg = ('Could not find config file from environment variable:' +
+                   ' {},'.format(os.environ['AUDIO_RSS_CONFIG']))
+            if found_config:
+                msg += ', using {} instead.'.format(config_location)
+            else:
+                msg += ', using baseline configuration.'
+
+            warnings.warn(msg, RuntimeWarning)
+
+    if found_config and os.path.exists(config_location):
+        new_conf = Configuration.from_file(config_location, **kwargs)
+        get_configuration._configuration = new_conf
+    else:
+        if not found_config:
+            for config_location in config_locs:
+                if not config_location.endswith('.yml'):
+                    continue
+
+                config_dir = os.path.split(config_location)[0]
+                if os.access(config_dir, os.W_OK):
+                    break
+            else:
+                config_location = None
+
+        new_conf = Configuration(config_loc_=config_location, **kwargs)
+        get_configuration._configuration = new_conf
+
+        if config_location is not None:
+            logging.info('Creating configuration file at {}'.format(config_location))
+
+            get_configuration._configuration.to_file(config_location)
+
+
 def get_configuration():
     """
     On first call, this loads the configuration object, on subsequent calls,
@@ -128,52 +211,7 @@ def get_configuration():
     if config_obj is not None:
         return config_obj
 
-    config_location = os.environ.get('AUDIO_RSS_CONFIG', None)
-    falling_back = False
-    found_config = False
-    if config_location is not None:
-        if not os.path.exists(config_location):
-            falling_back = True
-        else:
-            found_config = True
-
-    if not found_config:
-        config_locs = [config_location] if config_location else []
-        for config_location in CONFIG_LOCATIONS:
-            config_locs.append(config_location)
-            if os.path.exists(config_location):
-                found_config = True
-                break
-
-    if falling_back:
-        msg = ('Could not find config file from environment variable:' +
-               ' {},'.format(os.environ['AUDIO_RSS_CONFIG']))
-        if found_config:
-            msg += ', using {} instead.'.format(config_location)
-        else:
-            msg += ', using baseline configuration.'
-
-        warnings.warn(msg, RuntimeWarning)
-
-    if found_config:
-        get_configuration._configuration = Configuration.from_file(config_location)
-    else:
-        for config_location in config_locs:
-            if not config_location.endswith('.yml'):
-                continue
-
-            config_dir = os.path.split(config_location)[0]
-            if os.access(config_dir, os.W_OK):
-                break
-        else:
-            config_location = None
-
-        get_configuration._configuration = Configuration(config_loc_=config_location)
-
-        if config_location is not None:
-            logging.info('Creating configuration file at {}'.format(config_location))
-
-            get_configuration._configuration.to_file(config_location)
+    init_config()
 
     return get_configuration._configuration
 

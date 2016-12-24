@@ -2,14 +2,18 @@
 Page generator
 """
 from html.parser import HTMLParser
-import string
 import glob
+import math
+import os
+import string
 
 from .object_handler import Entry as BaseEntry
 from .object_handler import Book as BaseBook
-from .config import get_configuration
+from .config import get_configuration, read_from_config
+
 
 import qrcode
+from qrcode.image.svg import SvgImage
 import warnings
 
 from jinja2 import Template
@@ -27,7 +31,8 @@ def load_type(type_name):
 
         type_dir = os.path.join(et_loc, type_name)
         if not os.path.exists(type_dir):
-            raise IOError('Type directory templates do not exist.')
+            raise IOError('Type directory templates do not exist: ' +
+                ' {}'.format(type_dir))
 
         type_dict = {}
         for fname in os.listdir(type_dir):
@@ -40,14 +45,16 @@ def load_type(type_name):
             with open(fpath, 'r') as f:
                 type_dict[tname] = Template(f.read())
 
-        type_cache[type_name] = tname
+        type_cache[type_name] = type_dict
+
+        load_type.type_cache = type_cache
 
     return type_cache[type_name]
 
 
 class _TagStripper(HTMLParser):
     def __init__(self):
-        super(TagStripper, self).__init__(convert_charrefs=False)
+        super().__init__(convert_charrefs=False)
 
         self.all_data = []
 
@@ -71,7 +78,7 @@ class QRGenerator:
     """
     def __init__(self, fmt='svg', version=None, **qr_options):
         if fmt == 'svg':
-            image_factory = qrcode.image.svg.SvgImage
+            image_factory = SvgImage
             self.extension = '.svg'
         elif fmt == 'png':
             image_factory = None
@@ -86,7 +93,7 @@ class QRGenerator:
         img.save(save_path)
 
     def get_save_path(self, save_dir, save_name):
-        save_path = os.path.join(save_dir, path_name + self.extension)
+        save_path = os.path.join(save_dir, save_name + self.extension)
 
         return save_path
 
@@ -114,33 +121,35 @@ class UrlResolver:
     def resolve_rss(self, e_id, tail=None):
         kwargs = dict(id=e_id, tail=tail or '')
 
-        url_tail = get_configuration('rss_media_path')
+        url_tail = read_from_config('rss_feed_urls')
         url_tail = url_tail.format(**kwargs)
         return self.resolve_url(self.rss_protocol,
                                 self.base_url,
-                                url_tail)
+                                url_tail,
+                                validate=False)
 
     def resolve_qr(self, e_id, url):
         # Check the QR cache - for the moment, we're going to assume that once
         # a QR code is generated, it's accurate until it's deleted. Eventually
         # it might be nice to allow multiple caches.
-        qr_cache = get_configuration('qr_cache_path')
+        qr_cache = read_from_config('qr_cache_path')
 
         rel_save_dir = self.resolve_relpath(qr_cache)
         rel_save_path = self.qr_generator.get_save_path(rel_save_dir,
                                                         '{}'.format(e_id))
 
-        save_path = os.path.join(self.base_url, rel_save_path)
+        save_path = os.path.join(self.base_path, rel_save_path)
         if not os.path.exists(save_path):
-            qr_generator.generate_qr(url, save_path)
+            self.qr_generator.generate_qr(url, save_path)
 
         return self.resolve_url(protocol=self.img_protocol,
                                 base_url=self.base_url,
                                 url_tail=rel_save_path)
 
-    def resolve_url(self, protocol, base_url, url_tail):
+    def resolve_url(self, protocol, base_url, url_tail, validate=False):
         relpath = self.resolve_relpath(url_tail)
-        self.validate_path(relpath)
+        if validate:
+            self.validate_path(relpath)
 
         url_base = '{protocol}://{base_url}'.format(protocol=protocol,
                                                     base_url=base_url)
@@ -151,7 +160,7 @@ class UrlResolver:
         return os.path.relpath(path, self.base_path)
 
     def validate_path(self, relpath):
-        if not os.path.exists(os.path.join(self.base_path), base_path):
+        if not os.path.exists(os.path.join(self.base_path, relpath)):
             raise FailedResolutionError
 
 
@@ -160,7 +169,7 @@ class EntryRenderer:
               'cover_img_url', 'qr_img_url', 'truncation_point')
 
     def __init__(self, url_resolver):
-        self.url_resolver = None
+        self.url_resolver = url_resolver
 
     def render(self, entry_obj, data_obj):
         """
@@ -184,10 +193,11 @@ class EntryRenderer:
 
         out['name'] = type_dict['name'].render(**data_dict)
         out['description'] = type_dict['description'].render(**data_dict)
+        out['cover_url'] = None
 
-        for cover_image in entry_obj.cover_images:
+        for cover_image in entry_obj.cover_images or []:
             try:
-                out['cover_img_url'] = self.url_resolver.resolve_media(cover_image)
+                out['cover_url'] = self.url_resolver.resolve_media(cover_image)
                 break
             except FailedResolutionError:
                 pass
@@ -220,12 +230,59 @@ class EntryRenderer:
         return base_truncation_point + word_offset
 
 
+class NavItem:
+    def __init__(self, base_url, display, params=None):
+        self.display = display
+        self.url = base_url
+
+        if base_url is not None and params is not None:
+            self.url += '?' + '&'.join('{k}={v}'.format(k=k, v=v)
+                                       for k, v in params.items())
+
+    def display_only(self):
+        """
+        Makes a "no-url" copy of this navigation item.
+        """
+        return self.__class__(None, self.display)
+
+
+class NavGenerator:
+    # For now, there won't be any truncation of the list.
+    # TODO: Add list truncation
+    def __init__(self, num_entries, base_url):
+        self.num_entries = num_entries
+        self.base_url = base_url
+        self._page_cache = {}
+
+    def get_pages(self, sort_args):
+        sort_args = sort_args.copy()
+        page = sort_args.pop('page')
+        per_page = sort_args['perPage']
+
+        cache_key = tuple(sorted(sort_args.items()))
+        if cache_key not in self._page_cache:
+            pages = []
+            num_pages = math.ceil(self.num_entries / per_page)
+
+            for ii in range(0, num_pages):
+                sort_args['page'] = ii
+
+                # The URL is generated on construction, so no need to worry
+                # about the fact that we are mutating the same dictionary.
+                ni = NavItem(self.base_url, display='{}'.format(ii),
+                             params=sort_args)
+
+                pages.append(ni)
+
+            self._page_cache[cache_key] = pages
+        else:
+            pages = self._page_cache[cache_key]
+
+        return [ni if ii != page else ni.display_only()
+                for ii, ni in enumerate(pages)]
+
+
 class FailedResolutionError(IOError):
     pass
-
-
-
-
-
 
 

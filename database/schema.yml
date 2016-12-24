@@ -17,6 +17,7 @@ types:
             - last_modified
 
             - type
+            - table
             - data_id
             - hashseed
 

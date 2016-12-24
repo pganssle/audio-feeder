@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
-DESCRIPTION = """This is the main script that runs the audio_rss_server backend.
+DESCRIPTION = """This is the main script that runs the audio_feeder backend.
 """
 from flask import Flask
 
-app = Flask('audio_rss_server')
+app = Flask('audio_feeder')
 
 @app.route('/')
 def main_index():

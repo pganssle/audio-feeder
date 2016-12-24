@@ -4,20 +4,19 @@ from audio_rss_server.__version__ import VERSION
 from setuptools import setup
 
 DESCRIPTION = """
-The audio-rss-server provides a server that serves your 
+The audio-feeder provides a server that serves your audiobooks and other audio
+content as RSS feeds, with rich metadata, and provides a web frontent for
+navigation.
 """
 
-setup(name="audio-rss-server",
+setup(name="audio-feeder",
       version=VERSION,
-      description="Extensions to the standard Python datetime module",
+      description=DESCRIPTION,
       author="Paul Ganssle",
       author_email="paul@ganssle.io",
       license="Apache 2.0",
-      long_description="""
-The dateutil module provides powerful extensions to the
-datetime module available in the Python standard library.
-""",
-      packages=["audio_rss_server"],
+      long_description=DESCRIPTION,
+      packages=["audio_feeder"],
       zip_safe=True,
       requires=["Flask", "qrcode", "pillow", "jinja2", "pyyaml", 'requests'],
       install_requires=["Flask>=0.11.1"]

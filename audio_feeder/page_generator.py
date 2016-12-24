@@ -219,6 +219,7 @@ class EntryRenderer:
 
         return base_truncation_point + word_offset
 
+
 class FailedResolutionError(IOError):
     pass
 

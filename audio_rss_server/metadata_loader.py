@@ -18,6 +18,7 @@ class MetaDataLoader:
     #: Minimum delay between requests for the given API endpoint. 
     POLL_DELAY = 0.2
     API_ENDPOINT = None
+    SOURCE_NAME = None
 
     def __init__(self, *args, **kwargs):
         self._last_poll = None
@@ -26,6 +27,11 @@ class MetaDataLoader:
         if self.API_ENDPOINT is None:
             msg = ('This is an abstract base class, all subclasses are reuqired'
                   ' to specify a non-None value for API_ENDPOINT.')
+            raise NotImplementedError(msg)
+
+        if self.SOURCE_NAME is None:
+            msg = ('This is an abstract base class, all subclasses are reuqired'
+                  ' to specify a non-None value for SOURCE_NAME.')
             raise NotImplementedError(msg)
 
     def make_request(self, *args, raise_on_early_=False, **kwargs):
@@ -116,7 +122,6 @@ class GoogleBooksLoader(MetaDataLoader):
         else:
             return None
 
-
     def retrieve_search_results(self, query_list, **params):
         params_base = {'orderBy': 'relevance'}
         params_base.update(params)
@@ -142,10 +147,13 @@ class GoogleBooksLoader(MetaDataLoader):
 
         out = {}
         v_info = j_item['volumeInfo']
-        out['title'] = v_info['title']
-        out['subtitle'] = v_info.get('subtitle', None)
-        out['authors'] = v_info['authors']
         out['google_id'] = j_item['id']
+
+        out['title'] = v_info.get('title', None)
+        out['authors'] = v_info.get('authors', None)
+        out['subtitle'] = v_info.get('subtitle', None)
+        if 'description' not in v_info:
+            print(j_item)
         out['description'] = v_info['description']
         out['pub_date'] = v_info.get('publishedDate', None)
         out['publisher'] = v_info.get('publisher', None)
@@ -169,14 +177,15 @@ class GoogleBooksLoader(MetaDataLoader):
         return out
 
     def update_book_info(self, book_obj, overwrite_existing=False):
+        if book_obj.metadata_sources is None:
+            book_obj.metadata_sources = []
+
         if (not overwrite_existing and
             self.SOURCE_NAME in book_obj.metadata_sources):
             return book_obj
 
-        book_obj.metadata_sources.append(self.SOURCE_NAME)
-
         get_volume_params = {k: getattr(book_obj, k, None) for k in
-            ('title', 'author', 'isbn', 'isbn13',
+            ('title', 'authors', 'isbn', 'isbn13',
              'oclc', 'lccn', 'issn', 'google_id')
         }
 
@@ -184,29 +193,42 @@ class GoogleBooksLoader(MetaDataLoader):
                              if v is not None}
 
         md = self.get_volume(**get_volume_params)
+        if md is None:
+            return book_obj
 
         # These are keys where the value is set only if it didn't exist before.
         keep_existing_keys = (
-            'author', 'title', 'isbn', 'isbn13', 'issn', 'pages',
+            'authors', 'title', 'isbn', 'isbn13', 'issn', 'pages',
             'pub_date', 'publisher', 'language'
         )
 
         for key in keep_existing_keys:
-            if getattr(book_obj, key, None) is None:
+            if getattr(book_obj, key, None) is None and key in md:
                 setattr(book_obj, key, md[key])
 
         # Add a Google Books description if it doesn't exist already.
+        if book_obj.descriptions is None:
+            book_obj.descriptions = {}
+
         book_obj.descriptions[self.SOURCE_NAME] = md['description']
 
         # Append any tags that aren't in there already
-        for category in out['categories']:
+        if book_obj.tags is None:
+            book_obj.tags = []
+
+        for category in md['categories']:
             if category not in book_obj.tags:
                 book_obj.tags.append(category)
 
-        if self.SOURCE_NAME not in book.cover_images:
-            book.cover_images[self.SOURCE_NAME] = {}
+        if book_obj.cover_images is None:
+            book_obj.cover_images = {}
 
-        book.cover_images[self.SOURCE_NAME].update(md['image_link'])
+        if self.SOURCE_NAME not in book_obj.cover_images:
+            book_obj.cover_images[self.SOURCE_NAME] = {}
+
+        book_obj.cover_images[self.SOURCE_NAME].update(md['image_link'])
+
+        book_obj.metadata_sources.append(self.SOURCE_NAME)
 
         return book_obj
 

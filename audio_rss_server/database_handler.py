@@ -143,7 +143,7 @@ class BookDatabaseUpdater:
     def __init__(self, books_location,
                  entry_table='entries', table='books',
                  book_loader=dp.AudiobookLoader,
-                 metadata_loaders={'Books': (mdl.GoogleBooksLoader)},
+                 metadata_loaders=(mdl.GoogleBooksLoader(),),
                  id_handler=IDHandler):
         self.table = table
         self.entry_table = entry_table
@@ -158,7 +158,7 @@ class BookDatabaseUpdater:
     def cover_image_path(self, path, book_obj):
         pass
 
-    def update_db(self, database):
+    def update_db(self, database, reload_metadata=False):
         # Load all audio from the audiobooks location
         book_paths = self.load_book_paths()
 
@@ -188,6 +188,47 @@ class BookDatabaseUpdater:
 
             entry_obj = self.make_new_entry(path, book_obj.id, entry_id_handler)
             entry_table[entry_obj.id] = entry_obj
+
+        # Create a mapping between entry objects and book objects
+        book_to_entry = {}
+        for entry_id, entry_obj in entry_table.items():
+            if entry_obj.type != 'Book':
+                continue
+
+            book_to_entry.setdefault(entry_obj.data_id, []).append(entry_id)
+
+        # Set the priority on who gets to set the description.
+        description_priority = ((mdl.LOCAL_DATA_SOURCE,) +
+            tuple(x.SOURCE_NAME for x in self.metadata_loaders))
+
+        # Go through and try to update metadata.
+        for book_id, book_obj in book_table.items():
+            for loader in self.metadata_loaders:
+                # Skip anything that's already had metadata loaded for it.
+                if (not reload_metadata and
+                    (book_obj.metadata_sources is not None and
+                     loader.SOURCE_NAME in book_obj.metadata_sources)):
+                    continue
+
+                book_obj = loader.update_book_info(book_obj,
+                                                   overwrite_existing=reload_metadata)
+
+                # Update 'last modified' on any entries updated.
+                for entry_id in book_to_entry.get(book_id, []):
+                    entry_obj = entry_table[entry_id]
+                    entry_obj.last_modified = datetime.datetime.utcnow()
+                    entry_table[entry_id] = entry_obj
+
+            # Try and assign priority for the descriptions
+            if book_obj.descriptions is None:
+                book_obj.descriptions = {}
+
+            for source_name in description_priority:
+                if source_name in book_obj.descriptions:
+                    book_obj.description = book_obj.descriptions[source_name]
+                    break
+
+            book_table[book_id] = book_obj
 
         return database
 

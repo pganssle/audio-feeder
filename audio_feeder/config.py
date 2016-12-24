@@ -2,6 +2,7 @@
 Configuration manager - handles the application's global configuration.
 """
 import os
+import logging
 import warnings
 
 import yaml
@@ -32,7 +33,7 @@ class Configuration:
     )
 
     REPLACEMENTS = {
-        '{{CONFIG}}': _ConfigProperty('config_location'),
+        '{{CONFIG}}': _ConfigProperty('config_directory'),
         '{{TEMPLATES}}': _ConfigProperty('templates_base_loc'),
         '{{STATIC}}': _ConfigProperty('static_media_path')
     }
@@ -40,9 +41,10 @@ class Configuration:
     def __init__(self, config_loc_=None, **kwargs):
         if config_loc_ is None:
             # If configuration location is not specified, we'll use pwd.
-            config_loc = os.getcwd()
+            config_loc = os.path.join(os.getcwd(), 'config.yml')
 
         self.config_location = config_loc
+        self.config_directory = os.path.split(self.config_location)[0]
 
         base_kwarg = self.PROPERTIES.copy()
 
@@ -54,8 +56,11 @@ class Configuration:
 
         kwargs = base_kwarg
 
-        for kwarg, value in kwargs.items():
+        self._base_dict = {}
+        for kwarg in self.PROPERTIES.keys():
+            value = kwargs[kwarg]
             setattr(self, kwarg, value)
+            self._base_dict[kwarg] = value
 
         for kwarg in self.PROPERTIES.keys():
             setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
@@ -69,6 +74,16 @@ class Configuration:
             config = yaml.safe_load(yf)
         
         return cls(**config)
+
+    def to_file(self, file_loc):
+        """
+        Dumps the configuration to a YAML file in the specified location.
+
+        This will not reflect any runtime modifications to the configuration
+        object.
+        """
+        with open(file_loc, 'w') as yf:
+            yaml.dump(self._base_dict, stream=yf, default_flow_style=False)
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -101,7 +116,7 @@ class Configuration:
         return value
 
     def to_dict(self):
-        return OrderedDict(self.items())
+        return dict(*self.items())
 
 
 def get_configuration():
@@ -123,7 +138,9 @@ def get_configuration():
             found_config = True
 
     if not found_config:
+        config_locs = [config_location] if config_location else []
         for config_location in CONFIG_LOCATIONS:
+            config_locs.append(config_location)
             if os.path.exists(config_location):
                 found_config = True
                 break
@@ -141,7 +158,22 @@ def get_configuration():
     if found_config:
         get_configuration._configuration = Configuration.from_file(config_location)
     else:
-        get_configuration._configuration = Configuration()
+        for config_location in config_locs:
+            if not config_location.endswith('.yml'):
+                continue
+
+            config_dir = os.path.split(config_location)[0]
+            if os.access(config_dir, os.W_OK):
+                break
+        else:
+            config_location = None
+
+        get_configuration._configuration = Configuration(config_loc_=config_location)
+
+        if config_location is not None:
+            logging.info('Creating configuration file at {}'.format(config_location))
+
+            get_configuration._configuration.to_file(config_location)
 
     return get_configuration._configuration
 

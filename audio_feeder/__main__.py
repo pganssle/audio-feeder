@@ -9,13 +9,12 @@ app = Flask('audio_feeder')
 def main_index():
     pass
 
-
-if __name__ == "__main__":
+def run():
     import argparse
 
     parser = argparse.ArgumentParser(description=DESCRIPTION)
 
-    parser.add_argument('-h', '--host', type=str, default='0.0.0.0',
+    parser.add_argument('-hn', '--host', type=str, default='0.0.0.0',
         help='The host to run the application on.')
 
     parser.add_argument('-p', '--port', type=int, default=9090,

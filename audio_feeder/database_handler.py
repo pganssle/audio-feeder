@@ -155,9 +155,6 @@ class BookDatabaseUpdater:
     def load_book_paths(self):
         return dp.load_all_audio(self.books_location)
 
-    def cover_image_path(self, path, book_obj):
-        pass
-
     def update_db(self, database, reload_metadata=False):
         # Load all audio from the audiobooks location
         book_paths = self.load_book_paths()
@@ -181,21 +178,27 @@ class BookDatabaseUpdater:
         book_id_handler = self.id_handler(invalid_ids=book_table.items())
         
         for path in new_paths:
-            book_obj = self.load_book(path, book_table, book_id_handler)
-
-            if book_obj.id not in book_table:
-                book_table[book_obj.id] = book_obj
-
             entry_obj = self.make_new_entry(path, book_obj.id, entry_id_handler)
             entry_table[entry_obj.id] = entry_obj
 
-        # Create a mapping between entry objects and book objects
+        # Go through and assign a book to each entry for both new entries and
+        # entries with missing book IDs.
         book_to_entry = {}
         for entry_id, entry_obj in entry_table.items():
             if entry_obj.type != 'Book':
                 continue
 
-            book_to_entry.setdefault(entry_obj.data_id, []).append(entry_id)
+            if entry_obj.data_id in book_table:
+                book_obj = book_table[entry_obj.data_id]
+            else:
+                book_obj = self.load_book(path, book_table, book_id_handler)
+
+                if book_obj.id not in book_table:
+                    book_table[book_obj.id] = book_obj
+
+                entry_obj.data_id = book_obj.id
+
+            book_to_entry.setdefault(book_obj.id, []).append(entry_id)
 
         # Set the priority on who gets to set the description.
         description_priority = ((mdl.LOCAL_DATA_SOURCE,) +
@@ -232,7 +235,7 @@ class BookDatabaseUpdater:
 
         return database
 
-    def make_new_entry(self, path, book_id, id_handler):
+    def make_new_entry(self, path, id_handler):
         """
         Generates a new entry for the specified path.
 
@@ -244,7 +247,7 @@ class BookDatabaseUpdater:
         entry_obj = oh.Entry(id=e_id, path=path,
             date_added=datetime.datetime.utcnow(),
             last_modified=datetime.datetime.utcnow(),
-            type='Book', data_id=book_id,
+            type='Book', data_id=None,
             hashseed=_rand.randint(0, 2**32))
 
         return entry_obj

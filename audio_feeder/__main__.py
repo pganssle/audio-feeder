@@ -91,7 +91,6 @@ def get_rendered_entries(entry_list):
     return [renderer.render(entry_obj, data_obj)
             for entry_obj, data_obj in entry_list]
 
-
 def get_paged_entries(entry_list, sort_args):
     per_page = sort_args['perPage']
     page = sort_args['page']
@@ -162,7 +161,7 @@ def get_sortable_args(args):
     per_page = per_page or per_page_dflt
 
     # Current page location
-    page = args.get('page', 0)
+    page = int(args.get('page', 0))
 
     args = {
         'sortAscending': sort_ascending,

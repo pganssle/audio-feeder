@@ -218,7 +218,7 @@ class EntryRenderer:
         base_truncation_point = config['base_truncation_point']
 
         if len(raw_chars) > base_truncation_point:
-            return None
+            return -1
 
         word_offset = 0
         for c_char in raw_chars[base_truncation_point:]:

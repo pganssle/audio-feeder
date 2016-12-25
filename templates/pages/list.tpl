@@ -43,7 +43,8 @@
             </td>
             <td class="entry_body" id="{{ entry.id }}">
                 <h3 class="entry_title"><a class="entry_link" href="{{ entry.rss_url }}">{{ entry.name }}</a></h3><br/>
-                {{ entry.description[0:entry.truncation_point] }}{% if not entry.truncation_point is sameas none and entry.description|length > entry.truncation_point %}<span class="hidden_description_section">{{ entry.description[entry.trunction_point:] }}</span><span class="hidden_expander_span" id="{{ entry.id }}">(Read More)</span>
+                {% if entry.truncation_point <= 0 %}{{ entry.description }}{% else %}
+                {{ entry.description[0:entry.truncation_point] }}{% if entry.description|length > entry.truncation_point %}<span class="hidden_description_section">{{ entry.description[entry.truncation_point:] }}</span><span class="hidden_expander_span" id="{{ entry.id }}">(Read More)</span>{%endif%}
                 {% endif %}
             </td>
         </tr>

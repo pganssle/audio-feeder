@@ -1,1 +1,1 @@
-<span class="book_author">{%if authors | length > 1 %}{{ authors[0:-1] | join(', ') }} and {{authors[-1]}}{%else%}{{authors[0]}}{%endif%}</span> - <span class="book_title">{{ title }}</span>; {{authors|length}}
+<span class="book_author">{%if authors | length > 1 %}{{ authors[0:-1] | join(', ') }} and {{authors[-1]}}{%else%}{{authors[0]}}{%endif%}</span> - <span class="book_title">{{ title }}</span>

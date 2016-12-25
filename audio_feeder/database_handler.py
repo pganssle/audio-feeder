@@ -204,7 +204,8 @@ class BookDatabaseUpdater:
             if entry_obj.data_id in book_table:
                 book_obj = book_table[entry_obj.data_id]
             else:
-                book_obj = self.load_book(path, book_table, book_id_handler)
+                book_obj = self.load_book(entry_obj.path,
+                                          book_table, book_id_handler)
 
                 if book_obj.id not in book_table:
                     book_table[book_obj.id] = book_obj
@@ -243,6 +244,8 @@ class BookDatabaseUpdater:
                 if source_name in book_obj.descriptions:
                     book_obj.description = book_obj.descriptions[source_name]
                     break
+            else:
+                book_obj.description = ''
 
             book_table[book_id] = book_obj
 

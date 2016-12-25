@@ -152,9 +152,7 @@ class GoogleBooksLoader(MetaDataLoader):
         out['title'] = v_info.get('title', None)
         out['authors'] = v_info.get('authors', None)
         out['subtitle'] = v_info.get('subtitle', None)
-        if 'description' not in v_info:
-            print(j_item)
-        out['description'] = v_info['description']
+        out['description'] = v_info.get('description', None)
         out['pub_date'] = v_info.get('publishedDate', None)
         out['publisher'] = v_info.get('publisher', None)
 

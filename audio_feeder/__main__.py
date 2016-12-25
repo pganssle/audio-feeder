@@ -21,11 +21,17 @@ app = Flask('audio_feeder')
 
 @app.route('/')
 def main_index():
+    """
+    The base index - for now this redirects to the audiobooks.
+    """
     return flask.redirect(flask.url_for('books'))
 
 
 @app.route('/books')
 def books():
+    """
+    The main page for listing audiobooks
+    """
     sort_args = get_sortable_args(request.args)
 
     # Retrieve or populate the entry cache.
@@ -82,6 +88,7 @@ def books():
     # Apply the template
     t = get_list_template()
     return t.render(page_data)
+
 
 ###
 # Functions (probably want to move most of these to page_generator)
@@ -234,4 +241,8 @@ def run():
 
     init_config(base_host=args.host, base_port=args.port)
 
+    app.static_folder = read_from_config('static_media_path')
+
     app.run(host=args.host, port=args.port)
+
+    print(read_from_config('qr_cache_path'))

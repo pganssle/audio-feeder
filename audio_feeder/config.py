@@ -29,8 +29,9 @@ class Configuration:
         ('schema_loc', '{{CONFIG}}/database/schema.yml'),
         ('database_loc', '{{CONFIG}}/database/db'),
         ('static_media_path', '{{CONFIG}}/static'),
+        ('static_media_url', '{{URL}}/static'),
         ('site_images_path', '{{STATIC}}/images/site-images'),
-        ('qr_cache_path', '{{STATIC}}/images/qr_cache'),
+        ('qr_cache_path', 'images/qr_cache'),
         ('rss_feed_urls', 'rss/{id}.xml'),
         ('base_host', 'localhost'),
         ('base_port', 9090),
@@ -39,7 +40,8 @@ class Configuration:
     REPLACEMENTS = {
         '{{CONFIG}}': _ConfigProperty('config_directory'),
         '{{TEMPLATES}}': _ConfigProperty('templates_base_loc'),
-        '{{STATIC}}': _ConfigProperty('static_media_path')
+        '{{STATIC}}': _ConfigProperty('static_media_path'),
+        '{{URL}}': _ConfigProperty('base_url')
     }
 
     def __init__(self, config_loc_=None, **kwargs):
@@ -66,14 +68,14 @@ class Configuration:
             setattr(self, kwarg, value)
             self._base_dict[kwarg] = value
 
-        for kwarg in self.PROPERTIES.keys():
-            setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
-
         if self.base_port is None:
             self.base_url = self.base_host
         else:
             self.base_url = '{}:{}'.format(self.base_host, self.base_port)
-    
+
+        for kwarg in self.PROPERTIES.keys():
+            setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
+
     @classmethod
     def from_file(cls, file_loc, **kwargs):
         if not os.path.exists(file_loc):

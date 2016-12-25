@@ -161,6 +161,9 @@ class UrlResolver:
         self.img_protocol = img_protocol
         self.audio_protocol = audio_protocol
 
+        self.static_url = read_from_config('static_media_url')
+        self.static_path = read_from_config('static_media_path')
+
         if qr_generator is None:
             self.qr_generator = QRGenerator()
 
@@ -183,7 +186,8 @@ class UrlResolver:
         # Check the QR cache - for the moment, we're going to assume that once
         # a QR code is generated, it's accurate until it's deleted. Eventually
         # it might be nice to allow multiple caches.
-        qr_cache = read_from_config('qr_cache_path')
+        qr_cache = os.path.join(self.static_path,
+                                read_from_config('qr_cache_path'))
 
         rel_save_dir = self.resolve_relpath(qr_cache)
         rel_save_path = self.qr_generator.get_save_path(rel_save_dir,
@@ -194,7 +198,7 @@ class UrlResolver:
             self.qr_generator.generate_qr(url, save_path)
 
         return self.resolve_url(protocol=self.img_protocol,
-                                base_url=self.base_url,
+                                base_url=self.static_url,
                                 url_tail=rel_save_path)
 
     def resolve_url(self, protocol, base_url, url_tail, validate=False):

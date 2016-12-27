@@ -3,13 +3,50 @@ import re
 
 import itertools
 
+class BaseAudioLoader:
+    """
+    A base class that defines the interface for all audio loader classes.
+    """
+    def is_audio(cls, dirloc):
+        raise NotImplementedError('Function must be defined in child classes')
 
-class AudiobookLoader:
+    def audio_files(cls, dir_loc):
+        raise NotImplementedError('Function must be defined in child classes.')
+
+    def audio_cover(cls, dir_loc):
+        raise NotImplementedError('Function must be defined in child classes.')
+
+    def parse_creator_names(cls, dir_loc):
+        raise NotImplementedError('Function must be defined in child classes')
+
+    def parse_audio_info(cls, dir_path):
+        raise NotImplementedError('Function must be implemented in child classes')
+
+    @classmethod
+    def natural_sort_key(cls, value):
+        """
+        This is a sort key to do a "natural" lexographic sort, the string is
+        broken up into segments of strings and numbers, so that, e.g. `'Str 2'`
+        will be sorted before `'Str 15'`.
+
+        :param value:
+            The book name as it will be sorted.
+
+        :return:
+            Returns a book name tokenized such that it can be sorted.
+        """
+        o = itertools.groupby(value, key=str.isdigit)
+        o = ((k, ''.join(g)) for k, g in o)
+        o = ((int(v) if k else v) for k, v in o)
+
+        return tuple(o)
+
+
+class AudiobookLoader(BaseAudioLoader):
     """
     This is a more or less static class that can be used to load audiobooks.
     """
-    AUDIO_EXTENSIONS = ['.mp3', '.mp4', '.ogg', '.ac3',
-                            '.aac', '.m4b', '.m4a']
+    AUDIO_EXTENSIONS = ['.mp3', '.mp4', '.ogg', '.ac3', '.aac', '.m4b', '.m4a']
 
     COVER_EXTENSIONS = ['.png', '.jpg', '.svg', '.gif', '.tif', '.bmp']
 
@@ -45,52 +82,6 @@ class AudiobookLoader:
         return False
 
     @classmethod
-    def parse_author_names(cls, authors):
-        """
-        Splits author names by ',', '&' and 'and'
-        
-        :param authors:
-            A string containing possibly multiple author names.
-
-        :return:
-            Returns a :py:object:`list` of authors.
-        """
-        o = authors.split(' & ')
-        o = itertools.chain.from_iterable(x.split(' and ') for x in o)
-        o = itertools.chain.from_iterable(x.split(', ') for x in o)
-
-        return list(o)
-
-    @classmethod
-    def parse_audio_info(cls, dir_path):
-        """
-        Try to parse audiobook information the directory name.
-        """
-        base_path, dir_name = os.path.split(dir_path)
-
-        m = cls.DIR_NAME_RE.match(dir_name)
-        if m is None:
-            msg = 'Directory name does not match the format: {}'
-            msg = msg.format(dir_name)
-
-            raise NoAudiobookInformation(msg)
-
-        authors = cls.parse_author_names(m.group('authors'))
-        series = m.group('series_name')
-        series_number = m.group('series_number')
-        if series_number is not None:
-            series_number = int(series_number)
-
-        title = m.group('title')
-
-        audiobook_data = dict(
-            authors=authors, series=(series, series_number),
-            title=title
-        )
-
-        return audiobook_data
-
-    @classmethod
     def audio_files(cls, dir_loc):
         """
         Load all audiobook files and sort them appropriately.
@@ -108,26 +99,7 @@ class AudiobookLoader:
             if fname_ext in cls.AUDIO_EXTENSIONS:
                 o.append(os.path.join(dir_loc, fname))
 
-        return sorted(o, key=cls.book_name_sort_key)
-
-    @classmethod
-    def book_name_sort_key(cls, book_name):
-        """
-        The sort key used to sort book names - the string is broken up into
-        segments of strings and numbers, so that, e.g. `'Str 2'` will be sorted
-        before `'Str 15'`.
-
-        :param book_name:
-            The book name as it will be sorted.
-
-        :return:
-            Returns a book name tokenized such that it can be sorted.
-        """
-        o = itertools.groupby(book_name, key=str.isdigit)
-        o = ((k, ''.join(g)) for k, g in o)
-        o = ((int(v) if k else v) for k, v in o)
-
-        return tuple(o)
+        return sorted(o, key=cls.natural_sort_key)
 
     @classmethod
     def audio_cover(cls, dir_loc):
@@ -165,6 +137,52 @@ class AudiobookLoader:
         mn, el, cover_loc = min(candidates)
 
         return cover_loc
+
+    @classmethod
+    def parse_creator_names(cls, authors):
+        """
+        Splits author names by ',', '&' and 'and'
+        
+        :param authors:
+            A string containing possibly multiple author names.
+
+        :return:
+            Returns a :py:object:`list` of authors.
+        """
+        o = authors.split(' & ')
+        o = itertools.chain.from_iterable(x.split(' and ') for x in o)
+        o = itertools.chain.from_iterable(x.split(', ') for x in o)
+
+        return list(o)
+
+    @classmethod
+    def parse_audio_info(cls, dir_path):
+        """
+        Try to parse audiobook information the directory name.
+        """
+        base_path, dir_name = os.path.split(dir_path)
+
+        m = cls.DIR_NAME_RE.match(dir_name)
+        if m is None:
+            msg = 'Directory name does not match the format: {}'
+            msg = msg.format(dir_name)
+
+            raise NoAudiobookInformation(msg)
+
+        authors = cls.parse_creator_names(m.group('authors'))
+        series = m.group('series_name')
+        series_number = m.group('series_number')
+        if series_number is not None:
+            series_number = int(series_number)
+
+        title = m.group('title')
+
+        audiobook_data = dict(
+            authors=authors, series=(series, series_number),
+            title=title
+        )
+
+        return audiobook_data
 
 
 def load_all_audio(base_dir, *, visited_dirs=None,

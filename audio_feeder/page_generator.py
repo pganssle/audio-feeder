@@ -172,8 +172,8 @@ class UrlResolver:
                                 self.base_url,
                                 url_tail)
 
-    def resolve_rss(self, e_id, tail=None):
-        kwargs = dict(id=e_id, tail=tail or '')
+    def resolve_rss(self, entry_obj, tail=None):
+        kwargs = dict(id=entry_obj.id, table=entry_obj.table, tail=tail or '')
 
         url_tail = read_from_config('rss_feed_urls')
         url_tail = url_tail.format(**kwargs)
@@ -242,11 +242,19 @@ class EntryRenderer:
 
         out['id'] = entry_obj.id
 
-        # Render the name from template
+        # Render the outputs from templates which cascade for use in the later
+        # templates.
         type_dict = load_type(entry_obj.type)
         data_dict = data_obj.to_dict()
 
+        # Renders the final output author name
+        out['author'] = type_dict['author'].render(**data_dict)
+        data_dict['author_'] = out['author']
+
+        # Renders the channel name
         out['name'] = type_dict['name'].render(**data_dict)
+        data_dict['name_'] = out['name']
+
         out['description'] = type_dict['description'].render(**data_dict)
         out['cover_url'] = None
 
@@ -257,7 +265,7 @@ class EntryRenderer:
             except FailedResolutionError:
                 pass
 
-        out['rss_url'] = self.url_resolver.resolve_rss(entry_obj.id)
+        out['rss_url'] = self.url_resolver.resolve_rss(entry_obj)
         out['qr_img_url'] = self.url_resolver.resolve_qr(entry_obj.id,
                                                          out['rss_url'])
 

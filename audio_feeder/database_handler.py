@@ -16,6 +16,7 @@ _rand = SystemRandom()
 
 DB_VERSION = 0
 
+
 def load_table(table_loc, table_type):
     """
     Loads a table of type ``table_type`` from the YAML file ``table_loc``.
@@ -118,6 +119,17 @@ def get_database_table(table_name):
     get_database_table._database = db
 
     return db[table_name]
+
+
+def get_data_obj(entry_obj):
+    """
+    Given an :class:`object_handler.Entry` object, return the corresponding data
+    object, loaded from the appropriate table.
+    """
+    # Loads the data table
+    table = get_database_table(entry_obj.table)
+
+    return table[entry_obj.data_id]
 
 
 class IDHandler:

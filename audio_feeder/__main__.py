@@ -12,7 +12,10 @@ from jinja2 import Template
 
 from audio_feeder import page_generator as pg
 from audio_feeder import database_handler as dh
+from audio_feeder import rss_feeds as rf
 from audio_feeder.config import read_from_config, init_config
+
+from datetime import datetime, timezone
 
 app = Flask('audio_feeder')
 
@@ -88,6 +91,61 @@ def books():
     # Apply the template
     t = get_list_template()
     return t.render(page_data)
+
+
+@app.route('/rss/<int:e_id>.xml')
+def rss_feed(e_id, tail=''):
+    """
+    Generates an RSS feed.
+
+    The template will be passed the following variables:
+        - ``channel_title``
+        - ``channel_desc``
+        - ``channel_link``
+        - ``build_date``
+        - ``pub_date``
+        - ``author``
+        - ``cover_image``
+    """
+
+    entry_table = dh.get_database_table('entries')
+    if e_id not in entry_table:
+        flask.abort(404)
+
+    entry_obj = entry_table[e_id]
+    data_obj = dh.get_data_obj(entry_obj)
+
+    # Render the main "feed-wide" portions of this
+    renderer = get_renderer()
+    rendered_page = renderer.render(entry_obj, data_obj)
+
+    channel_title = rendered_page['name']
+    channel_desc = rendered_page['description']
+
+    build_date = entry_obj.last_modified
+    pub_date = entry_obj.date_added
+
+    author = rendered_page['author']
+    
+    cover_image = entry_obj.cover_images[0] if entry_obj.cover_images else None
+
+    # This gives me the "items" list
+    feed_items = rf.load_feed_items(entry_obj)
+
+    payload = {
+        'channel_title': channel_title,
+        'channel_desc': channel_desc,
+        'channel_link': request.path,
+        'build_date': build_date,
+        'pub_date': pub_date,
+        'author': author,
+        'cover_image': cover_image,
+        'items': feed_items
+    }
+
+    t = get_feed_template()
+
+    return t.render(payload)
 
 
 ###
@@ -183,13 +241,25 @@ def get_sortable_args(args):
 def get_list_template():
     template = getattr(get_list_template, '_template', None)
     if template is None:
-        template_loc = read_from_config('pages_templates_loc')
-        template_loc = os.path.join(template_loc, 'list.tpl')
-
-        with open(template_loc, 'r') as f:
-            template = Template(f.read())
-
+        template = _get_template('pages_templates_loc', 'list.tpl')
         get_list_template._template = template
+
+    return template
+
+def get_feed_template():
+    template = getattr(get_feed_template, '_template', None)
+    if template is None:
+        template = _get_template('rss_templates_loc', 'rss_feed.tpl')
+        get_feed_template._template = template
+
+    return get_feed_template._template
+
+def _get_template(loc_entry, template_name):
+    template_loc = read_from_config(loc_entry)
+    template_loc = os.path.join(template_loc, template_name)
+
+    with open(template_loc, 'r') as f:
+        template = Template(f.read())
 
     return template
 

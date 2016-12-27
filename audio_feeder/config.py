@@ -26,6 +26,7 @@ class Configuration:
         ('entry_templates_loc', '{{TEMPLATES}}/entry_types'),
         ('pages_templates_loc', '{{TEMPLATES}}/pages'),
         ('rss_templates_loc', '{{TEMPLATES}}/rss'),
+        ('rss_entry_templates_loc', '{{TEMPLATES}}/rss/entry_types'),
         ('schema_loc', '{{CONFIG}}/database/schema.yml'),
         ('database_loc', '{{CONFIG}}/database/db'),
         ('static_media_path', '{{CONFIG}}/static'),

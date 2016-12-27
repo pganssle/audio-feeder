@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 DESCRIPTION = """This is the main script that runs the audio_feeder backend.
 """
+import html
 import itertools as it
 import logging
 import os
@@ -116,7 +117,7 @@ def rss_feed(e_id, tail=''):
     data_obj = dh.get_data_obj(entry_obj)
 
     # Render the main "feed-wide" portions of this
-    renderer = get_renderer()
+    renderer = get_renderer(rss_renderer=True)
     rendered_page = renderer.render(entry_obj, data_obj)
 
     channel_title = rendered_page['name']
@@ -142,6 +143,8 @@ def rss_feed(e_id, tail=''):
         'cover_image': cover_image,
         'items': feed_items
     }
+
+    payload = {k: rf.wrap_field(v) for k, v in payload.items()}
 
     t = get_feed_template()
 
@@ -264,19 +267,23 @@ def _get_template(loc_entry, template_name):
     return template
 
 
-def get_renderer():
-    renderer = getattr(get_renderer, '_renderer', None)
-    if renderer is None:
+def get_renderer(rss_renderer=False):
+    renderer = getattr(get_renderer, '_renderer', {})
+    if rss_renderer not in renderer:
         resolver = pg.UrlResolver(
             base_path=read_from_config('static_media_path'),
             base_url=read_from_config('base_url')
         )
 
-        renderer = pg.EntryRenderer(url_resolver=resolver)
+        kwargs = {}
+        if rss_renderer:
+            kwargs['entry_templates_config'] = 'rss_entry_templates_loc'
+
+        renderer[rss_renderer] = pg.EntryRenderer(url_resolver=resolver, **kwargs)
 
         get_renderer._renderer = renderer
 
-    return renderer
+    return renderer[rss_renderer]
 
 
 def _author_sort_helper(authors):

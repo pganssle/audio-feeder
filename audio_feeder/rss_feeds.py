@@ -6,6 +6,7 @@ import hashlib
 import math
 import os
 import random
+import re
 
 from .config import read_from_config
 from . import directory_parser as dp
@@ -105,15 +106,30 @@ def load_feed_items(entry_obj, loader=dp.AudiobookLoader):
         relpath = os.path.relpath(audio_file, base_path)
 
         file_size =  os.path.getsize(audio_file)
+        feed_item['fname'] = os.path.split(audio_file)[1]
         feed_item['size'] = file_size
         feed_item['url'] = relpath
         feed_item['pubdate'] = pub_date + timedelta(minutes=ii)
         feed_item['desc'] = data_obj.description or ''
         feed_item['guid'] = hash_random(audio_file, entry_obj.hashseed)
 
-        feed_items.append(feed_item)
+        feed_items.append({k: wrap_field(v) for k, v in feed_item.items()})
 
     return feed_items
+
+html_chars = re.compile('[<>]')
+def wrap_field(field):
+    """
+    Given a field, detect if it has special characters <, > or & and if so
+    wrap it in a CDATA field.
+    """
+    if not isinstance(field, str):
+        return field
+
+    if html_chars.match(field):
+        return '<![CDATA[' + field + ']]>'
+    else:
+        return field
 
 
 class ItemNotFoundError(ValueError):

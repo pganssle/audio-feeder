@@ -20,7 +20,7 @@
 
         {% for item in items %}
         <item>
-            <title>{{ item.title }}</title>
+            <title>{{ channel_title }} {{ '%02d' % loop.index0 }}</title>
             <link>{{ channel_link }}</link>
             <description>{{ item.desc }}</description>
             <pubDate>{{ item.pubdate }}</pubDate>

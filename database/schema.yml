@@ -63,11 +63,14 @@ types:
             - title
             - subtitle
 
-            - authors                # Foreign key to the authors title
-            - roles                  # Author = 0, Narrator = 1, Contributor = 2, Editor = 3
+            - authors                
+            - author_ids             # Foreign key to the authors table
+            - author_roles           # Author = 0, Narrator = 1, Contributor = 2, Editor = 3
             - description
             - descriptions           # Cache multiple descriptions by source.
 
+            # Series information will be three corresponding lists, with the
+            # primary series as the first entry in the list.
             - series_id              # Foreign key to the series table
             - series_name
             - series_number
@@ -77,6 +80,9 @@ types:
             - language
 
     Author:
+        docstring:
+            "Represents a book author."
+
         fields:
             # Metadata
             - id
@@ -87,11 +93,35 @@ types:
             - books                  # Foreign key to the "books" table
             - tags
 
+            # Miscellaneous information
+            - description            # Biographical information
+            - images
+            - alternate_names
+            - website
+            - birthdate
+            - deathdate
+
     Series:
+        docstring:
+            "Represents a related series of books or other data items."
+
         fields:
             # Metadata
             - id
 
             # Series information
+            - name               # Series names will be of form name (modifier)
+            - modifier           # The modifier is used for disambiguating alternate
+            - name_with_modifier # versions of a series with different subsets or orders
+
+            - data_ids           # List of keys to components
+            - data_numbers       # A list, the same size as data_ids of the
+                                 # corresponding series numbering.
+            - data_tables        # The tables to find data_ids in.
             - authors
-            - books
+
+            - alternate_orders
+            - superseries        # When a series is a subset of a larger series
+                                 # e.g. "Ender's Shadow" as a subset of "Enderverse"
+                                 # or "Ringworld" as a subset of "Known Space"
+            - related_series

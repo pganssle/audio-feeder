@@ -1,6 +1,8 @@
 import datetime
+import itertools
 import os
 import shutil
+import warnings
 
 from . import directory_parser as dp
 from . import metadata_loader as mdl
@@ -165,12 +167,15 @@ class IDHandler:
 
 
 class BookDatabaseUpdater:
+    AUTHOR_TABLE_NAME = 'authors'
+    BOOK_TABLE_NAME = 'books'
+
     def __init__(self, books_location,
-                 entry_table='entries', table='books',
+                 entry_table='entries', table=None,
                  book_loader=dp.AudiobookLoader,
                  metadata_loaders=(mdl.GoogleBooksLoader(),),
                  id_handler=IDHandler):
-        self.table = table
+        self.table = table or self.BOOK_TABLE_NAME
         self.entry_table = entry_table
         self.books_location = books_location
         self.book_loader = book_loader
@@ -186,6 +191,7 @@ class BookDatabaseUpdater:
 
         book_table = database[self.table]
         entry_table = database[self.entry_table]
+        author_table = database[self.AUTHOR_TABLE_NAME]
 
         # Find out which ones already exist
         id_by_path = {}
@@ -199,8 +205,9 @@ class BookDatabaseUpdater:
         new_paths = [path for path in book_paths if path not in id_by_path]
         new_paths = list(set(new_paths))        # Enforce unique paths only
 
-        entry_id_handler = self.id_handler(invalid_ids=entry_table.items())
-        book_id_handler = self.id_handler(invalid_ids=book_table.items())
+        entry_id_handler = self.id_handler(invalid_ids=entry_table.keys())
+        book_id_handler = self.id_handler(invalid_ids=book_table.keys())
+        author_id_handler = self.id_handler(invalid_ids=author_table.keys())
         
         for path in new_paths:
             entry_obj = self.make_new_entry(path, entry_id_handler)
@@ -261,6 +268,59 @@ class BookDatabaseUpdater:
 
             book_table[book_id] = book_obj
 
+        # Now update the author database
+        for book_id, book_obj in book_table.items():
+            book_tag_set = set(book_obj.tags or set())
+
+            new_authors = []
+            new_author_ids = []
+            new_author_roles = []
+
+            zl = itertools.zip_longest(book_obj.authors or [],
+                                       book_obj.author_ids or [], 
+                                       book_obj.author_roles or [],
+                                       fillvalue=None)
+            for author_name, author_id, author_role in zl:
+                valid_author_id = (author_id is not None and
+                                   author_id in author_table)
+
+                if author_name is None and not valid_author_id:
+                    continue   # This is a null entry
+
+                if author_name is None:
+                    new_author = author_table[author_id].name
+                    new_author_id = author_id
+                elif not valid_author_id:
+                    author_obj = self.load_author(author_name,
+                                                  author_table,
+                                                  author_id_handler)
+
+                    if author_obj.id not in author_table:
+                        author_table[author_obj.id] = author_obj
+
+                    new_author = author_name
+                    new_author_id = author_obj.id
+
+                new_authors.append(new_author)
+                new_author_ids.append(new_author_id)
+                new_author_roles.append(author_role if author_role is not None
+                                        else 0)
+
+                # Now update the author object's books and tags
+                author_obj = author_table[new_author_id]
+                if author_obj.books is None:
+                    author_obj.books = []
+
+                if book_id not in author_obj.books:
+                    author_obj.books.append(book_id)
+
+                orig_tags = set(author_obj.tags or set())
+                author_obj.tags = list(orig_tags | book_tag_set)
+
+            book_obj.authors = new_authors
+            book_obj.author_ids = new_author_ids
+            book_obj.roles = new_author_roles
+
         return database
 
     def make_new_entry(self, path, id_handler):
@@ -275,7 +335,7 @@ class BookDatabaseUpdater:
         entry_obj = oh.Entry(id=e_id, path=path,
             date_added=datetime.datetime.utcnow(),
             last_modified=datetime.datetime.utcnow(),
-            type='Book', table='books', data_id=None,
+            type='Book', table=self.BOOK_TABLE_NAME, data_id=None,
             hashseed=_rand.randint(0, 2**32))
 
         return entry_obj
@@ -364,6 +424,159 @@ class BookDatabaseUpdater:
         )
 
         return book_obj
+
+    def load_author(self, author_name, author_table, id_handler,
+                    disamb_func=lambda x: x[0]):
+        """
+        If the author is already in the table, load it by ID, otherwise create
+        a new entry for it.
+
+        .. note::
+            Currently you have to manually de-duplicate authors with conflicting
+            names. There may be some programmatic way to do this by lookup to
+            a database, but it is not implemented. That said, multiple authors
+            MAY have the same name.
+
+        :param author_name:
+            The author's full name string.
+
+        :param id_handler:
+            A :class:`IDHandler` for authors - treated as mutable.
+
+        :param book_ids:
+            If not :py:object:`None`, this should be a list of ids in the
+            books table of additional books by this author.
+
+        :param disamb_func:
+            For ambiguous author name lookups, we'll have multiple authors in
+            an essentially random order. ``disamb_func`` is a function taking a
+            list of :class:`object_handler.Author` objects and returning the
+            disambiguated value. It is assumed that this returns a
+            :class:`object_handler.Author` object.
+
+            By default returns the first object in the list of authors by the
+            given name.
+
+        :return:
+            Returns a :class:`object_handler.Author` object, or whatever is
+            returned by the ``diamb_func``, if different.
+        """
+        at_id = id(author_table)
+        try:
+            authors_by_name_cache = getattr(self, '_authors_by_name')
+            cached_author_ids_cache = getattr(self, '_cached_author_ids')
+        except AttributeError:
+            # Need to establish the author cache
+            authors_by_name_cache = {}
+            cached_author_ids_cache = {}
+
+            self._authors_by_name = authors_by_name_cache
+            self._cached_author_ids = cached_author_ids_cache
+
+        # Construct a lookup mapping author name to author id if it isn't
+        # already cached.
+        if (at_id not in cached_author_ids_cache or
+            at_id not in authors_by_name_cache):
+            authors_by_name = {}
+            cached_author_ids = set()
+
+            cached_author_ids_cache[at_id] = cached_author_ids
+            authors_by_name_cache[at_id] = authors_by_name
+        else:
+            cached_author_ids = cached_author_ids_cache[at_id]
+            authors_by_name = authors_by_name_cache[at_id]
+
+        if set(author_table.keys()) != cached_author_ids:
+            author_table = get_database_table('authors')
+
+            for author_id, author_obj in author_table.items():
+                if author_obj.name not in authors_by_name:
+                    authors_by_name[author_obj.name] = [author_id]
+                elif author_id not in authors_by_name[author_obj.name]:
+                    authors_by_name[author_obj.name].append(author_id)
+
+                cached_author_ids.add(author_id)
+
+        # Try to find the author in the cached lookup table
+        if author_name in authors_by_name:
+            author_list = [author_table[author_id]
+                           for author_id in authors_by_name[author_name]]
+        else:
+            author_id = id_handler.new_id()
+            author_sort_name = self.author_sort(author_name)
+
+            kwargs = {
+                'id': author_id,
+                'name': author_name,
+                'sort_name': author_sort_name
+            }
+
+            author_obj = oh.Author(**kwargs)
+            author_list = [author_obj]
+
+        return disamb_func(author_list)
+
+    @classmethod
+    def author_sort(cls, author_name):
+        """
+        Takes the author name and returns a plausible sort name.
+        
+        :param author_name:
+            The input author name.
+
+        :return:
+            Returns a plausible sort name. Some examples:
+            
+            .. doctest::
+
+                >>> BookDatabaseUpdater.author_sort('Bob Jones')
+                'Jones, Bob'
+                >>> BookDatabaseUpdater.author_sort('Teller')
+                'Teller'
+                >>> BookDatabaseUpdater.author_sort('Steve Miller, Ph.D')
+                'Miller, Steve, Ph.D'
+                >>> BookDatabaseUpdater.author_sort('James Mallard Filmore')
+                'Filmore, James Mallard'
+        """
+        comma_split = author_name.split(',')
+
+        def bad_name_warning():
+            warnings.warn('Cannot parse author name: {}'.format(author_name),
+                          RuntimeWarning)
+
+        prenoms = None
+        surname = None
+        modifiers = None
+
+        if len(comma_split) == 2:
+            base_name, modifiers = comma_split
+            modifiers = modifiers.strip()
+        elif len(comma_split) == 1:
+            base_name, = comma_split
+        else:
+            bad_name_warning()
+            return None  # Don't know what to do with this
+
+        base_name = base_name.strip()
+
+        # We'll assume this is a space-delimited name and the last element is
+        # the surname. This is probably fine in almost all cases.
+        split_name = base_name.split(' ')
+        if len(split_name) == 1:
+            prenom = split_name[0]
+        else:
+            prenom = split_name[:-1]
+            surname = split_name[-1]
+
+        if surname:
+            author_sort_name = ', '.join((surname, ' '.join(prenom)))
+        else:
+            author_sort_name = prenom
+
+        if modifiers:
+            author_sort_name += ', ' + modifiers
+
+        return author_sort_name
 
     @classmethod
     def _book_key(cls, authors, title):

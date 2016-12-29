@@ -1,3 +1,4 @@
+{% if not series_name is sameas none %}<span class="series_data">{{ series_name }} {{ '%02d' % series_number }}</span><br/>{% endif %}
 {% if not isbn13 is sameas none or not isbn is sameas none %}<span class="book_desc_field">ISBN</span>: <span class="book_desc_entry">{{ isbn13 if not isbn13 is sameas none else isbn }}</span><br/>{% endif %}
 {% if not google_id is sameas none %}<span class="book_desc_field">Google Books</span>: <span class="book_desc_entry"><a href="https://books.google.com/books?id={{ google_id }}">{{ google_id }}</a></span><br/>{% endif %}
 {% if not ASIN is sameas none %}<span class="book_desc_field">Amazon</span>: <a href="https://www.amazon.com/dp/{{asin}}">{{ASIN}}</a><br/>{% endif %}

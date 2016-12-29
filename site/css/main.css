@@ -91,6 +91,13 @@ a.entry_link {
 h3.entry_title {
     font-size: 1.4em;
     font-weight: bold;
+    padding: 0px;
+    margin: 0px;
+}
+
+span.series_data {
+  font-size: 1.2em;
+  font-style: italic;
 }
 
 span.book_desc_field {

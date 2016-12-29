@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 from audio_feeder.__version__ import VERSION
 
-from setuptools import setup
+from setuptools import setup, find_packages
+import itertools
+import os
 
 DESCRIPTION = """
 The audio-feeder provides a server that serves your audiobooks and other audio
@@ -19,6 +21,12 @@ INSTALL_REQUIREMENTS = [
     'click>=6.0'
 ]
 
+DATA_DIR = 'audio_feeder/data'
+DATA_FILES = [os.path.relpath(os.path.join(cdir, fname), 'audio_feeder')
+    for cdir, dirs, fnames in os.walk(DATA_DIR)
+    for fname in fnames
+]
+
 setup(name="audio-feeder",
       version=VERSION,
       description=DESCRIPTION,
@@ -26,7 +34,9 @@ setup(name="audio-feeder",
       author_email="paul@ganssle.io",
       license="Apache 2.0",
       long_description=DESCRIPTION,
-      packages=["audio_feeder"],
+      packages=find_packages(),
+      package_data={'audio_feeder': DATA_FILES},
+      include_package_data=True,
       zip_safe=True,
       install_requires=INSTALL_REQUIREMENTS,
       entry_points={

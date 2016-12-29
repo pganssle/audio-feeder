@@ -1,6 +1,7 @@
 """
 Configuration manager - handles the application's global configuration.
 """
+from itertools import product
 import os
 import logging
 import warnings
@@ -8,9 +9,12 @@ import warnings
 import yaml
 from collections import OrderedDict
 
-CONFIG_LOCATIONS = [
-    os.path.expanduser('~/.config/audio_rss_server/config.yml'),
-]
+CONFIG_DIRS = [os.path.expanduser(x) for x in (
+    '~/.config/audio_feeder/', 
+)]
+
+CONFIG_NAMES = ['config.yml']
+CONFIG_LOCATIONS = list(product(CONFIG_DIRS, CONFIG_NAMES))
 
 class _ConfigProperty:
     def __init__(self, prop_name):
@@ -31,6 +35,8 @@ class Configuration:
         ('database_loc', '{{CONFIG}}/database/db'),
         ('static_media_path', '{{CONFIG}}/static'),
         ('static_media_url', '{{URL}}/static'),
+        ('base_media_path', '{{STATIC}}/media'),
+        ('base_media_url', '{{URL}}/static/media'),
         ('site_images_loc', 'images/site-images'),
         ('qr_cache_path', 'images/qr_cache'),
         ('rss_feed_urls', 'rss/{id}.xml'),
@@ -52,7 +58,7 @@ class Configuration:
             # If configuration location is not specified, we'll use pwd.
             config_loc = os.path.join(os.getcwd(), 'config.yml')
 
-        self.config_location = config_loc
+        self.config_location = config_loc_
         self.config_directory = os.path.split(self.config_location)[0]
 
         base_kwarg = self.PROPERTIES.copy()
@@ -89,7 +95,7 @@ class Configuration:
 
         config.update(kwargs)
 
-        return cls(**config)
+        return cls(config_loc_=file_loc, **config)
 
     def to_file(self, file_loc):
         """
@@ -146,11 +152,12 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
     if config_loc is not None:
         if not os.path.exists(config_loc):
             if config_loc_must_exist:
-               raise ValueError('Configuration location does not exist.')
+               raise MissingConfigError('Configuration location does not exist.')
 
             # Make sure we can write to this directory
-            if not os.access(config_loc, os.W_OK):
-                raise ValueError('Cannot write to {}'.format(config_loc))
+            if not os.access(os.path.split(config_loc)[0], os.W_OK):
+                msg = 'Cannot write to {}'.format(config_loc)
+                raise ConfigWritePermissionsError(msg)
 
         config_location = config_loc
         found_config = True
@@ -229,5 +236,8 @@ def read_from_config(field):
     return get_configuration()[field]
 
 
-class _Sentinel:
+class MissingConfigError(ValueError):
+    pass
+
+class ConfigWritePermissionsError(ValueError):
     pass

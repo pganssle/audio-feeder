@@ -35,6 +35,8 @@ class QRGenerator:
 
         qr_options['version'] = version
         qr_options['image_factory'] = image_factory
+
+        qr_options.setdefault('border', 0)
         self.qr_options = qr_options
 
     def generate_qr(self, data, save_path):
@@ -178,10 +180,9 @@ class EntryRenderer:
         stripper = TagStripper.feed_stripper(description)
         raw_chars = stripper.get_data()
 
-        config = get_configuration()
-        base_truncation_point = config['base_truncation_point']
+        base_truncation_point = read_from_config('base_truncation_point')
 
-        if len(raw_chars) > base_truncation_point:
+        if len(raw_chars) <= base_truncation_point:
             return -1
 
         word_offset = 0
@@ -227,7 +228,6 @@ class EntryRenderer:
             self._load_type_cache = type_cache
 
         return type_cache[type_name]
-
 
 
 class NavItem:

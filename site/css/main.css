@@ -1,0 +1,121 @@
+/* Basics
+=============================================*/
+html {
+  font-family: sans-serif;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-size: 1.5em;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #000;
+    background-color: #f2f2f2;
+    margin: 0;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+pre {
+    overflow: auto;
+}
+
+a {
+    color: #005A78;
+}
+
+a:hover {
+    color: #004359;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+td, th {
+    padding:; 0;
+}
+
+/* Books
+=============================================*/
+/* Table */
+table.maintable {
+    width: 90%;
+    margin: auto;
+}
+
+tr.entry_row.even {
+  background-color: #adadad;
+}
+
+tr.entry_row.odd {
+  background-color: #e5e5e5;
+}
+
+td.entry_body {
+    font-size: 0.8em;
+    padding: 5px;
+    vertical-align: top;
+}
+
+td.cover_col {
+  width: 15%;
+  padding-top: 20px;
+  vertical-align: top;
+}
+
+td.qr_col {
+  width: 12%;
+  padding-top: 20px;
+  padding-right: 15px;
+  vertical-align: top;
+}
+
+img.qr_img {
+  width: 100%;
+  background-color: #fff;
+  padding: 5px;
+}
+
+img.cover_img {
+  width: 95%;
+}
+
+a.entry_link {
+  color: #2f2f2f;
+  font-weight: bold;
+}
+
+/* Descriptions */
+h3.entry_title {
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+span.book_desc_field {
+  font-weight: bold;
+}
+
+span.hidden_expander_span {
+  display: inline;
+}
+
+span.hidden_expander_span a.read_more_link {
+  color: #000000;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+/* Navigation bar */
+td.nav_arrow {
+    white-space: nowrap;
+    margin-left: 2%;
+    margin-right: 2%;
+}
+
+td.nav_links {
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+}

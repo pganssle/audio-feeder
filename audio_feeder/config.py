@@ -31,9 +31,11 @@ class Configuration:
         ('database_loc', '{{CONFIG}}/database/db'),
         ('static_media_path', '{{CONFIG}}/static'),
         ('static_media_url', '{{URL}}/static'),
-        ('site_images_path', '{{STATIC}}/images/site-images'),
+        ('site_images_loc', 'images/site-images'),
         ('qr_cache_path', 'images/qr_cache'),
         ('rss_feed_urls', 'rss/{id}.xml'),
+        ('css_loc', 'css'),
+        ('main_css_files', ['main.css']),
         ('base_host', 'localhost'),
         ('base_port', 9090),
     ))

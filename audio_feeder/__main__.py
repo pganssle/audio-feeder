@@ -74,19 +74,25 @@ def books():
     
     nav_list = nav_generator.get_pages(sort_args)
     page = sort_args['page']
-    prev_index = nav_list[min((page - 1, 0))]
+    first_index = nav_list[0].url or request.path
+    prev_index = nav_list[max((page - 1, 0))]
     next_index = nav_list[min((page + 1, len(nav_list) - 1))]
+
+    site_images_url = os.path.join('http://' + read_from_config('static_media_url'),
+                                   read_from_config('site_images_loc'))
 
     page_data = {
         'entries': get_rendered_entries(entry_page),
         'nav_list': nav_generator.get_pages(sort_args),
         'first_index': nav_list[0].url,
         'final_index': nav_list[-1].url,
-        'prev_index': prev_index,
-        'next_index': next_index,
+        'prev_index': prev_index.url,
+        'next_index': next_index.url,
         'pagetitle': 'Books: Page {} of {}'.format(page, len(nav_list)),
-        'site_images_url': read_from_config('site_images_path'),
-        'default_cover': 'default.png',   # Placeholder.
+        'site_images_url': site_images_url,
+        'default_cover': os.path.join(site_images_url, 'default_cover.svg'),
+        'stylesheet_links': get_css_links(),
+        'favicon': None,
     }
 
     # Apply the template
@@ -156,8 +162,10 @@ def rss_feed(e_id, tail=''):
 def get_rendered_entries(entry_list):
     renderer = get_renderer()
 
-    return [renderer.render(entry_obj, data_obj)
+    o = [renderer.render(entry_obj, data_obj)
             for entry_obj, data_obj, auth_objs in entry_list]
+
+    return o
 
 def get_paged_entries(entry_list, sort_args):
     per_page = sort_args['perPage']
@@ -315,20 +323,17 @@ def get_renderer(rss_renderer=False):
     return renderer[rss_renderer]
 
 
-def _author_sort_helper(authors):
-    """
-    Temporary measure - turn author list into sort-by-last-name for now,
-    until we implement storing this in the actual database.
-    """
-    def sort_name(author):
-        # Most basic heuristic.
-        first, sep, last = author.rpartition(' ')
-        if first:
-            return ','.join((last, first))
-        else:
-            return last
+def get_css_links():
+    static_loc = read_from_config('static_media_url')
+    css_loc = read_from_config('css_loc')
+    css_loc = os.path.join(static_loc, css_loc)
+    css_loc = 'http://' + css_loc
 
-    return tuple(sort_name(author) for author in authors)
+    css_paths = [os.path.join(css_loc, css_file)
+                 for css_file in read_from_config('main_css_files')]
+
+
+    return css_paths
 
 ###
 # Scripts
@@ -350,5 +355,3 @@ def run():
     app.static_folder = read_from_config('static_media_path')
 
     app.run(host=args.host, port=args.port)
-
-    print(read_from_config('qr_cache_path'))

@@ -157,7 +157,7 @@ def get_rendered_entries(entry_list):
     renderer = get_renderer()
 
     return [renderer.render(entry_obj, data_obj)
-            for entry_obj, data_obj in entry_list]
+            for entry_obj, data_obj, auth_objs in entry_list]
 
 def get_paged_entries(entry_list, sort_args):
     per_page = sort_args['perPage']
@@ -175,8 +175,32 @@ def get_sorted_entries(entry_list, sort_args):
     order_by = sort_args['orderBy']
     sort_ascending = sort_args['sortAscending']
 
-    # Sort by author and title
-    return list(get_entry_objects(entry_list))
+    # Default sort order is author
+    if order_by == 'author':
+        sort_order = ['author', 'series', 'title', 'date_added', 'last_modified']
+    elif order_by == 'title':
+        sort_order = ['title', 'author', 'series', 'date_added', 'last_modified']
+    elif order_by == 'date_added':
+        sort_order = ['date_added', 'last_modified', 'author', 'series', 'title']
+    elif order_by == 'last_modified':
+        sort_order = ['last_modified', 'date_added', 'author', 'series', 'title']
+
+    def _sort_key(el_e):
+        ent_obj, data_obj, auth_objs = el_e
+        keys = {}
+
+        keys['author'] = [auth_obj.sort_name or auth_obj.name
+                          for auth_obj in auth_objs]
+
+        keys['title'] = data_obj.title
+        keys['series'] = (data_obj.series_name, data_obj.series_number)
+        keys['date_added'] = ent_obj.date_added
+        keys['last_modified'] = ent_obj.last_modified
+
+        return tuple(keys[k] for k in sort_order)
+
+    return sorted(get_entry_objects(entry_list), key=_sort_key,
+                  reverse=not sort_ascending)
 
 
 def get_entry_objects(entry_list):
@@ -185,13 +209,18 @@ def get_entry_objects(entry_list):
     """
     # Grouping these together like this just to minimize the number of calls
     # to get_database_table.
+    author_table = dh.get_database_table('authors')
+
     for table_name, group in it.groupby(entry_list, key=lambda x: x.table):
         table = dh.get_database_table(table_name)
 
         for entry_obj in group:
             data_obj = table[entry_obj.data_id]
 
-            yield (entry_obj, data_obj)
+            # Retrieve the author objects as well
+            author_objs = [author_table[author_id] for author_id in data_obj.author_ids]
+
+            yield (entry_obj, data_obj, author_objs)
 
 
 def get_sortable_args(args):

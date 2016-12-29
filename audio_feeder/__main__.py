@@ -101,7 +101,7 @@ def books():
 
 
 @app.route('/rss/<int:e_id>.xml')
-def rss_feed(e_id, tail=''):
+def rss_feed(e_id):
     """
     Generates an RSS feed.
 
@@ -334,24 +334,3 @@ def get_css_links():
 
 
     return css_paths
-
-###
-# Scripts
-def run():
-    import argparse
-
-    parser = argparse.ArgumentParser(description=DESCRIPTION)
-
-    parser.add_argument('-hn', '--host', type=str, default='localhost',
-        help='The host to run the application on.')
-
-    parser.add_argument('-p', '--port', type=int, default=9090,
-        help='The port to run the application on.')
-
-    args = parser.parse_args()
-
-    init_config(base_host=args.host, base_port=args.port)
-
-    app.static_folder = read_from_config('static_media_path')
-
-    app.run(host=args.host, port=args.port)

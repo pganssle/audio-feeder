@@ -300,6 +300,9 @@ class BookDatabaseUpdater:
 
                     new_author = author_name
                     new_author_id = author_obj.id
+                else:
+                    new_author = author_name
+                    new_author_id = author_id
 
                 new_authors.append(new_author)
                 new_author_ids.append(new_author_id)

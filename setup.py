@@ -16,6 +16,7 @@ INSTALL_REQUIREMENTS = [
     'Pillow>=3.4.2',
     'requests>=2.12.4',
     'jinja2',
+    'click>=6.0'
 ]
 
 setup(name="audio-feeder",
@@ -30,8 +31,7 @@ setup(name="audio-feeder",
       install_requires=INSTALL_REQUIREMENTS,
       entry_points={
         'console_scripts': [
-            'audio-feeder-run=audio_feeder.__main__:run',
-            'audio-feeder-update=audio_feeder.database_handler:update_database'
+            'audio-feeder=audio_feeder.cli:cli'
         ]
       },
       classifiers=[

@@ -3,10 +3,12 @@ Metadata loading
 """
 
 import datetime
+import io
+import os
 import time
+from collections import OrderedDict
 
 import requests
-from collections import OrderedDict
 
 LOCAL_DATA_SOURCE = 'local'
 
@@ -80,10 +82,10 @@ class GoogleBooksLoader(MetaDataLoader):
                          isbn13=None, oclc=None, lccn=None, google_id=None):
         
         if google_id is not None:
-            r = self.retrieve_volume(google_id)
+            r_json = self.retrieve_volume(google_id)
 
-            if r.status_code == 200:
-                return self.parse_volume_metadata(r.json())
+            if r_json != {}:
+                return self.parse_volume_metadata(r_json)
 
         # If we don't have a google_id, let's try to use one of the identifiers.
         identifiers = OrderedDict(isbn13=isbn13,
@@ -204,6 +206,15 @@ class GoogleBooksLoader(MetaDataLoader):
             if getattr(book_obj, key, None) is None and key in md:
                 setattr(book_obj, key, md[key])
 
+        # These are keys where Google Books wins out
+        overwrite_keys = (
+            'google_id',
+        )
+        for key in overwrite_keys:
+            new_val = md.get(key, None)
+            if new_val is not None:
+                setattr(book_obj, key, new_val)
+
         # Add a Google Books description if it doesn't exist already.
         if book_obj.descriptions is None:
             book_obj.descriptions = {}
@@ -229,6 +240,32 @@ class GoogleBooksLoader(MetaDataLoader):
         book_obj.metadata_sources.append(self.SOURCE_NAME)
 
         return book_obj
+
+    @classmethod
+    def retrieve_best_image(cls, cover_images):
+        """
+        Given a dictionary of cover image URLs, this retrieves the largest
+        available image.
+        """
+        sizes = ['extraLarge', 'large',
+                 'medium', 'small',
+                 'thumbnail', 'smallthumbnail']
+
+        for size in sizes:
+            if size in cover_images:
+                # Download the data
+                r = requests.get(cover_images[size])
+                if r.status_code != 200:
+                    continue
+
+                r.raw.decode_content = True
+
+                fl = io.BytesIO(r.content)
+
+                return (fl, cover_images[size], size)
+
+        return None, None, None
+
 
 
 class PollDelayIncomplete(Exception):

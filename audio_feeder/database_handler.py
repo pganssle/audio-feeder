@@ -1,8 +1,13 @@
-import datetime
+import imghdr
 import itertools
+import math
 import os
 import shutil
 import warnings
+
+from datetime import datetime, timezone
+from random import SystemRandom
+_rand = SystemRandom()
 
 from . import directory_parser as dp
 from . import metadata_loader as mdl
@@ -12,9 +17,8 @@ from . import object_handler as oh
 from .config import read_from_config
 
 from ruamel import yaml
-import math
-from random import SystemRandom
-_rand = SystemRandom()
+
+from PIL import Image
 
 DB_VERSION = 0
 
@@ -110,11 +114,11 @@ def save_database(database, schema_loc=None, db_loc=None):
         raise e
 
 
-def get_database_table(table_name):
+def get_database_table(table_name, database=None):
     """
     Loads a database table from a cached read-only database.
     """
-    db = getattr(get_database_table, '_database', None)
+    db = database or getattr(get_database_table, '_database', None)
     if db is None:
         db = load_database()
 
@@ -123,13 +127,13 @@ def get_database_table(table_name):
     return db[table_name]
 
 
-def get_data_obj(entry_obj):
+def get_data_obj(entry_obj, database=None):
     """
     Given an :class:`object_handler.Entry` object, return the corresponding data
     object, loaded from the appropriate table.
     """
     # Loads the data table
-    table = get_database_table(entry_obj.table)
+    table = get_database_table(entry_obj.table, database=database)
 
     return table[entry_obj.data_id]
 
@@ -252,7 +256,7 @@ class BookDatabaseUpdater:
                 # Update 'last modified' on any entries updated.
                 for entry_id in book_to_entry.get(book_id, []):
                     entry_obj = entry_table[entry_id]
-                    entry_obj.last_modified = datetime.datetime.utcnow()
+                    entry_obj.last_modified = datetime.now(timezone.utc)
                     entry_table[entry_id] = entry_obj
 
             # Try and assign priority for the descriptions
@@ -324,6 +328,8 @@ class BookDatabaseUpdater:
             book_obj.author_ids = new_author_ids
             book_obj.roles = new_author_roles
 
+        self.update_cover_images(database)
+
         return database
 
     def make_new_entry(self, path, id_handler):
@@ -335,9 +341,11 @@ class BookDatabaseUpdater:
         # Try to match to an existing book.
         e_id = id_handler.new_id()
 
-        entry_obj = oh.Entry(id=e_id, path=path,
-            date_added=datetime.datetime.utcnow(),
-            last_modified=datetime.datetime.utcnow(),
+        rel_path = os.path.relpath(path, read_from_config('base_media_path'))
+
+        entry_obj = oh.Entry(id=e_id, path=rel_path,
+            date_added=datetime.now(timezone.utc),
+            last_modified=datetime.now(timezone.utc),
             type='Book', table=self.BOOK_TABLE_NAME, data_id=None,
             hashseed=_rand.randint(0, 2**32))
 
@@ -361,6 +369,9 @@ class BookDatabaseUpdater:
         :return:
             Returns a :class:`object_handler.Book` object.
         """
+
+        # The path will be relative to the base media path
+        path = os.path.join(read_from_config('base_media_path'), path)
 
         # First load title and author from the path.
         audio_info = self.book_loader.parse_audio_info(path)
@@ -416,6 +427,9 @@ class BookDatabaseUpdater:
         if audio_cover is None:
             cover_images = None
         else:
+            # Get audio cover relative to the static media path
+            audio_cover = os.path.relpath(audio_cover,
+                read_from_config('static_media_path'))
             cover_images = {mdl.LOCAL_DATA_SOURCE: audio_cover}
 
         book_obj = oh.Book(id=book_id,
@@ -519,6 +533,83 @@ class BookDatabaseUpdater:
 
         return disamb_func(author_list)
 
+    def update_cover_images(self, database):
+        entry_table = database[self.entry_table]
+        base_static_path = read_from_config('static_media_path')
+        cover_cache_path = read_from_config('cover_cache_path')
+
+        def _img_path(img_path):
+            return os.path.join(base_static_path, img_path)
+
+        def _img_path_exists(img_path):
+            return os.path.exists(_img_path(img_path))
+
+        for entry_id, entry_obj in entry_table.items():
+            # Check if the entry cover path exists.
+            thumb_loc = os.path.join(cover_cache_path, 
+                                     '{}-thumb.png'.format(entry_obj.id))
+
+            regenerate_thumb = not _img_path_exists(thumb_loc)
+
+            new_cover_images = entry_obj.cover_images or []
+            new_cover_images = [cover_image
+                                for cover_image in new_cover_images
+                                if _img_path_exists(cover_image)]
+
+            old_best_img = cover_images[0] if len(new_cover_images) else None
+
+            # Check for the best cover image
+            data_obj = get_data_obj(entry_obj, database)
+            if hasattr(data_obj, 'cover_images'):
+                local_cover_img = data_obj.cover_images.get(mdl.LOCAL_DATA_SOURCE, None)
+
+                if local_cover_img is not None:
+                    if local_cover_img not in new_cover_images:
+                        new_cover_images.insert(0, local_cover_img)
+
+                for loader in self.metadata_loaders:
+                    if loader.SOURCE_NAME not in data_obj.cover_images:
+                        continue
+
+                    img_base = '{}_{}'.format(entry_obj.id, loader.SOURCE_NAME)
+                    if any(x.startswith(img_base)
+                           for x in (os.path.split(y)[1] for y in new_cover_images)):
+                        continue
+
+                    cover_images = data_obj.cover_images[loader.SOURCE_NAME]
+                    r, img_url, desc = loader.retrieve_best_image(cover_images)
+
+                    if r is None:
+                        continue
+
+                    img_name_base = img_base + '-' + desc
+                    try:
+                        img_ext = _get_img_ext(r)
+                    except UnsupportedImageType:
+                        continue
+
+                    img_name = img_name_base + img_ext
+                    img_loc = os.path.join(cover_cache_path, img_name)
+                    
+                    with open(_img_path(img_loc), 'wb') as f:
+                        shutil.copyfileobj(r, f)
+
+                    new_cover_images.append(img_loc)
+
+            if not new_cover_images:
+                warnings.warn('No image found', RuntimeWarning)
+                continue
+
+            best_img = new_cover_images[0]
+            regenerate_thumb = regenerate_thumb or (old_best_img != best_img)
+
+            if regenerate_thumb:
+                _generate_thumbnail(_img_path(best_img), _img_path(thumb_loc))
+
+            entry_obj.cover_images = new_cover_images
+
+
+
     @classmethod
     def author_sort(cls, author_name):
         """
@@ -602,9 +693,50 @@ def _get_schema_db_locs(schema_loc=None, db_loc=None):
 
     return schema_loc, db_loc
 
-class DuplicateEntryError(ValueError):
-    """ Raised when a duplicate entry is found in the database. """
-    pass
+def _get_img_ext(fobj):
+
+    img = Image.open(fobj)
+    img_type = img.format
+    ext_map = {
+        'GIF': '.gif',
+        'JPEG': '.jpg',
+        'JPEG 2000': '.jpg',
+        'PNG': '.png',
+        'BMP': '.bmp',
+        'TIFF': '.tiff'
+    }
+
+    fobj.seek(0)
+
+    if img_type not in ext_map:
+        raise UnsupportedImageType('Unsupported image type.')
+
+    return ext_map[img_type]
+
+def _generate_thumbnail(img_loc, thumb_loc):
+    img = Image.open(img_loc)
+    w, h = img.size
+    w_m, h_m = read_from_config('thumb_max')
+
+    # Unspecified widths and heights are unlimited
+    w_m = w_m or w
+    h_m = h_m or h
+
+    # Check who has a larger aspect ratio
+    ar = w / h
+    ar_m = w_m / h_m
+
+    if ar >= ar_m:
+        # If the image has a wider aspect ratio than we do, scale by width
+        scale = w_m / w
+    else:
+        scale = h_m / h
+
+    # Don't upscale it
+    scale = min([scale, 1]) 
+
+    img.thumbnail((w * scale, h * scale))
+    img.save(thumb_loc)
 
 
 ###
@@ -639,3 +771,12 @@ def update_database():
     updater.update_db(db)
     save_database(db)
 
+
+###
+# Errors
+class DuplicateEntryError(ValueError):
+    """ Raised when a duplicate entry is found in the database. """
+    pass
+
+class UnsupportedImageType(ValueError):
+    pass

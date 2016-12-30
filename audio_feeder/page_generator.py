@@ -13,7 +13,7 @@ from .config import get_configuration, read_from_config
 
 
 import qrcode
-from qrcode.image.svg import SvgImage
+from qrcode.image.svg import SvgPathImage
 import warnings
 
 from jinja2 import Template
@@ -25,9 +25,9 @@ class QRGenerator:
     """
     Class for generating QR codes on demand
     """
-    def __init__(self, fmt='svg', version=None, **qr_options):
+    def __init__(self, fmt='png', version=None, **qr_options):
         if fmt == 'svg':
-            image_factory = SvgImage
+            image_factory = SvgPathImage
             self.extension = '.svg'
         elif fmt == 'png':
             image_factory = None
@@ -37,6 +37,7 @@ class QRGenerator:
         qr_options['image_factory'] = image_factory
 
         qr_options.setdefault('border', 0)
+        qr_options.setdefault('box_size', 36)
         self.qr_options = qr_options
 
     def generate_qr(self, data, save_path):
@@ -69,7 +70,7 @@ class UrlResolver:
 
     def resolve_media(self, url_tail):
         return self.resolve_url(self.img_protocol,
-                                self.base_url,
+                                self.static_url,
                                 url_tail)
 
     def resolve_rss(self, entry_obj, tail=None):

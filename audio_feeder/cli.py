@@ -46,7 +46,15 @@ def update(content_type, path):
 
     The path at PATH will be recursively searched for data.
     """
+    import os
+
+    from .config import read_from_config
+
     from . import database_handler as dh
+
+    # If this is a relative path, interpret it as relative to the base
+    # media path, not the cwd.
+    path = os.path.join(read_from_config('base_media_path'), path)
 
     if content_type in ('b', 'books'):
         updater = dh.BookDatabaseUpdater(path)
@@ -115,10 +123,12 @@ def install(config_dir, config_name):
     make_dir_directories = [config_obj[x] for x in make_dir_entries]
     static_paths = [
         os.path.join(config_obj['static_media_path'], config_obj[x])
-        for x in ('site_images_loc', 'css_loc', 'qr_cache_path')
+        for x in ('site_images_loc', 'css_loc',
+                  'cover_cache_path', 'qr_cache_path')
     ]   # Relative paths
 
-    site_images_path, css_path, qr_cache_path = static_paths
+    (site_images_path, css_path,
+     cover_cache_path, qr_cache_path) = static_paths
 
     make_dir_directories += static_paths
 

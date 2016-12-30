@@ -88,7 +88,7 @@ def load_feed_items(entry_obj, loader=dp.AudiobookLoader):
             media url - this should be modified on the fly when actually
             generating the rss files.
     """
-    base_path = read_from_config('static_media_path')
+    base_path = read_from_config('base_media_path')
 
     audio_dir = os.path.join(base_path, entry_obj.path)
     if not os.path.exists(audio_dir):

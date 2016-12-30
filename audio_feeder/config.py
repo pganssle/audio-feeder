@@ -14,7 +14,10 @@ CONFIG_DIRS = [os.path.expanduser(x) for x in (
 )]
 
 CONFIG_NAMES = ['config.yml']
-CONFIG_LOCATIONS = list(product(CONFIG_DIRS, CONFIG_NAMES))
+CONFIG_LOCATIONS = list(
+    os.path.join(bdir, cfile)
+    for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
+)
 
 class _ConfigProperty:
     def __init__(self, prop_name):
@@ -39,9 +42,11 @@ class Configuration:
         ('base_media_url', '{{URL}}/static/media'),
         ('site_images_loc', 'images/site-images'),
         ('qr_cache_path', 'images/qr_cache'),
+        ('cover_cache_path', 'images/entry_cover_cache'),
         ('rss_feed_urls', 'rss/{id}.xml'),
         ('css_loc', 'css'),
         ('main_css_files', ['main.css']),
+        ('thumb_max', [200, 500]),   # width, height
         ('base_host', 'localhost'),
         ('base_port', 9090),
     ))

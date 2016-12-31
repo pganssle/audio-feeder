@@ -11,9 +11,6 @@ from .object_handler import Entry as BaseEntry
 from .object_handler import Book as BaseBook
 from .config import get_configuration, read_from_config
 
-
-import qrcode
-from qrcode.image.svg import SvgPathImage
 import warnings
 
 from jinja2 import Template
@@ -21,112 +18,13 @@ from jinja2 import Template
 WORD_CHARS = set(string.ascii_letters + string.digits)
 
 
-class QRGenerator:
-    """
-    Class for generating QR codes on demand
-    """
-    def __init__(self, fmt='png', version=None, **qr_options):
-        if fmt == 'svg':
-            image_factory = SvgPathImage
-            self.extension = '.svg'
-        elif fmt == 'png':
-            image_factory = None
-            self.extension = '.png'
-
-        qr_options['version'] = version
-        qr_options['image_factory'] = image_factory
-
-        qr_options.setdefault('border', 0)
-        qr_options.setdefault('box_size', 36)
-        self.qr_options = qr_options
-
-    def generate_qr(self, data, save_path):
-        img = qrcode.make(data, **self.qr_options)
-        img.save(save_path)
-
-    def get_save_path(self, save_dir, save_name):
-        save_path = os.path.join(save_dir, save_name + self.extension)
-
-        return save_path
-
-
-class UrlResolver:
-    def __init__(self, base_url, base_path,
-                 rss_protocol='http',
-                 img_protocol='http',
-                 audio_protocol='http',
-                 qr_generator=None):
-        self.base_url = base_url
-        self.base_path = base_path
-        self.rss_protocol = rss_protocol
-        self.img_protocol = img_protocol
-        self.audio_protocol = audio_protocol
-
-        self.static_url = read_from_config('static_media_url')
-        self.static_path = read_from_config('static_media_path')
-
-        if qr_generator is None:
-            self.qr_generator = QRGenerator()
-
-    def resolve_media(self, url_tail):
-        return self.resolve_url(self.img_protocol,
-                                self.static_url,
-                                url_tail)
-
-    def resolve_rss(self, entry_obj, tail=None):
-        kwargs = dict(id=entry_obj.id, table=entry_obj.table, tail=tail or '')
-
-        url_tail = read_from_config('rss_feed_urls')
-        url_tail = url_tail.format(**kwargs)
-        return self.resolve_url(self.rss_protocol,
-                                self.base_url,
-                                url_tail,
-                                validate=False)
-
-    def resolve_qr(self, e_id, url):
-        # Check the QR cache - for the moment, we're going to assume that once
-        # a QR code is generated, it's accurate until it's deleted. Eventually
-        # it might be nice to allow multiple caches.
-        qr_cache = os.path.join(self.static_path,
-                                read_from_config('qr_cache_path'))
-
-        rel_save_dir = self.resolve_relpath(qr_cache)
-        rel_save_path = self.qr_generator.get_save_path(rel_save_dir,
-                                                        '{}'.format(e_id))
-
-        save_path = os.path.join(self.base_path, rel_save_path)
-        if not os.path.exists(save_path):
-            self.qr_generator.generate_qr(url, save_path)
-
-        return self.resolve_url(protocol=self.img_protocol,
-                                base_url=self.static_url,
-                                url_tail=rel_save_path)
-
-    def resolve_url(self, protocol, base_url, url_tail, validate=False):
-        relpath = self.resolve_relpath(url_tail)
-        if validate:
-            self.validate_path(relpath)
-
-        url_base = '{protocol}://{base_url}'.format(protocol=protocol,
-                                                    base_url=base_url)
-
-        return os.path.join(url_base, url_tail)
-
-    def resolve_relpath(self, path):
-        return os.path.relpath(path, self.base_path)
-
-    def validate_path(self, relpath):
-        if not os.path.exists(os.path.join(self.base_path, relpath)):
-            raise FailedResolutionError
-
-
 class EntryRenderer:
     FIELDS = ('id', 'rss_url', 'name', 'description',
               'cover_img_url', 'qr_img_url', 'truncation_point')
 
-    def __init__(self, url_resolver,
+    def __init__(self, resolver,
                  entry_templates_config='entry_templates_loc'):
-        self.url_resolver = url_resolver
+        self.resolver = resolver
         self.entry_templates_loc = read_from_config(entry_templates_config)
 
     def render(self, entry_obj, data_obj):
@@ -163,14 +61,14 @@ class EntryRenderer:
 
         for cover_image in entry_obj.cover_images or []:
             try:
-                out['cover_url'] = self.url_resolver.resolve_media(cover_image)
+                out['cover_url'] = self.resolver.resolve_static(cover_image).url
                 break
             except FailedResolutionError:
                 pass
 
-        out['rss_url'] = self.url_resolver.resolve_rss(entry_obj)
-        out['qr_img_url'] = self.url_resolver.resolve_qr(entry_obj.id,
-                                                         out['rss_url'])
+        out['rss_url'] = self.resolver.resolve_rss(entry_obj).url
+        out['qr_img_url'] = self.resolver.resolve_qr(entry_obj.id,
+                                                     out['rss_url']).url
 
         out['truncation_point'] = self.truncation_point(out['description'])
 
@@ -199,7 +97,6 @@ class EntryRenderer:
         orig_pos = stripper.get_unstripped_pos(truncation_point)
 
         return orig_pos
-
 
     def load_type(self, type_name):
         type_cache = getattr(self, '_load_type_cache', {})

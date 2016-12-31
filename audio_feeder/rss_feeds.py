@@ -1,16 +1,19 @@
 """
 RSS Feed generators
 """
-from datetime import timedelta
 import hashlib
 import math
 import os
 import random
 import re
 
+from datetime import timedelta
+from urllib.parse import urljoin
+
 from .config import read_from_config
 from . import directory_parser as dp
 from . import database_handler as dh
+from .resolver import Resolver
 
 def hash_random(fpath, hashseed, hash_amt=2**20, block_size=2**12,
                 hash_func=hashlib.sha256):
@@ -70,7 +73,7 @@ def hash_random(fpath, hashseed, hash_amt=2**20, block_size=2**12,
     return hash_obj.hexdigest()
 
 
-def load_feed_items(entry_obj, loader=dp.AudiobookLoader):
+def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
     """
     Creates feed items from a directory.
 
@@ -88,27 +91,28 @@ def load_feed_items(entry_obj, loader=dp.AudiobookLoader):
             media url - this should be modified on the fly when actually
             generating the rss files.
     """
-    base_path = read_from_config('base_media_path')
+    if resolver is None:
+        resolver = Resolver()
 
-    audio_dir = os.path.join(base_path, entry_obj.path)
-    if not os.path.exists(audio_dir):
+    audio_dir = resolver.resolve_media(entry_obj.path)
+    if not os.path.exists(audio_dir.path):
         raise ItemNotFoundError('Could not find item: {}'.format(audio_dir))
 
     pub_date = entry_obj.date_added
     data_obj = dh.get_database_table(entry_obj.table)[entry_obj.data_id]
 
-    audio_files = loader.audio_files(audio_dir)
+    audio_files = loader.audio_files(audio_dir.path)
 
     feed_items = []
     for ii, audio_file in enumerate(audio_files):
         feed_item = {}
 
-        relpath = os.path.relpath(audio_file, base_path)
+        relpath = os.path.relpath(audio_file, audio_dir.path)
 
         file_size =  os.path.getsize(audio_file)
         feed_item['fname'] = os.path.split(audio_file)[1]
         feed_item['size'] = file_size
-        feed_item['url'] = relpath
+        feed_item['url'] = _urljoin_dir(audio_dir.url, relpath)
         feed_item['pubdate'] = pub_date + timedelta(minutes=ii)
         feed_item['desc'] = data_obj.description or ''
         feed_item['guid'] = hash_random(audio_file, entry_obj.hashseed)
@@ -130,6 +134,13 @@ def wrap_field(field):
         return '<![CDATA[' + field + ']]>'
     else:
         return field
+
+
+def _urljoin_dir(dir_, fragment):
+    if not dir_.endswith('/'):
+        dir_ += '/'
+
+    return urljoin(dir_, fragment)
 
 
 class ItemNotFoundError(ValueError):

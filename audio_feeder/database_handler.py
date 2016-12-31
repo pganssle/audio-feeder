@@ -15,6 +15,7 @@ from . import schema_handler as sh
 from . import object_handler as oh
 
 from .config import read_from_config
+from .resolver import get_resolver
 
 from ruamel import yaml
 
@@ -187,7 +188,10 @@ class BookDatabaseUpdater:
         self.id_handler = id_handler
 
     def load_book_paths(self):
-        return dp.load_all_audio(self.books_location)
+        aps = dp.load_all_audio(self.books_location)
+        media_loc = read_from_config('media_loc')
+
+        return [os.path.relpath(ap, media_loc.path) for ap in aps]
 
     def update_db(self, database, reload_metadata=False):
         # Load all audio from the audiobooks location
@@ -332,7 +336,7 @@ class BookDatabaseUpdater:
 
         return database
 
-    def make_new_entry(self, path, id_handler):
+    def make_new_entry(self, rel_path, id_handler):
         """
         Generates a new entry for the specified path.
 
@@ -340,8 +344,6 @@ class BookDatabaseUpdater:
         """
         # Try to match to an existing book.
         e_id = id_handler.new_id()
-
-        rel_path = os.path.relpath(path, read_from_config('base_media_path'))
 
         entry_obj = oh.Entry(id=e_id, path=rel_path,
             date_added=datetime.now(timezone.utc),
@@ -371,11 +373,12 @@ class BookDatabaseUpdater:
         """
 
         # The path will be relative to the base media path
-        path = os.path.join(read_from_config('base_media_path'), path)
+        resolver = get_resolver()
+        loc = resolver.resolve_media(path)
 
         # First load title and author from the path.
-        audio_info = self.book_loader.parse_audio_info(path)
-        audio_cover = self.book_loader.audio_cover(path)
+        audio_info = self.book_loader.parse_audio_info(loc.path)
+        audio_cover = self.book_loader.audio_cover(loc.path)
 
         # Load books by title and author into a cache if necessary
         books_by_key = getattr(self, '_books_by_key', {})
@@ -428,8 +431,7 @@ class BookDatabaseUpdater:
             cover_images = None
         else:
             # Get audio cover relative to the static media path
-            audio_cover = os.path.relpath(audio_cover,
-                read_from_config('static_media_path'))
+            audio_cover = resolver.resolve_static(audio_cover)
             cover_images = {mdl.LOCAL_DATA_SOURCE: audio_cover}
 
         book_obj = oh.Book(id=book_id,
@@ -556,7 +558,7 @@ class BookDatabaseUpdater:
                                 for cover_image in new_cover_images
                                 if _img_path_exists(cover_image)]
 
-            old_best_img = cover_images[0] if len(new_cover_images) else None
+            old_best_img = new_cover_images[0] if len(new_cover_images) else None
 
             # Check for the best cover image
             data_obj = get_data_obj(entry_obj, database)

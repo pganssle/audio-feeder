@@ -6,6 +6,8 @@ import itertools as it
 import logging
 import os
 
+from datetime import datetime, timezone
+
 from flask import Flask, request
 import flask
 
@@ -14,9 +16,8 @@ from jinja2 import Template
 from audio_feeder import page_generator as pg
 from audio_feeder import database_handler as dh
 from audio_feeder import rss_feeds as rf
+from audio_feeder.resolver import get_resolver
 from audio_feeder.config import read_from_config, init_config
-
-from datetime import datetime, timezone
 
 app = Flask('audio_feeder')
 
@@ -78,8 +79,8 @@ def books():
     prev_index = nav_list[max((page - 1, 0))]
     next_index = nav_list[min((page + 1, len(nav_list) - 1))]
 
-    site_images_url = os.path.join('http://' + read_from_config('static_media_url'),
-                                   read_from_config('site_images_loc'))
+    resolver = get_resolver()
+    site_images = resolver.resolve_static(read_from_config('site_images_loc'))
 
     page_data = {
         'entries': get_rendered_entries(entry_page),
@@ -89,8 +90,8 @@ def books():
         'prev_index': prev_index.url,
         'next_index': next_index.url,
         'pagetitle': 'Books: Page {} of {}'.format(page, len(nav_list)),
-        'site_images_url': site_images_url,
-        'default_cover': os.path.join(site_images_url, 'default_cover.svg'),
+        'site_images_url': site_images.url,
+        'default_cover': os.path.join(site_images.url, 'default_cover.svg'),
         'stylesheet_links': get_css_links(),
         'favicon': None,
     }
@@ -286,6 +287,7 @@ def get_list_template():
 
     return template
 
+
 def get_feed_template():
     template = getattr(get_feed_template, '_template', None)
     if template is None:
@@ -293,6 +295,7 @@ def get_feed_template():
         get_feed_template._template = template
 
     return get_feed_template._template
+
 
 def _get_template(loc_entry, template_name):
     template_loc = read_from_config(loc_entry)
@@ -307,16 +310,13 @@ def _get_template(loc_entry, template_name):
 def get_renderer(rss_renderer=False):
     renderer = getattr(get_renderer, '_renderer', {})
     if rss_renderer not in renderer:
-        resolver = pg.UrlResolver(
-            base_path=read_from_config('static_media_path'),
-            base_url=read_from_config('base_url')
-        )
+        resolver = get_resolver()
 
         kwargs = {}
         if rss_renderer:
             kwargs['entry_templates_config'] = 'rss_entry_templates_loc'
 
-        renderer[rss_renderer] = pg.EntryRenderer(url_resolver=resolver, **kwargs)
+        renderer[rss_renderer] = pg.EntryRenderer(resolver=resolver, **kwargs)
 
         get_renderer._renderer = renderer
 
@@ -324,13 +324,12 @@ def get_renderer(rss_renderer=False):
 
 
 def get_css_links():
-    static_loc = read_from_config('static_media_url')
+    resolver = get_resolver()
     css_loc = read_from_config('css_loc')
-    css_loc = os.path.join(static_loc, css_loc)
-    css_loc = 'http://' + css_loc
+    css_locs = [os.path.join(css_loc, css_file)
+                for css_file in read_from_config('main_css_files')]
 
-    css_paths = [os.path.join(css_loc, css_file)
-                 for css_file in read_from_config('main_css_files')]
-
+    css_paths = [resolver.resolve_static(css_relpath).url
+        for css_relpath in css_locs]
 
     return css_paths

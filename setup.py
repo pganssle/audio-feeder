@@ -38,7 +38,9 @@ setup(name="audio-feeder",
       package_data={'audio_feeder': DATA_FILES},
       include_package_data=True,
       zip_safe=True,
+      setup_requires=['pytest-runner'],
       install_requires=INSTALL_REQUIREMENTS,
+      tests_require=['pytest>=3.0'],
       entry_points={
         'console_scripts': [
             'audio-feeder=audio_feeder.cli:cli'

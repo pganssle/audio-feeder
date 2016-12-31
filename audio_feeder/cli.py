@@ -48,13 +48,12 @@ def update(content_type, path):
     """
     import os
 
-    from .config import read_from_config
-
     from . import database_handler as dh
+    from .resolver import Resolver
 
     # If this is a relative path, interpret it as relative to the base
     # media path, not the cwd.
-    path = os.path.join(read_from_config('base_media_path'), path)
+    path = Resolver().resolve_media(path).path
 
     if content_type in ('b', 'books'):
         updater = dh.BookDatabaseUpdater(path)

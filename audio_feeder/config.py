@@ -9,6 +9,8 @@ import warnings
 import yaml
 from collections import OrderedDict
 
+from .resolver import FileLocation
+
 CONFIG_DIRS = [os.path.expanduser(x) for x in (
     '~/.config/audio_feeder/', 
 )]
@@ -38,15 +40,18 @@ class Configuration:
         ('database_loc', '{{CONFIG}}/database/db'),
         ('static_media_path', '{{CONFIG}}/static'),
         ('static_media_url', '{{URL}}/static'),
-        ('base_media_path', '{{STATIC}}/media'),
-        ('base_media_url', '{{URL}}/static/media'),
+        # Relative to static
+        ('media_path', 'media'),
         ('site_images_loc', 'images/site-images'),
         ('qr_cache_path', 'images/qr_cache'),
         ('cover_cache_path', 'images/entry_cover_cache'),
-        ('rss_feed_urls', 'rss/{id}.xml'),
         ('css_loc', 'css'),
-        ('main_css_files', ['main.css']),
-        ('thumb_max', [200, 500]),   # width, height
+        # Relative to base
+        ('rss_feed_urls', 'rss/{id}.xml'),
+        # Relative to others
+        ('main_css_files', ['main.css']),    # CSS
+        ('thumb_max', [200, 400]),   # width, height
+        ('base_protocol', 'http'),
         ('base_host', 'localhost'),
         ('base_port', 9090),
     ))
@@ -87,8 +92,14 @@ class Configuration:
         else:
             self.base_url = '{}:{}'.format(self.base_host, self.base_port)
 
+        self.base_url = self.base_protocol + '://' + self.base_url
+
         for kwarg in self.PROPERTIES.keys():
             setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
+
+        self.media_loc = FileLocation(self.media_path,
+                                      self.static_media_url,
+                                      self.static_media_path)
 
     @classmethod
     def from_file(cls, file_loc, **kwargs):

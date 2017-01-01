@@ -108,6 +108,7 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
         feed_item = {}
 
         relpath = os.path.relpath(audio_file, audio_dir.path)
+        relpath = relpath.replace(' ', '%20')   # Temporary hack
 
         file_size =  os.path.getsize(audio_file)
         feed_item['fname'] = os.path.split(audio_file)[1]

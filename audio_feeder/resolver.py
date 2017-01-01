@@ -103,7 +103,9 @@ class FileLocation:
         if not url_base_bare.endswith('/'):
             url_base_bare += '/'
 
-        self._url_bare = urljoin('//' + url_base_bare, rel_path)[2:]
+        # This is a patch until we can do the URL encoding properly later.
+        rel_path_url = rel_path.replace(' ', "%20")
+        self._url_bare = urljoin('//' + url_base_bare, rel_path_url)[2:]
 
         self._url = self._url_protocol + self._url_bare
 

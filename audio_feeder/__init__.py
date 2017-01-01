@@ -136,6 +136,8 @@ def rss_feed(e_id):
     author = rendered_page['author']
     
     cover_image = entry_obj.cover_images[0] if entry_obj.cover_images else None
+    if cover_image is not None:
+        cover_image = get_resolver().resolve_static(cover_image).url
 
     # This gives me the "items" list
     feed_items = rf.load_feed_items(entry_obj)

@@ -6,7 +6,7 @@ import os
 import logging
 import warnings
 
-import yaml
+from ruamel import yaml
 from collections import OrderedDict
 
 from .resolver import FileLocation

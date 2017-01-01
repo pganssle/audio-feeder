@@ -54,6 +54,8 @@ class Configuration:
         ('base_protocol', 'http'),
         ('base_host', 'localhost'),
         ('base_port', 9090),
+        # API Keys
+        ('google_api_key', None),
     ))
 
     REPLACEMENTS = {

@@ -10,6 +10,8 @@ from collections import OrderedDict
 
 import requests
 
+from .config import read_from_config
+
 LOCAL_DATA_SOURCE = 'local'
 
 class MetaDataLoader:
@@ -75,6 +77,7 @@ class GoogleBooksLoader(MetaDataLoader):
     """
     Metadata loader pulling from Google Books.
     """
+    POLL_DELAY = 1
     API_ENDPOINT = 'https://www.googleapis.com/books/v1/volumes'
     SOURCE_NAME = 'google_books'
 
@@ -85,7 +88,11 @@ class GoogleBooksLoader(MetaDataLoader):
             r_json = self.retrieve_volume(google_id)
 
             if r_json != {}:
-                return self.parse_volume_metadata(r_json)
+                try:
+                    return self.parse_volume_metadata(r_json)
+                except VolumeInformationMissing:
+                    print('No volume with google id {}'.format(google_id))
+                    print('Using other information for {} - {}'.format(authors, title))
 
         # If we don't have a google_id, let's try to use one of the identifiers.
         identifiers = OrderedDict(isbn13=isbn13,
@@ -99,7 +106,7 @@ class GoogleBooksLoader(MetaDataLoader):
                 if id_type == 'isbn13':
                     id_type = 'isbn'
 
-                query_list = [id_type + ':' + identifier]
+                query_list = [id_type + ':' + str(identifier)]
 
                 r_json = self.retrieve_search_results(query_list)
                 total_items = r_json.get('totalItems', 0)
@@ -142,13 +149,26 @@ class GoogleBooksLoader(MetaDataLoader):
 
         return r.json()
 
+    def make_request(self, *args, **kwargs):
+        API_KEY = read_from_config('google_api_key')
+        if API_KEY is not None:
+            if 'params' not in kwargs:
+                kwargs['params'] = {}
+
+            kwargs['params']['key'] = API_KEY
+
+        return super().make_request(*args, **kwargs)
+
     def parse_volume_metadata(self, j_item):
         """
         Parse the volume metadata from the response JSON.
         """
-
         out = {}
-        v_info = j_item['volumeInfo']
+        try:
+            v_info = j_item['volumeInfo']
+        except KeyError as e:
+            raise VolumeInformationMissing('Missing volume information') from e
+
         out['google_id'] = j_item['id']
 
         out['title'] = v_info.get('title', None)
@@ -272,3 +292,7 @@ class PollDelayIncomplete(Exception):
     def __init__(self, *args, time_remaining=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.time_remaining = time_remaining
+
+class VolumeInformationMissing(KeyError):
+    pass
+

@@ -202,11 +202,16 @@ def get_sorted_entries(entry_list, sort_args):
                           for auth_obj in auth_objs]
 
         keys['title'] = data_obj.title
-        keys['series'] = (data_obj.series_name, data_obj.series_number)
+        if data_obj.series_name:
+            keys['series'] = (data_obj.series_name, data_obj.series_number)
+        else:
+            keys['series'] = ('', 0)
+
         keys['date_added'] = ent_obj.date_added
         keys['last_modified'] = ent_obj.last_modified
 
-        return tuple(keys[k] for k in sort_order)
+        # Replace None with an empty string
+        return tuple(keys[k] or '' for k in sort_order)
 
     return sorted(get_entry_objects(entry_list), key=_sort_key,
                   reverse=not sort_ascending)

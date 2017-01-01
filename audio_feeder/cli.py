@@ -71,6 +71,11 @@ def update(content_type, reload_metadata, path):
     from . import database_handler as dh
     from .resolver import Resolver
 
+    from progressbar import ProgressBar, Bar, Timer, ETA
+    def pbar(msg):
+        return ProgressBar(widgets=[msg, ' ',
+                           Bar(), ' ', Timer(), ' ', ETA()])
+
     # If this is a relative path, interpret it as relative to the base
     # media path, not the cwd.
     path = Resolver().resolve_media(path).path
@@ -80,7 +85,9 @@ def update(content_type, reload_metadata, path):
     else:
         raise ValueError('Unknown type {}'.format(utype))
 
+    print('Loading database')
     db = dh.load_database()
+
     print('Loading all new entries.')
     updater.update_db_entries(db)
 
@@ -91,8 +98,8 @@ def update(content_type, reload_metadata, path):
 
     dh.save_database(db)
 
-    print('Updating book metadata')
-    updater.update_book_metadata(db, reload_metadata=reload_metadata)
+    updater.update_book_metadata(db, pbar=pbar('Loading book metadata:'),
+        reload_metadata=reload_metadata)
 
     dh.save_database(db)
 
@@ -105,7 +112,6 @@ def update(content_type, reload_metadata, path):
     updater.update_cover_images(db)
 
     dh.save_database(db)
-
 
 
 @cli.command()
@@ -229,4 +235,118 @@ def install(config_dir, config_name):
                         os.makedirs(dst_subdir)
 
                     shutil.copy2(src_path, dst_path)
+
+
+@cli.group()
+def find_missing_books():
+    """
+    For books where the automatic metadata loader failed, this will load a YAML
+    file of books which may need manual attention.
+    """
+    pass
+
+@find_missing_books.command()
+@click.option('-yo', '--overwrite', is_flag=True,
+    help='Automatically answer yes to "overwrite" prompt.')
+@click.option('-o', '--output', type=str, default='missing.yml',
+    help='Where to load the dictionary mapping entry IDs to names and values.')
+def load(overwrite, output):
+    """
+    Load the books from the current database that are missing into an optionally
+    specified YAML file.
+    """
+    import os
+
+    from ruamel import yaml
+
+    from . import database_handler as dh
+
+    if os.path.exists(output) and not overwrite:
+        click.confirm('Do you want to overwrite {}?'.format(output), abort=True)
+
+    print('Loading database')
+    books_table = dh.get_database_table('books')
+
+    # Retrieve all the books with no metadata sources
+    print('Searching for books with missing metadata')
+    books_no_metadata = {}
+    for book_id, book_obj in books_table.items():
+        if not book_obj.metadata_sources:
+            books_no_metadata[book_id] = book_obj
+
+
+    # For each book we want to save three pieces of information:
+    book_data = ['id', 'authors', 'title']
+
+    # And we want to provide space for the following IDs:
+    book_id_slots = ['isbn', 'isbn13', 'google_id', 'goodreads_id']
+
+    books_out = []
+    print('Preparing output')
+    for book_id, book_obj in books_no_metadata.items():
+        # Doing this as a list of dictionaries to maintain the order and make
+        # it look nice when humans are interacting with it.
+        book_out = [
+            {book_field: getattr(book_obj, book_field)}
+            for book_field in book_data
+        ]
+        book_out += [
+            {book_field: getattr(book_obj, book_field, None)}
+            for book_field in book_id_slots
+        ]
+
+        books_out.append(book_out)
+
+    books_out = sorted(books_out, key=lambda x: x[book_data.index('authors')]['authors'][0])
+
+    print('Writing output to {}'.format(output))
+    with open(output, 'w') as f:
+        yaml.dump(books_out, stream=f, default_flow_style=False)
+    
+@find_missing_books.command()
+@click.option('-i', '--input', type=str, default='missing.yml',
+    help='Where to load the missing books from.')
+def update(**kwargs):
+    from ruamel import yaml
+    from . import database_handler as dh
+
+    input_fpath = kwargs['input']
+
+    with open(input_fpath, 'r') as f:
+        missing_db = yaml.safe_load(f)
+
+    # Fields we're expecting to find
+    book_data = ['id', 'authors', 'title']
+    book_id_slots = ['isbn', 'isbn13', 'google_id', 'goodreads_id']
+
+    print('Loading missing book data from {}'.format(input_fpath))
+    books_in = {}
+    for book_in in missing_db:
+        # These are a list of dictionaries, for human readability reasons.
+        book_dict = {}
+        for item in book_in:
+            book_dict.update(item)
+
+        # Load anything which has a real value for one of the IDs.
+        if any(book_dict[id_slot] for id_slot in book_id_slots):
+            books_in[book_dict['id']] = book_dict
+
+    print('Loading book table database')
+    db = dh.load_database()
+    books_table = db['books']
+
+    load_if_avail = ['authors', 'title'] + book_id_slots
+
+    for book_id, book_dict in books_in.items():
+        book_obj = books_table[book_id]
+
+        for field in load_if_avail:
+            v = book_dict.get(field, None)
+            if v:
+                setattr(book_obj, field, v)
+
+        db['books'][book_id]
+
+    print('Saving book database')
+    dh.save_database(db)
 

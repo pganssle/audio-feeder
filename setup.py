@@ -18,7 +18,8 @@ INSTALL_REQUIREMENTS = [
     'Pillow>=3.4.2',
     'requests>=2.12.4',
     'jinja2',
-    'click>=6.0'
+    'click>=6.0',
+    'progressbar2'
 ]
 
 DATA_DIR = 'audio_feeder/data'

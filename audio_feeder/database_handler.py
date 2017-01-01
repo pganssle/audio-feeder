@@ -207,6 +207,13 @@ class BookDatabaseUpdater:
 
             id_by_path[path] = c_id
 
+        # Drop any paths from the table that don't exist anymore
+        for path, e_id in id_by_path.items():
+            full_path = os.path.join(read_from_config('media_loc').path,
+                                     path)
+            if not os.path.exists(full_path):
+                del entry_table[e_id]
+
         new_paths = [path for path in book_paths if path not in id_by_path]
         new_paths = list(set(new_paths))        # Enforce unique paths only
 
@@ -246,14 +253,17 @@ class BookDatabaseUpdater:
 
         return database
 
-    def update_book_metadata(self, database, reload_metadata=False):
+    def update_book_metadata(self, database, pbar=None, reload_metadata=False):
         book_table = database[self.table]
         # Set the priority on who gets to set the description.
         description_priority = ((mdl.LOCAL_DATA_SOURCE,) +
             tuple(x.SOURCE_NAME for x in self.metadata_loaders))
 
         # Go through and try to update metadata.
-        for book_id, book_obj in book_table.items():
+        if pbar is None:
+            pbar = _PBarStub()
+
+        for book_id, book_obj in pbar(book_table.items()):
             for loader in self.metadata_loaders:
                 # Skip anything that's already had metadata loaded for it.
                 if (not reload_metadata and
@@ -793,6 +803,11 @@ def update_database():
     updater.update_db(db)
     save_database(db)
 
+###
+# Util
+class _PBarStub:
+    def __call__(self, iterator_):
+        return iterator_
 
 ###
 # Errors

@@ -158,7 +158,7 @@ class GoogleBooksLoader(MetaDataLoader):
         out['pub_date'] = v_info.get('publishedDate', None)
         out['publisher'] = v_info.get('publisher', None)
 
-        for identifier_dict in v_info['industryIdentifiers']:
+        for identifier_dict in v_info.get('industryIdentifiers', []):
             if identifier_dict['type'] == 'ISBN_13':
                 out['isbn13'] = identifier_dict['identifier']
             elif identifier_dict['type'] == 'ISBN_10':

@@ -193,13 +193,10 @@ class BookDatabaseUpdater:
 
         return [os.path.relpath(ap, media_loc.path) for ap in aps]
 
-    def update_db(self, database, reload_metadata=False):
-        # Load all audio from the audiobooks location
+    def update_db_entries(self, database):
         book_paths = self.load_book_paths()
 
-        book_table = database[self.table]
         entry_table = database[self.entry_table]
-        author_table = database[self.AUTHOR_TABLE_NAME]
 
         # Find out which ones already exist
         id_by_path = {}
@@ -214,15 +211,21 @@ class BookDatabaseUpdater:
         new_paths = list(set(new_paths))        # Enforce unique paths only
 
         entry_id_handler = self.id_handler(invalid_ids=entry_table.keys())
-        book_id_handler = self.id_handler(invalid_ids=book_table.keys())
-        author_id_handler = self.id_handler(invalid_ids=author_table.keys())
-        
+
         for path in new_paths:
             entry_obj = self.make_new_entry(path, entry_id_handler)
             entry_table[entry_obj.id] = entry_obj
 
+        return database
+
+    def assign_books_to_entries(self, database):
         # Go through and assign a book to each entry for both new entries and
         # entries with missing book IDs.
+        book_table = database[self.table]
+        entry_table = database[self.entry_table]
+
+        book_id_handler = self.id_handler(invalid_ids=book_table.keys())
+
         book_to_entry = {}
         for entry_id, entry_obj in entry_table.items():
             if entry_obj.type != 'Book':
@@ -241,6 +244,10 @@ class BookDatabaseUpdater:
 
             book_to_entry.setdefault(book_obj.id, []).append(entry_id)
 
+        return database
+
+    def update_book_metadata(self, database, reload_metadata=False):
+        book_table = database[self.table]
         # Set the priority on who gets to set the description.
         description_priority = ((mdl.LOCAL_DATA_SOURCE,) +
             tuple(x.SOURCE_NAME for x in self.metadata_loaders))
@@ -275,6 +282,14 @@ class BookDatabaseUpdater:
                 book_obj.description = ''
 
             book_table[book_id] = book_obj
+
+        return database
+
+    def update_author_db(self, database):
+        book_table = database[self.table]
+        author_table = database[self.AUTHOR_TABLE_NAME]
+
+        author_id_handler = self.id_handler(invalid_ids=author_table.keys())
 
         # Now update the author database
         for book_id, book_obj in book_table.items():
@@ -332,7 +347,82 @@ class BookDatabaseUpdater:
             book_obj.author_ids = new_author_ids
             book_obj.roles = new_author_roles
 
-        self.update_cover_images(database)
+        return database
+
+    def update_cover_images(self, database):
+        entry_table = database[self.entry_table]
+        base_static_path = read_from_config('static_media_path')
+        cover_cache_path = read_from_config('cover_cache_path')
+
+        def _img_path(img_path):
+            return os.path.join(base_static_path, img_path)
+
+        def _img_path_exists(img_path):
+            return os.path.exists(_img_path(img_path))
+
+        for entry_id, entry_obj in entry_table.items():
+            # Check if the entry cover path exists.
+            thumb_loc = os.path.join(cover_cache_path, 
+                                     '{}-thumb.png'.format(entry_obj.id))
+
+            regenerate_thumb = not _img_path_exists(thumb_loc)
+
+            new_cover_images = entry_obj.cover_images or []
+            new_cover_images = [cover_image
+                                for cover_image in new_cover_images
+                                if _img_path_exists(cover_image)]
+
+            old_best_img = new_cover_images[0] if len(new_cover_images) else None
+
+            # Check for the best cover image
+            data_obj = get_data_obj(entry_obj, database)
+            if hasattr(data_obj, 'cover_images') and data_obj.cover_images is not None:
+                local_cover_img = data_obj.cover_images.get(mdl.LOCAL_DATA_SOURCE, None)
+
+                if local_cover_img is not None:
+                    if local_cover_img not in new_cover_images:
+                        new_cover_images.insert(0, local_cover_img)
+
+                for loader in self.metadata_loaders:
+                    if loader.SOURCE_NAME not in data_obj.cover_images:
+                        continue
+
+                    img_base = '{}_{}'.format(entry_obj.id, loader.SOURCE_NAME)
+                    if any(x.startswith(img_base)
+                           for x in (os.path.split(y)[1] for y in new_cover_images)):
+                        continue
+
+                    cover_images = data_obj.cover_images[loader.SOURCE_NAME]
+                    r, img_url, desc = loader.retrieve_best_image(cover_images)
+
+                    if r is None:
+                        continue
+
+                    img_name_base = img_base + '-' + desc
+                    try:
+                        img_ext = _get_img_ext(r)
+                    except UnsupportedImageType:
+                        continue
+
+                    img_name = img_name_base + img_ext
+                    img_loc = os.path.join(cover_cache_path, img_name)
+                    
+                    with open(_img_path(img_loc), 'wb') as f:
+                        shutil.copyfileobj(r, f)
+
+                    new_cover_images.append(img_loc)
+
+            if not new_cover_images:
+                warnings.warn('No image found', RuntimeWarning)
+                continue
+
+            best_img = new_cover_images[0]
+            regenerate_thumb = regenerate_thumb or (old_best_img != best_img)
+
+            if regenerate_thumb:
+                _generate_thumbnail(_img_path(best_img), _img_path(thumb_loc))
+
+            entry_obj.cover_images = new_cover_images
 
         return database
 
@@ -436,7 +526,9 @@ class BookDatabaseUpdater:
             cover_images = None
         else:
             # Get audio cover relative to the static media path
-            audio_cover = resolver.resolve_static(audio_cover)
+            audio_cover = os.path.relpath(audio_cover,
+                read_from_config('static_media_path'))
+            # audio_cover = resolver.resolve_static(audio_cover).path
             cover_images = {mdl.LOCAL_DATA_SOURCE: audio_cover}
 
         book_obj = oh.Book(id=book_id,
@@ -539,83 +631,6 @@ class BookDatabaseUpdater:
             author_list = [author_obj]
 
         return disamb_func(author_list)
-
-    def update_cover_images(self, database):
-        entry_table = database[self.entry_table]
-        base_static_path = read_from_config('static_media_path')
-        cover_cache_path = read_from_config('cover_cache_path')
-
-        def _img_path(img_path):
-            return os.path.join(base_static_path, img_path)
-
-        def _img_path_exists(img_path):
-            return os.path.exists(_img_path(img_path))
-
-        for entry_id, entry_obj in entry_table.items():
-            # Check if the entry cover path exists.
-            thumb_loc = os.path.join(cover_cache_path, 
-                                     '{}-thumb.png'.format(entry_obj.id))
-
-            regenerate_thumb = not _img_path_exists(thumb_loc)
-
-            new_cover_images = entry_obj.cover_images or []
-            new_cover_images = [cover_image
-                                for cover_image in new_cover_images
-                                if _img_path_exists(cover_image)]
-
-            old_best_img = new_cover_images[0] if len(new_cover_images) else None
-
-            # Check for the best cover image
-            data_obj = get_data_obj(entry_obj, database)
-            if hasattr(data_obj, 'cover_images'):
-                local_cover_img = data_obj.cover_images.get(mdl.LOCAL_DATA_SOURCE, None)
-
-                if local_cover_img is not None:
-                    if local_cover_img not in new_cover_images:
-                        new_cover_images.insert(0, local_cover_img)
-
-                for loader in self.metadata_loaders:
-                    if loader.SOURCE_NAME not in data_obj.cover_images:
-                        continue
-
-                    img_base = '{}_{}'.format(entry_obj.id, loader.SOURCE_NAME)
-                    if any(x.startswith(img_base)
-                           for x in (os.path.split(y)[1] for y in new_cover_images)):
-                        continue
-
-                    cover_images = data_obj.cover_images[loader.SOURCE_NAME]
-                    r, img_url, desc = loader.retrieve_best_image(cover_images)
-
-                    if r is None:
-                        continue
-
-                    img_name_base = img_base + '-' + desc
-                    try:
-                        img_ext = _get_img_ext(r)
-                    except UnsupportedImageType:
-                        continue
-
-                    img_name = img_name_base + img_ext
-                    img_loc = os.path.join(cover_cache_path, img_name)
-                    
-                    with open(_img_path(img_loc), 'wb') as f:
-                        shutil.copyfileobj(r, f)
-
-                    new_cover_images.append(img_loc)
-
-            if not new_cover_images:
-                warnings.warn('No image found', RuntimeWarning)
-                continue
-
-            best_img = new_cover_images[0]
-            regenerate_thumb = regenerate_thumb or (old_best_img != best_img)
-
-            if regenerate_thumb:
-                _generate_thumbnail(_img_path(best_img), _img_path(thumb_loc))
-
-            entry_obj.cover_images = new_cover_images
-
-
 
     @classmethod
     def author_sort(cls, author_name):

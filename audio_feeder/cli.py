@@ -13,33 +13,53 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--host', default='localhost',
+@click.option('--host', default=None,
     help='The host to run the application on.')
-@click.option('-p', '--port', default=9090, type=int,
+@click.option('-p', '--port', default=None, type=int,
     help='The port to run the application on.')
 @click.option('-c', '--config', default=None, type=str,
     help='A YAML config file to use for this particular run.')
-def run(host, port, config):
+@click.option('--profile', is_flag=True,
+    help='Runs with profiler on.')
+def run(host, port, config, profile):
     """
     Runs the flask application, starting the web page with certain configuration
     options specified.
     """
-    from .__main__ import app
+    from . import app
     from .config import read_from_config, init_config
 
-    init_config(config_loc=config, base_host=host, base_port=port)
+    kwargs = {}
+    if host is not None:
+        kwargs['base_host'] = host
+
+    if port is not None:
+        kwargs['base_port'] = port
+
+    init_config(config_loc=config, **kwargs)
 
     app.static_folder = read_from_config('static_media_path')
 
-    app.run(host=host, port=port)
+    if profile:
+        from werkzeug.contrib.profiler import ProfilerMiddleware
+        
+        app.config['PROFILE'] = True
+        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir='.profile')
+        debug = True
+    else:
+        debug = False
+
+    app.run(host=read_from_config('base_host'), port=read_from_config('base_port'), debug=debug)
 
 
 @cli.command()
 @click.option('-t', '--content-type', type=str, default='books',
     help=('The type of content to load from the directories. Options:' +
           '  b / books: Audiobooks'))
+@click.option('-r', '--reload-metadata', is_flag=True,
+    help='Passed if metadata from all sources should be reloaded if present.')
 @click.argument('path', metavar='PATH', type=str, required=True)
-def update(content_type, path):
+def update(content_type, reload_metadata, path):
     """
     Add a specific path to the databases, loading all content and updating the
     database where necessary.
@@ -61,8 +81,31 @@ def update(content_type, path):
         raise ValueError('Unknown type {}'.format(utype))
 
     db = dh.load_database()
-    updater.update_db(db)
+    print('Loading all new entries.')
+    updater.update_db_entries(db)
+
+    dh.save_database(db)    # Save as we progress
+
+    print('Loading books associated with entries.')
+    updater.assign_books_to_entries(db)
+
     dh.save_database(db)
+
+    print('Updating book metadata')
+    updater.update_book_metadata(db, reload_metadata=reload_metadata)
+
+    dh.save_database(db)
+
+    print('Updating author database')
+    updater.update_author_db(db)
+
+    dh.save_database(db)
+
+    print('Updating book covers')
+    updater.update_cover_images(db)
+
+    dh.save_database(db)
+
 
 
 @cli.command()
@@ -186,3 +229,4 @@ def install(config_dir, config_name):
                         os.makedirs(dst_subdir)
 
                     shutil.copy2(src_path, dst_path)
+

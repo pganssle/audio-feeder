@@ -26,7 +26,7 @@ def run(host, port, config, profile):
     Runs the flask application, starting the web page with certain configuration
     options specified.
     """
-    from . import app
+    from .app import create_app
     from .config import read_from_config, init_config
 
     kwargs = {}
@@ -38,6 +38,7 @@ def run(host, port, config, profile):
 
     init_config(config_loc=config, **kwargs)
 
+    app = create_app()
     app.static_folder = read_from_config('static_media_path')
 
     if profile:

@@ -115,15 +115,23 @@ def save_database(database, schema_loc=None, db_loc=None):
         raise e
 
 
+def get_database(refresh=False):
+    """
+    Loads the current default database into a cached read-only memory
+    """
+    db = getattr(get_database, '_database', None)
+    if db is None or refresh:
+        db = load_database()
+        get_database._database = db
+
+    return db
+
+
 def get_database_table(table_name, database=None):
     """
     Loads a database table from a cached read-only database.
     """
-    db = database or getattr(get_database_table, '_database', None)
-    if db is None:
-        db = load_database()
-
-    get_database_table._database = db
+    db = database or get_database()
 
     return db[table_name]
 

@@ -54,7 +54,7 @@ class AudiobookLoader(BaseAudioLoader):
                       re.compile('cover', re.IGNORECASE)]
 
     DIR_NAME_RE = re.compile(
-        '(?P<authors>[^\-]+)' + 
+        '(?P<authors>.+?)(?= \- )' + 
         '(?: \- \[(?P<series_name>.*?) (?P<series_number>\d+)\])? \- ' +
         '(?P<title>.*$)')
 

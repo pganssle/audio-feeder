@@ -390,7 +390,8 @@ class BookDatabaseUpdater:
                 local_cover_img = data_obj.cover_images.get(mdl.LOCAL_DATA_SOURCE, None)
 
                 if local_cover_img is not None:
-                    if local_cover_img not in new_cover_images:
+                    if (local_cover_img not in new_cover_images
+                        and _img_path_exists(local_cover_img)):
                         new_cover_images.insert(0, local_cover_img)
 
                 for loader in self.metadata_loaders:

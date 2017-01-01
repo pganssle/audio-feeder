@@ -255,14 +255,14 @@ class BookDatabaseUpdater:
                     continue
 
                 book_obj = loader.update_book_info(book_obj,
-                                                   overwrite_existing=reload_metadata)
+                    overwrite_existing=reload_metadata)
 
                 # Update 'last modified' on any entries updated.
+                '''
                 for entry_id in book_to_entry.get(book_id, []):
                     entry_obj = entry_table[entry_id]
                     entry_obj.last_modified = datetime.now(timezone.utc)
-                    entry_table[entry_id] = entry_obj
-
+                '''
             # Try and assign priority for the descriptions
             if book_obj.descriptions is None:
                 book_obj.descriptions = {}
@@ -345,9 +345,14 @@ class BookDatabaseUpdater:
         # Try to match to an existing book.
         e_id = id_handler.new_id()
 
+        abs_path = os.path.join(read_from_config('media_loc').path, rel_path)
+        lmtime = os.path.getmtime(abs_path)
+        added_dt = datetime.utcfromtimestamp(lmtime)
+        last_modified = added_dt.replace(tzinfo=timezone.utc)
+
         entry_obj = oh.Entry(id=e_id, path=rel_path,
             date_added=datetime.now(timezone.utc),
-            last_modified=datetime.now(timezone.utc),
+            last_modified=last_modified,
             type='Book', table=self.BOOK_TABLE_NAME, data_id=None,
             hashseed=_rand.randint(0, 2**32))
 

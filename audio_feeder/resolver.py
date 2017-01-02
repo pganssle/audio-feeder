@@ -47,13 +47,20 @@ class Resolver:
         # a QR code is generated, it's accurate until it's deleted. Eventually
         # it might be nice to allow multiple caches.
 
+        # There's a unique QR cache location for each base URL.
         qr_cache_loc = self._config.qr_cache_path
+        qr_cache_loc = os.path.join(qr_cache_loc, self._config.url_id)
 
         rel_save_path = self.qr_generator.get_save_path(qr_cache_loc,
                                                         '{}'.format(e_id))
 
         qr_fl = FileLocation(rel_save_path, self.static_url, self.static_path)
+
         if not os.path.exists(qr_fl.path):
+            qr_cache_loc_full = os.path.split(qr_fl.path)[0]
+            if not os.path.exists(qr_cache_loc_full):
+                os.makedirs(qr_cache_loc_full)
+
             self.qr_generator.generate_qr(url, qr_fl.path)
 
         return qr_fl
@@ -175,6 +182,7 @@ class QRGenerator:
         save_path = os.path.join(save_dir, save_name + self.extension)
 
         return save_path
+
 
 ###
 # Functions

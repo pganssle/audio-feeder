@@ -1,7 +1,9 @@
 """
 Configuration manager - handles the application's global configuration.
 """
+import base64
 from itertools import product
+import hashlib
 import os
 import logging
 import warnings
@@ -95,6 +97,7 @@ class Configuration:
             self.base_url = '{}:{}'.format(self.base_host, self.base_port)
 
         self.base_url = self.base_protocol + '://' + self.base_url
+        self.url_id = self.hash_encode(self.base_url)
 
         for kwarg in self.PROPERTIES.keys():
             setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
@@ -139,6 +142,18 @@ class Configuration:
 
     def items(self):
         return ((k, self.get(k)) for k in self.keys())
+
+    def hash_encode(self, str_data):
+        """
+        Encode some string data as a base64-encoded hash.
+
+        This is not intended to be super robust, but it should work for the
+        purposes of creating a reproducible number from input parameters.
+        """
+        h = hashlib.sha256()
+        h.update(str_data.encode('utf-8'))
+
+        return base64.b64encode(h.digest())[0:16].decode('utf-8')
 
     def make_replacements(self, value):
         if not isinstance(value, str):

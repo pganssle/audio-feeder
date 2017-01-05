@@ -29,4 +29,4 @@ def populate_qr_cache(entry_table=None, resolver=None, pbar=lambda x: x):
 
     for e_id, entry_obj in pbar(entry_table.items()):
         rss_url = resolver.resolve_rss(entry_obj)
-        resolver.resolve_qr(e_id, rss_url)
+        resolver.resolve_qr(e_id, rss_url.url)

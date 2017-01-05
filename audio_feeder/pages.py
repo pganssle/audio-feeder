@@ -239,12 +239,8 @@ def get_entry_objects(entry_list):
 
 def get_sortable_args(args):
     # Ascending / descending
-    sort_order = args.get('sortOrder', 'ascending').lower()
-    if sort_order not in ('ascending', 'descending'):
-        logging.error('Sort order {} invalid, must '.format(sort_order) +
-                      'be "ascending" or "descending"')
-
-    sort_ascending = sort_order == 'ascending'
+    sort_order = args.get('sortAscending', 'True').lower()
+    sort_ascending = sort_order != 'false'
 
     # Sort field
     sort_options = ('author', 'title', 'date_added', 'last_modified')

@@ -7,7 +7,7 @@ html {
 }
 
 body {
-    font-size: 1.5em;
+    font-size: 1.2 em;
     font-family: Helvetica, Arial, sans-serif;
     color: #000;
     background-color: #f2f2f2;
@@ -60,7 +60,7 @@ td.entry_body {
 }
 
 td.cover_col {
-  width: 15%;
+  width: 10%;
   padding-top: 20px;
   vertical-align: top;
 }
@@ -89,7 +89,7 @@ a.entry_link {
 
 /* Descriptions */
 h3.entry_title {
-    font-size: 1.4em;
+    font-size: 1.3em;
     font-weight: bold;
     padding: 0px;
     margin: 0px;
@@ -123,6 +123,7 @@ td.nav_arrow {
 
 td.nav_links {
     width: 100%;
+    font-size: 1.25em;
     overflow: hidden;
     text-align: center;
 }

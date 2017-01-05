@@ -104,7 +104,7 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
     audio_files = loader.audio_files(audio_dir.path)
 
     feed_items = []
-    for ii, audio_file in enumerate(audio_files):
+    for ii, audio_file in enumerate(sorted(audio_files)):
         feed_item = {}
 
         relpath = os.path.relpath(audio_file, audio_dir.path)

@@ -14,6 +14,7 @@ from collections import OrderedDict
 from .resolver import FileLocation
 
 CONFIG_DIRS = [os.path.expanduser(x) for x in (
+    '/etc/audio_feeder/',
     '~/.config/audio_feeder/', 
 )]
 

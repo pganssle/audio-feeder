@@ -15,6 +15,8 @@ from . import directory_parser as dp
 from . import database_handler as dh
 from .resolver import Resolver
 
+from xml.sax import saxutils
+
 def hash_random(fpath, hashseed, hash_amt=2**20, block_size=2**12,
                 hash_func=hashlib.sha256):
     """
@@ -122,7 +124,8 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
 
     return feed_items
 
-html_chars = re.compile('[<>]')
+
+html_chars = re.compile('<[^>]+>')
 def wrap_field(field):
     """
     Given a field, detect if it has special characters <, > or & and if so
@@ -131,10 +134,14 @@ def wrap_field(field):
     if not isinstance(field, str):
         return field
 
-    if html_chars.match(field):
+    if html_chars.search(field):
         return '<![CDATA[' + field + ']]>'
     else:
-        return field
+        # If there's already escaped data like &amp;, I want to unescape it
+        # first, so I can re-escape *everything*
+        field = saxutils.unescape(field)
+
+        return saxutils.escape(field)
 
 
 def _urljoin_dir(dir_, fragment):

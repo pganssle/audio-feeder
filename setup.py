@@ -19,7 +19,8 @@ INSTALL_REQUIREMENTS = [
     'requests>=2.12.4',
     'jinja2',
     'click>=6.0',
-    'progressbar2'
+    'progressbar2',
+    'lxml>=2.0'
 ]
 
 DATA_DIR = 'audio_feeder/data'

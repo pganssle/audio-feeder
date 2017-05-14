@@ -7,7 +7,9 @@ dist/
 *.cache
 *.pyc
 *.pyo
+.tox
 
+venv/
 
 # Detritus from profling
 *.profile/

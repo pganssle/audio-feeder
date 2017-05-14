@@ -16,6 +16,7 @@ from . import object_handler as oh
 
 from .config import read_from_config
 from .resolver import get_resolver
+from .html_utils import clean_html
 
 from ruamel import yaml
 
@@ -298,6 +299,9 @@ class BookDatabaseUpdater:
                     break
             else:
                 book_obj.description = ''
+
+            # Clean up the HTML on any book description we've gotten.
+            book_obj.description = clean_html(book_obj.description)
 
             book_table[book_id] = book_obj
 

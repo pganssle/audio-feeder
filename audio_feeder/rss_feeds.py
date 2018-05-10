@@ -8,6 +8,7 @@ import random
 import re
 
 from datetime import timedelta
+import urllib.parse
 from urllib.parse import urljoin
 
 from .config import read_from_config
@@ -110,9 +111,12 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
         feed_item = {}
 
         relpath = os.path.relpath(audio_file, audio_dir.path)
+        relpath = urllib.parse.quote(relpath)
         relpath = relpath.replace(' ', '%20')   # Temporary hack
+        relpath = relpath.replace('[', '%5B')
+        relpath = relpath.replace(']', '%5D')
 
-        file_size =  os.path.getsize(audio_file)
+        file_size = os.path.getsize(audio_file)
         feed_item['fname'] = os.path.split(audio_file)[1]
         feed_item['size'] = file_size
         feed_item['url'] = _urljoin_dir(audio_dir.url, relpath)

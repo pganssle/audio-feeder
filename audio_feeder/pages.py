@@ -136,6 +136,8 @@ def rss_feed(e_id):
     cover_image = entry_obj.cover_images[0] if entry_obj.cover_images else None
     if cover_image is not None:
         cover_image = get_resolver().resolve_static(cover_image).url
+        cover_image = cover_image.replace('[', '%5B')
+        cover_image = cover_image.replace(']', '%5D')
 
     # This gives me the "items" list
     feed_items = rf.load_feed_items(entry_obj)

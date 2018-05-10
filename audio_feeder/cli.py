@@ -9,8 +9,13 @@ def cli():
     Options are:
         run
         update
+        version
     """
-    pass
+
+@cli.command()
+def version():
+    from . import __version__
+    print('audio_feeder version: %s' % __version__.VERSION)
 
 @cli.command()
 @click.option('--host', default=None,
@@ -43,7 +48,7 @@ def run(host, port, config, profile):
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
-        
+
         app.config['PROFILE'] = True
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir='.profile')
         debug = True

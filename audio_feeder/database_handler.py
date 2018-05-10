@@ -295,13 +295,16 @@ class BookDatabaseUpdater:
 
             for source_name in description_priority:
                 if source_name in book_obj.descriptions:
-                    book_obj.description = book_obj.descriptions[source_name]
-                    break
+                    description = book_obj.descriptions[source_name]
+                    if description is not None:
+                        book_obj.description = book_obj.descriptions[source_name]
+                        break
             else:
                 book_obj.description = ''
 
             # Clean up the HTML on any book description we've gotten.
-            book_obj.description = clean_html(book_obj.description)
+            if len(book_obj.description):
+                book_obj.description = clean_html(book_obj.description)
 
             book_table[book_id] = book_obj
 

@@ -111,6 +111,7 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
         feed_item = {}
 
         relpath = os.path.relpath(audio_file, audio_dir.path)
+        relpath = urllib.parse.quote(relpath)
 
         url = _urljoin_dir(audio_dir.url, relpath)
 

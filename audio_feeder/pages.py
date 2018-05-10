@@ -132,7 +132,7 @@ def rss_feed(e_id):
     pub_date = entry_obj.date_added
 
     author = rendered_page['author']
-    
+
     cover_image = entry_obj.cover_images[0] if entry_obj.cover_images else None
     if cover_image is not None:
         cover_image = get_resolver().resolve_static(cover_image).url
@@ -141,7 +141,6 @@ def rss_feed(e_id):
 
     # This gives me the "items" list
     feed_items = rf.load_feed_items(entry_obj)
-
     payload = {
         'channel_title': channel_title,
         'channel_desc': channel_desc,

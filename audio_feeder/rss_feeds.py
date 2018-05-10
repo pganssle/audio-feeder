@@ -32,7 +32,7 @@ def hash_random(fpath, hashseed, hash_amt=2**20, block_size=2**12,
     at the beginning and/or end of the file are much more likely to have hash
     collisions within a given audiobook/series, etc. Hopefully, a more or less
     uniform sample of the whole file is the best subsampling strategy.
-    
+
     :param fpath:
         The path of the file that is to be hashed.
 
@@ -111,15 +111,13 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
         feed_item = {}
 
         relpath = os.path.relpath(audio_file, audio_dir.path)
-        relpath = urllib.parse.quote(relpath)
-        relpath = relpath.replace(' ', '%20')   # Temporary hack
-        relpath = relpath.replace('[', '%5B')
-        relpath = relpath.replace(']', '%5D')
+
+        url = _urljoin_dir(audio_dir.url, relpath)
 
         file_size = os.path.getsize(audio_file)
         feed_item['fname'] = os.path.split(audio_file)[1]
         feed_item['size'] = file_size
-        feed_item['url'] = _urljoin_dir(audio_dir.url, relpath)
+        feed_item['url'] = url
         feed_item['pubdate'] = pub_date + timedelta(minutes=ii)
         feed_item['desc'] = data_obj.description or ''
         feed_item['guid'] = hash_random(audio_file, entry_obj.hashseed)

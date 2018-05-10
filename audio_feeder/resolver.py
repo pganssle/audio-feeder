@@ -2,6 +2,7 @@
 import os
 import re
 from urllib.parse import urljoin
+import urllib.parse
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
@@ -111,7 +112,7 @@ class FileLocation:
             url_base_bare += '/'
 
         # This is a patch until we can do the URL encoding properly later.
-        rel_path_url = rel_path.replace(' ', "%20")
+        rel_path_url = urllib.parse.quote(rel_path)
         self._url_bare = urljoin('//' + url_base_bare, rel_path_url)[2:]
 
         self._url = self._url_protocol + self._url_bare

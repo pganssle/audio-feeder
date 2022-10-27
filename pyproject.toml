@@ -41,9 +41,8 @@ dynamic = ["version"]
 audio-feeder = "audio_feeder.cli:cli"
 
 [tool.setuptools]
-packages = {find = {}}
+packages = {find = {where = ["src"]}}
 package-data = { audio_feeder=["data/**/*"] }
-
 
 [tool.setuptools.dynamic]
 version = {attr = "audio_feeder.__version__.VERSION"}

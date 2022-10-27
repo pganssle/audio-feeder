@@ -6,6 +6,7 @@ import math
 import os
 import random
 import re
+import typing
 import urllib.parse
 from datetime import timedelta
 from urllib.parse import urljoin
@@ -15,6 +16,8 @@ from . import database_handler as dh
 from . import directory_parser as dp
 from .config import read_from_config
 from .resolver import Resolver
+
+_T = typing.TypeVar("_T")
 
 
 def hash_random(
@@ -131,7 +134,7 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
 html_chars = re.compile("<[^>]+>")
 
 
-def wrap_field(field):
+def wrap_field(field: _T) -> _T:
     """
     Given a field, detect if it has special characters <, > or & and if so
     wrap it in a CDATA field.

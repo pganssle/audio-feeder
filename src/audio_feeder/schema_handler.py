@@ -2,15 +2,28 @@
 Schema handler
 """
 import os
+import pathlib
+import typing
 
 from ruamel import yaml
 
+from ._useful_types import PathType
 from .config import get_configuration
 
 
-def load_schema(schema_file=None):
+class TypeEntry(typing.TypedDict, total=False):
+    docstring: str
+    fields: typing.Sequence[str]
+
+
+class SchemaDict(typing.TypedDict):
+    tables: typing.Mapping[str, str]
+    types: typing.Mapping[str, TypeEntry]
+
+
+def load_schema(schema_file: typing.Optional[PathType] = None) -> SchemaDict:
     schema_file = schema_file or get_configuration().schema_loc
-    schema_file = os.path.abspath(schema_file)
+    schema_file = pathlib.Path(os.path.abspath(schema_file))
 
     schema_cache = getattr(load_schema, "_schemas", {})
     if schema_file in schema_cache:

@@ -5,12 +5,15 @@ import base64
 import hashlib
 import logging
 import os
+import pathlib
+import typing
 import warnings
 from collections import OrderedDict
 from itertools import product
 
 from ruamel import yaml
 
+from ._useful_types import PathType
 from .resolver import FileLocation
 
 CONFIG_DIRS = [
@@ -74,13 +77,13 @@ class Configuration:
         "{{URL}}": _ConfigProperty("base_url"),
     }
 
-    def __init__(self, config_loc_=None, **kwargs):
+    def __init__(self, config_loc_: typing.Optional[PathType] = None, **kwargs):
         if config_loc_ is None:
             # If configuration location is not specified, we'll use pwd.
-            config_loc = os.path.join(os.getcwd(), "config.yml")
+            config_loc_ = pathlib.Path.cwd() / "config.yml"
 
-        self.config_location = config_loc_
-        self.config_directory = os.path.split(self.config_location)[0]
+        self.config_location: pathlib.Path = pathlib.Path(config_loc_)
+        self.config_directory: pathlib.Path = self.config_location.parent
 
         base_kwarg = self.PROPERTIES.copy()
 
@@ -171,9 +174,12 @@ class Configuration:
                 continue
 
             if isinstance(repl, _ConfigProperty):
-                return value.replace(k, self.get(repl.prop_name))
-            else:
-                return value.replace(k, repl)
+                repl = self.get(repl.prop_name)
+
+            if isinstance(repl, os.PathLike):
+                repl = os.fspath(repl)
+
+            return value.replace(k, repl)
 
         return value
 
@@ -181,13 +187,16 @@ class Configuration:
         return dict(*self.items())
 
 
-def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
+def init_config(
+    config_loc: typing.Optional[PathType] = None,
+    config_loc_must_exist: bool = False,
+    **kwargs
+):
     """
     Initializes the configuration from config_loc or from the default
     configuration location.
     """
 
-    config_locations = []
     found_config = False
     if config_loc is not None:
         if not os.path.exists(config_loc):
@@ -198,11 +207,9 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
             if not os.access(os.path.split(config_loc)[0], os.W_OK):
                 msg = "Cannot write to {}".format(config_loc)
                 raise ConfigWritePermissionsError(msg)
-
         config_location = config_loc
         found_config = True
-
-    if not found_config:
+    else:
         config_location = os.environ.get("AUDIO_FEEDER_CONFIG", None)
         falling_back = False
         found_config = False
@@ -238,7 +245,7 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
     else:
         if not found_config:
             for config_location in config_locs:
-                if not config_location.endswith(".yml"):
+                if not os.fspath(config_location).endswith(".yml"):
                     continue
 
                 config_dir = os.path.split(config_location)[0]
@@ -256,7 +263,7 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
             get_configuration._configuration.to_file(config_location)
 
 
-def get_configuration():
+def get_configuration() -> Configuration:
     """
     On first call, this loads the configuration object, on subsequent calls,
     this returns the original configuration object.

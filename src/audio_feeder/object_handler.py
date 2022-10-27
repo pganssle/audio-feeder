@@ -5,7 +5,6 @@ Book handlers
 from .schema_handler import load_schema
 
 #: The Type Mapping maps the type strings in the schema to the types as loaded.
-TYPE_MAPPING = {}
 
 
 class BaseObject(object):
@@ -80,4 +79,10 @@ def load_classes(schema=None):
 
 
 # Use the base schema to generate the classes.
-load_classes()
+def __getattr__(name):
+    if name != "TYPE_MAPPING":
+        raise AttributeError(f"module {__name__} has no attribute {name}")
+
+    load_classes()
+    global TYPE_MAPPING
+    return TYPE_MAPPING

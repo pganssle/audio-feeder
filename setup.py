@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-from audio_feeder.__version__ import VERSION
-
 from setuptools import setup, find_packages
-import itertools
 import os
 
 DESCRIPTION = """
@@ -30,19 +27,13 @@ DATA_FILES = [os.path.relpath(os.path.join(cdir, fname), 'audio_feeder')
 ]
 
 setup(name="audio-feeder",
-      version=VERSION,
       description=DESCRIPTION,
-      author="Paul Ganssle",
-      author_email="paul@ganssle.io",
-      license="Apache 2.0",
       long_description=DESCRIPTION,
       packages=find_packages(),
       package_data={'audio_feeder': DATA_FILES},
       include_package_data=True,
       zip_safe=True,
-      setup_requires=['pytest-runner'],
       install_requires=INSTALL_REQUIREMENTS,
-      tests_require=['pytest>=3.0'],
       entry_points={
         'console_scripts': [
             'audio-feeder=audio_feeder.cli:cli'

@@ -10,8 +10,7 @@ name = "audio_feeder"
 authors = [{name = "Paul Ganssle"}]
 description = """
 audio-feeder provides a server that serves your audiobooks and other audio
-content as RSS feeds, with rich metadata, and provides a web frontent for
-navigation."""
+content as RSS feeds, with rich metadata, and provides a web frontent for navigation."""
 license = {file = "LICENSE"}
 dependencies = [
     "Flask>=0.11.1",
@@ -46,3 +45,25 @@ package-data = { audio_feeder=["data/**/*"] }
 
 [tool.setuptools.dynamic]
 version = {attr = "audio_feeder.__version__.VERSION"}
+
+[tool.isort]
+atomic=true
+force_grid_wrap=0
+include_trailing_comma=true
+known_first_party = ["audio_feeder"]
+known_third_party=[
+    "click",
+    "flask",
+    "hypothesis",
+    "jinja2",
+    "lxml",
+    "ruamel",
+    "PIL",
+    "progressbar2",
+    "pytest",
+    "pytz",
+    "qrcode",
+    "requests"
+]
+multi_line_output=3
+use_parentheses=true

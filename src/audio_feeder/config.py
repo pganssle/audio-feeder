@@ -11,7 +11,7 @@ import warnings
 from collections import OrderedDict
 from itertools import product
 
-from ruamel import yaml
+import yaml
 
 from ._useful_types import PathType
 from .resolver import FileLocation

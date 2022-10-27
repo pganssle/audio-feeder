@@ -10,8 +10,8 @@ from random import SystemRandom
 
 _rand = SystemRandom()
 
+import yaml
 from PIL import Image
-from ruamel import yaml
 
 from . import directory_parser as dp
 from . import metadata_loader as mdl

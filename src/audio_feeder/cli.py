@@ -312,7 +312,7 @@ def load(overwrite, output):
     """
     import os
 
-    from ruamel import yaml
+    import yaml
 
     from . import database_handler as dh
 
@@ -368,7 +368,7 @@ def load(overwrite, output):
     help="Where to load the missing books from.",
 )
 def update(**kwargs):
-    from ruamel import yaml
+    import yaml
 
     from . import database_handler as dh
 

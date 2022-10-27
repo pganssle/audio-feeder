@@ -5,7 +5,7 @@ import os
 import pathlib
 import typing
 
-from ruamel import yaml
+import yaml
 
 from ._useful_types import PathType
 from .config import get_configuration

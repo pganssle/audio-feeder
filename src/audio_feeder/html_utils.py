@@ -3,7 +3,6 @@ Module for handling HTML-related operations
 """
 import bisect
 import io
-
 from html.parser import HTMLParser
 
 from lxml.html import clean as lxclean
@@ -55,7 +54,7 @@ class TagStripper(HTMLParser):
         return ts
 
     def get_data(self):
-        return ''.join(self.all_data)
+        return "".join(self.all_data)
 
     def get_unstripped_pos(self, pos):
         """
@@ -78,11 +77,36 @@ class TagStripper(HTMLParser):
         return unstripped_base + (pos - stripped_base)
 
 
-ALLOWED_TAGS = ['a', 'b', 'em', 'i', 'u', 'strike',
-                'code', 'blockquote', 'font',
-                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-                'li', 'ul', 'ol', 'p', 'br', 'span', 'strong', 
-                'tt', 'pre', 's', 'q']
+ALLOWED_TAGS = [
+    "a",
+    "b",
+    "em",
+    "i",
+    "u",
+    "strike",
+    "code",
+    "blockquote",
+    "font",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "li",
+    "ul",
+    "ol",
+    "p",
+    "br",
+    "span",
+    "strong",
+    "tt",
+    "pre",
+    "s",
+    "q",
+]
+
+
 def clean_html(in_str, tag_whitelist=ALLOWED_TAGS):
     """
     Sanitize input HTML. Currently this is a wrapper around
@@ -98,9 +122,8 @@ def clean_html(in_str, tag_whitelist=ALLOWED_TAGS):
         Returns the sanitized string.
 
     """
-    cleaner = lxclean.Cleaner(allow_tags=tag_whitelist,
-                              remove_unknown_tags=False)
-    
+    cleaner = lxclean.Cleaner(allow_tags=tag_whitelist, remove_unknown_tags=False)
+
     # For the moment this is just a wrapper around lxml.html.clean_html
     out_str = cleaner.clean_html(in_str)
 

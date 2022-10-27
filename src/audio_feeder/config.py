@@ -2,76 +2,82 @@
 Configuration manager - handles the application's global configuration.
 """
 import base64
-from itertools import product
 import hashlib
-import os
 import logging
+import os
 import warnings
+from collections import OrderedDict
+from itertools import product
 
 from ruamel import yaml
-from collections import OrderedDict
 
 from .resolver import FileLocation
 
-CONFIG_DIRS = [os.path.expanduser(x) for x in (
-    '/etc/audio_feeder/',
-    '~/.config/audio_feeder/', 
-)]
+CONFIG_DIRS = [
+    os.path.expanduser(x)
+    for x in (
+        "/etc/audio_feeder/",
+        "~/.config/audio_feeder/",
+    )
+]
 
-CONFIG_NAMES = ['config.yml']
+CONFIG_NAMES = ["config.yml"]
 CONFIG_LOCATIONS = list(
-    os.path.join(bdir, cfile)
-    for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
+    os.path.join(bdir, cfile) for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
 )
+
 
 class _ConfigProperty:
     def __init__(self, prop_name):
         self.prop_name = prop_name
 
     def __repr__(self):
-        return self.__class__.__name__ + '({})'.format(self.prop_name)
+        return self.__class__.__name__ + "({})".format(self.prop_name)
+
 
 class Configuration:
-    PROPERTIES = OrderedDict((
-        ('base_truncation_point', 500),
-        ('templates_base_loc', '{{CONFIG}}/templates'),
-        ('entry_templates_loc', '{{TEMPLATES}}/entry_types'),
-        ('pages_templates_loc', '{{TEMPLATES}}/pages'),
-        ('rss_templates_loc', '{{TEMPLATES}}/rss'),
-        ('rss_entry_templates_loc', '{{TEMPLATES}}/rss/entry_types'),
-        ('schema_loc', '{{CONFIG}}/database/schema.yml'),
-        ('database_loc', '{{CONFIG}}/database/db'),
-        ('static_media_path', '{{CONFIG}}/static'),
-        ('static_media_url', '{{URL}}/static'),
-        # Relative to static
-        ('media_path', 'media'),
-        ('site_images_loc', 'images/site-images'),
-        ('qr_cache_path', 'images/qr_cache'),
-        ('cover_cache_path', 'images/entry_cover_cache'),
-        ('css_loc', 'css'),
-        # Relative to base
-        ('rss_feed_urls', 'rss/{id}.xml'),
-        # Relative to others
-        ('main_css_files', ['main.css']),    # CSS
-        ('thumb_max', [200, 400]),   # width, height
-        ('base_protocol', 'http'),
-        ('base_host', 'localhost'),
-        ('base_port', 9090),
-        # API Keys
-        ('google_api_key', None),
-    ))
+    PROPERTIES = OrderedDict(
+        (
+            ("base_truncation_point", 500),
+            ("templates_base_loc", "{{CONFIG}}/templates"),
+            ("entry_templates_loc", "{{TEMPLATES}}/entry_types"),
+            ("pages_templates_loc", "{{TEMPLATES}}/pages"),
+            ("rss_templates_loc", "{{TEMPLATES}}/rss"),
+            ("rss_entry_templates_loc", "{{TEMPLATES}}/rss/entry_types"),
+            ("schema_loc", "{{CONFIG}}/database/schema.yml"),
+            ("database_loc", "{{CONFIG}}/database/db"),
+            ("static_media_path", "{{CONFIG}}/static"),
+            ("static_media_url", "{{URL}}/static"),
+            # Relative to static
+            ("media_path", "media"),
+            ("site_images_loc", "images/site-images"),
+            ("qr_cache_path", "images/qr_cache"),
+            ("cover_cache_path", "images/entry_cover_cache"),
+            ("css_loc", "css"),
+            # Relative to base
+            ("rss_feed_urls", "rss/{id}.xml"),
+            # Relative to others
+            ("main_css_files", ["main.css"]),  # CSS
+            ("thumb_max", [200, 400]),  # width, height
+            ("base_protocol", "http"),
+            ("base_host", "localhost"),
+            ("base_port", 9090),
+            # API Keys
+            ("google_api_key", None),
+        )
+    )
 
     REPLACEMENTS = {
-        '{{CONFIG}}': _ConfigProperty('config_directory'),
-        '{{TEMPLATES}}': _ConfigProperty('templates_base_loc'),
-        '{{STATIC}}': _ConfigProperty('static_media_path'),
-        '{{URL}}': _ConfigProperty('base_url')
+        "{{CONFIG}}": _ConfigProperty("config_directory"),
+        "{{TEMPLATES}}": _ConfigProperty("templates_base_loc"),
+        "{{STATIC}}": _ConfigProperty("static_media_path"),
+        "{{URL}}": _ConfigProperty("base_url"),
     }
 
     def __init__(self, config_loc_=None, **kwargs):
         if config_loc_ is None:
             # If configuration location is not specified, we'll use pwd.
-            config_loc = os.path.join(os.getcwd(), 'config.yml')
+            config_loc = os.path.join(os.getcwd(), "config.yml")
 
         self.config_location = config_loc_
         self.config_directory = os.path.split(self.config_location)[0]
@@ -80,7 +86,7 @@ class Configuration:
 
         for kwarg in kwargs.keys():
             if kwarg not in self.PROPERTIES:
-                raise TypeError('Unexpected keyword argument: {}'.format(kwarg))
+                raise TypeError("Unexpected keyword argument: {}".format(kwarg))
 
         base_kwarg.update(kwargs)
 
@@ -95,24 +101,24 @@ class Configuration:
         if self.base_port is None:
             self.base_url = self.base_host
         else:
-            self.base_url = '{}:{}'.format(self.base_host, self.base_port)
+            self.base_url = "{}:{}".format(self.base_host, self.base_port)
 
-        self.base_url = self.base_protocol + '://' + self.base_url
+        self.base_url = self.base_protocol + "://" + self.base_url
         self.url_id = self.hash_encode(self.base_url)
 
         for kwarg in self.PROPERTIES.keys():
             setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
 
-        self.media_loc = FileLocation(self.media_path,
-                                      self.static_media_url,
-                                      self.static_media_path)
+        self.media_loc = FileLocation(
+            self.media_path, self.static_media_url, self.static_media_path
+        )
 
     @classmethod
     def from_file(cls, file_loc, **kwargs):
         if not os.path.exists(file_loc):
-            raise IOError('File not found: {}'.format(file_loc))
+            raise IOError("File not found: {}".format(file_loc))
 
-        with open(file_loc, 'r') as yf:
+        with open(file_loc, "r") as yf:
             config = yaml.safe_load(yf)
 
         config.update(kwargs)
@@ -126,7 +132,7 @@ class Configuration:
         This will not reflect any runtime modifications to the configuration
         object.
         """
-        with open(file_loc, 'w') as yf:
+        with open(file_loc, "w") as yf:
             yaml.dump(self._base_dict, stream=yf, default_flow_style=False)
 
     def __getitem__(self, key):
@@ -152,9 +158,9 @@ class Configuration:
         purposes of creating a reproducible number from input parameters.
         """
         h = hashlib.sha256()
-        h.update(str_data.encode('utf-8'))
+        h.update(str_data.encode("utf-8"))
 
-        return base64.b64encode(h.digest())[0:16].decode('utf-8')
+        return base64.b64encode(h.digest())[0:16].decode("utf-8")
 
     def make_replacements(self, value):
         if not isinstance(value, str):
@@ -186,18 +192,18 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
     if config_loc is not None:
         if not os.path.exists(config_loc):
             if config_loc_must_exist:
-               raise MissingConfigError('Configuration location does not exist.')
+                raise MissingConfigError("Configuration location does not exist.")
 
             # Make sure we can write to this directory
             if not os.access(os.path.split(config_loc)[0], os.W_OK):
-                msg = 'Cannot write to {}'.format(config_loc)
+                msg = "Cannot write to {}".format(config_loc)
                 raise ConfigWritePermissionsError(msg)
 
         config_location = config_loc
         found_config = True
 
     if not found_config:
-        config_location = os.environ.get('AUDIO_FEEDER_CONFIG', None)
+        config_location = os.environ.get("AUDIO_FEEDER_CONFIG", None)
         falling_back = False
         found_config = False
         if config_location is not None:
@@ -215,12 +221,14 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
                     break
 
         if falling_back:
-            msg = ('Could not find config file from environment variable:' +
-                   ' {},'.format(os.environ['AUDIO_RSS_CONFIG']))
+            msg = (
+                "Could not find config file from environment variable:"
+                + " {},".format(os.environ["AUDIO_RSS_CONFIG"])
+            )
             if found_config:
-                msg += ', using {} instead.'.format(config_location)
+                msg += ", using {} instead.".format(config_location)
             else:
-                msg += ', using baseline configuration.'
+                msg += ", using baseline configuration."
 
             warnings.warn(msg, RuntimeWarning)
 
@@ -230,7 +238,7 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
     else:
         if not found_config:
             for config_location in config_locs:
-                if not config_location.endswith('.yml'):
+                if not config_location.endswith(".yml"):
                     continue
 
                 config_dir = os.path.split(config_location)[0]
@@ -243,7 +251,7 @@ def init_config(config_loc=None, config_loc_must_exist=False, **kwargs):
         get_configuration._configuration = new_conf
 
         if config_location is not None:
-            logging.info('Creating configuration file at {}'.format(config_location))
+            logging.info("Creating configuration file at {}".format(config_location))
 
             get_configuration._configuration.to_file(config_location)
 
@@ -253,7 +261,7 @@ def get_configuration():
     On first call, this loads the configuration object, on subsequent calls,
     this returns the original configuration object.
     """
-    config_obj = getattr(get_configuration, '_configuration', None)
+    config_obj = getattr(get_configuration, "_configuration", None)
     if config_obj is not None:
         return config_obj
 
@@ -272,6 +280,7 @@ def read_from_config(field):
 
 class MissingConfigError(ValueError):
     pass
+
 
 class ConfigWritePermissionsError(ValueError):
     pass

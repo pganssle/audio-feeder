@@ -2,6 +2,7 @@
 Functions useful for caching.
 """
 
+
 def populate_qr_cache(entry_table=None, resolver=None, pbar=lambda x: x):
     """
     Since generating the QR cache can be time-consuming during each page laod,
@@ -21,10 +22,12 @@ def populate_qr_cache(entry_table=None, resolver=None, pbar=lambda x: x):
     """
     if entry_table is None:
         from .database_handler import get_database_table
-        entry_table = get_database_table('entries')
+
+        entry_table = get_database_table("entries")
 
     if resolver is None:
         from .resolver import get_resolver
+
         resolver = get_resolver()
 
     for e_id, entry_obj in pbar(entry_table.items()):

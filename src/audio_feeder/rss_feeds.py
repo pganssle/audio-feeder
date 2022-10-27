@@ -6,20 +6,20 @@ import math
 import os
 import random
 import re
-
-from datetime import timedelta
 import urllib.parse
+from datetime import timedelta
 from urllib.parse import urljoin
-
-from .config import read_from_config
-from . import directory_parser as dp
-from . import database_handler as dh
-from .resolver import Resolver
-
 from xml.sax import saxutils
 
-def hash_random(fpath, hashseed, hash_amt=2**20, block_size=2**12,
-                hash_func=hashlib.sha256):
+from . import database_handler as dh
+from . import directory_parser as dp
+from .config import read_from_config
+from .resolver import Resolver
+
+
+def hash_random(
+    fpath, hashseed, hash_amt=2**20, block_size=2**12, hash_func=hashlib.sha256
+):
     """
     This will get the hash of a random subset of the file.
 
@@ -68,7 +68,7 @@ def hash_random(fpath, hashseed, hash_amt=2**20, block_size=2**12,
         file_sample = sorted(random.sample(range_sample, num_used_blocks))
 
     hash_obj = hash_func()
-    with open(fpath, 'rb') as f:
+    with open(fpath, "rb") as f:
         for ii in file_sample:
             f.seek(ii * block_size)
             hash_obj.update(f.read(block_size))
@@ -99,7 +99,7 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
 
     audio_dir = resolver.resolve_media(entry_obj.path)
     if not os.path.exists(audio_dir.path):
-        raise ItemNotFoundError('Could not find item: {}'.format(audio_dir))
+        raise ItemNotFoundError("Could not find item: {}".format(audio_dir))
 
     pub_date = entry_obj.date_added
     data_obj = dh.get_database_table(entry_obj.table)[entry_obj.data_id]
@@ -116,19 +116,21 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
         url = _urljoin_dir(audio_dir.url, relpath)
 
         file_size = os.path.getsize(audio_file)
-        feed_item['fname'] = os.path.split(audio_file)[1]
-        feed_item['size'] = file_size
-        feed_item['url'] = url
-        feed_item['pubdate'] = pub_date + timedelta(minutes=ii)
-        feed_item['desc'] = data_obj.description or ''
-        feed_item['guid'] = hash_random(audio_file, entry_obj.hashseed)
+        feed_item["fname"] = os.path.split(audio_file)[1]
+        feed_item["size"] = file_size
+        feed_item["url"] = url
+        feed_item["pubdate"] = pub_date + timedelta(minutes=ii)
+        feed_item["desc"] = data_obj.description or ""
+        feed_item["guid"] = hash_random(audio_file, entry_obj.hashseed)
 
         feed_items.append({k: wrap_field(v) for k, v in feed_item.items()})
 
     return feed_items
 
 
-html_chars = re.compile('<[^>]+>')
+html_chars = re.compile("<[^>]+>")
+
+
 def wrap_field(field):
     """
     Given a field, detect if it has special characters <, > or & and if so
@@ -138,7 +140,7 @@ def wrap_field(field):
         return field
 
     if html_chars.search(field):
-        return '<![CDATA[' + field + ']]>'
+        return "<![CDATA[" + field + "]]>"
     else:
         # If there's already escaped data like &amp;, I want to unescape it
         # first, so I can re-escape *everything*
@@ -148,13 +150,11 @@ def wrap_field(field):
 
 
 def _urljoin_dir(dir_, fragment):
-    if not dir_.endswith('/'):
-        dir_ += '/'
+    if not dir_.endswith("/"):
+        dir_ += "/"
 
     return urljoin(dir_, fragment)
 
 
 class ItemNotFoundError(ValueError):
     pass
-
-

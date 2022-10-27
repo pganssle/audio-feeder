@@ -3,6 +3,7 @@ Command line scripts
 """
 import click
 
+
 @click.group()
 def cli():
     """
@@ -12,59 +13,81 @@ def cli():
         version
     """
 
+
 @cli.command()
 def version():
     from . import __version__
-    print('audio_feeder version: %s' % __version__.VERSION)
+
+    print("audio_feeder version: %s" % __version__.VERSION)
+
 
 @cli.command()
-@click.option('--host', default=None,
-    help='The host to run the application on.')
-@click.option('-p', '--port', default=None, type=int,
-    help='The port to run the application on.')
-@click.option('-c', '--config', default=None, type=str,
-    help='A YAML config file to use for this particular run.')
-@click.option('--profile', is_flag=True,
-    help='Runs with profiler on.')
+@click.option("--host", default=None, help="The host to run the application on.")
+@click.option(
+    "-p", "--port", default=None, type=int, help="The port to run the application on."
+)
+@click.option(
+    "-c",
+    "--config",
+    default=None,
+    type=str,
+    help="A YAML config file to use for this particular run.",
+)
+@click.option("--profile", is_flag=True, help="Runs with profiler on.")
 def run(host, port, config, profile):
     """
     Runs the flask application, starting the web page with certain configuration
     options specified.
     """
     from .app import create_app
-    from .config import read_from_config, init_config
+    from .config import init_config, read_from_config
 
     kwargs = {}
     if host is not None:
-        kwargs['base_host'] = host
+        kwargs["base_host"] = host
 
     if port is not None:
-        kwargs['base_port'] = port
+        kwargs["base_port"] = port
 
     init_config(config_loc=config, **kwargs)
 
     app = create_app()
-    app.static_folder = read_from_config('static_media_path')
+    app.static_folder = read_from_config("static_media_path")
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
 
-        app.config['PROFILE'] = True
-        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir='.profile')
+        app.config["PROFILE"] = True
+        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir=".profile")
         debug = True
     else:
         debug = False
 
-    app.run(host=read_from_config('base_host'), port=read_from_config('base_port'), debug=debug)
+    app.run(
+        host=read_from_config("base_host"),
+        port=read_from_config("base_port"),
+        debug=debug,
+    )
 
 
 @cli.command()
-@click.option('-t', '--content-type', type=str, default='books',
-    help=('The type of content to load from the directories. Options:' +
-          '  b / books: Audiobooks'))
-@click.option('-r', '--reload-metadata', is_flag=True,
-    help='Passed if metadata from all sources should be reloaded if present.')
-@click.argument('path', metavar='PATH', type=str, required=True)
+@click.option(
+    "-t",
+    "--content-type",
+    type=str,
+    default="books",
+    help=(
+        "The type of content to load from the directories. Options:"
+        + "  b / books: Audiobooks"
+    ),
+)
+@click.option(
+    "-r",
+    "--reload-metadata",
+    is_flag=True,
+    help="Passed if metadata from all sources should be reloaded if present.",
+)
+@click.argument("path", metavar="PATH", type=str, required=True)
 def update(content_type, reload_metadata, path):
     """
     Add a specific path to the databases, loading all content and updating the
@@ -74,57 +97,68 @@ def update(content_type, reload_metadata, path):
     """
     import os
 
+    from progressbar import ETA, Bar, ProgressBar, Timer
+
     from . import database_handler as dh
     from .resolver import Resolver
 
-    from progressbar import ProgressBar, Bar, Timer, ETA
     def pbar(msg):
-        return ProgressBar(widgets=[msg, ' ',
-                           Bar(), ' ', Timer(), ' ', ETA()])
+        return ProgressBar(widgets=[msg, " ", Bar(), " ", Timer(), " ", ETA()])
 
     # If this is a relative path, interpret it as relative to the base
     # media path, not the cwd.
     path = Resolver().resolve_media(path).path
 
-    if content_type in ('b', 'books'):
+    if content_type in ("b", "books"):
         updater = dh.BookDatabaseUpdater(path)
     else:
-        raise ValueError('Unknown type {}'.format(utype))
+        raise ValueError("Unknown type {}".format(utype))
 
-    print('Loading database')
+    print("Loading database")
     db = dh.load_database()
 
-    print('Loading all new entries.')
+    print("Loading all new entries.")
     updater.update_db_entries(db)
 
-    dh.save_database(db)    # Save as we progress
+    dh.save_database(db)  # Save as we progress
 
-    print('Loading books associated with entries.')
+    print("Loading books associated with entries.")
     updater.assign_books_to_entries(db)
 
     dh.save_database(db)
 
-    updater.update_book_metadata(db, pbar=pbar('Loading book metadata:'),
-        reload_metadata=reload_metadata)
+    updater.update_book_metadata(
+        db, pbar=pbar("Loading book metadata:"), reload_metadata=reload_metadata
+    )
 
     dh.save_database(db)
 
-    print('Updating author database')
+    print("Updating author database")
     updater.update_author_db(db)
 
     dh.save_database(db)
 
-    print('Updating book covers')
+    print("Updating book covers")
     updater.update_cover_images(db)
 
     dh.save_database(db)
 
 
 @cli.command()
-@click.option('-c', '--config-dir', type=str, default=None,
-    help=('The configuration directory to use as a base for all'))
-@click.option('-n', '--config-name', type=str, default=None,
-    help='The name to use for the configuration file. Default is config.yml')
+@click.option(
+    "-c",
+    "--config-dir",
+    type=str,
+    default=None,
+    help=("The configuration directory to use as a base for all"),
+)
+@click.option(
+    "-n",
+    "--config-name",
+    type=str,
+    default=None,
+    help="The name to use for the configuration file. Default is config.yml",
+)
 def install(config_dir, config_name):
     """
     Installs the feeder configuration and populates the initial file structures
@@ -134,7 +168,7 @@ def install(config_dir, config_name):
     import shutil
     import warnings
 
-    from pkg_resources import resource_filename, cleanup_resources
+    from pkg_resources import cleanup_resources, resource_filename
 
     from . import config
 
@@ -146,12 +180,13 @@ def install(config_dir, config_name):
                     os.makedirs(config_dir)
                     break
                 except Exception as e:
-                    warnings.warn('Failed to make directory {}'.format(config_dir),
-                        RuntimeWarning)
+                    warnings.warn(
+                        "Failed to make directory {}".format(config_dir), RuntimeWarning
+                    )
             else:
                 break
         else:
-            raise IOError('Failed to create any configuration directories.')
+            raise IOError("Failed to create any configuration directories.")
 
     config_name = config_name or config.CONFIG_NAMES[0]
     config_loc = os.path.join(config_dir, config_name)
@@ -165,24 +200,22 @@ def install(config_dir, config_name):
 
     # Create the directories that need to exist, if they don't already
     make_dir_entries = (
-        'templates_base_loc',
-        'entry_templates_loc',
-        'pages_templates_loc',
-        'rss_templates_loc',
-        'rss_entry_templates_loc',
-        'database_loc',
-        'static_media_path',
-    )   # Absolute paths
+        "templates_base_loc",
+        "entry_templates_loc",
+        "pages_templates_loc",
+        "rss_templates_loc",
+        "rss_entry_templates_loc",
+        "database_loc",
+        "static_media_path",
+    )  # Absolute paths
 
     make_dir_directories = [config_obj[x] for x in make_dir_entries]
     static_paths = [
-        os.path.join(config_obj['static_media_path'], config_obj[x])
-        for x in ('site_images_loc', 'css_loc',
-                  'cover_cache_path', 'qr_cache_path')
-    ]   # Relative paths
+        os.path.join(config_obj["static_media_path"], config_obj[x])
+        for x in ("site_images_loc", "css_loc", "cover_cache_path", "qr_cache_path")
+    ]  # Relative paths
 
-    (site_images_path, css_path,
-     cover_cache_path, qr_cache_path) = static_paths
+    (site_images_path, css_path, cover_cache_path, qr_cache_path) = static_paths
 
     make_dir_directories += static_paths
 
@@ -191,37 +224,43 @@ def install(config_dir, config_name):
             os.makedirs(cdir)
 
     # Load package data if it doesn't already exist.
-    pkg_name = 'audio_feeder'
-    
-    # Schema
-    if not os.path.exists(config_obj['schema_loc']):
-        sl_fname = resource_filename(pkg_name, 'data/database/schema.yml')
-        shutil.copy2(sl_fname, config_obj['schema_loc'])
+    pkg_name = "audio_feeder"
 
-    css_files = [os.path.join(css_path, fname)
-                 for fname in config_obj['main_css_files']]
+    # Schema
+    if not os.path.exists(config_obj["schema_loc"]):
+        sl_fname = resource_filename(pkg_name, "data/database/schema.yml")
+        shutil.copy2(sl_fname, config_obj["schema_loc"])
+
+    css_files = [
+        os.path.join(css_path, fname) for fname in config_obj["main_css_files"]
+    ]
 
     # CSS files
-    for css_fname, css_file in zip(config_obj['main_css_files'], css_files):
+    for css_fname, css_file in zip(config_obj["main_css_files"], css_files):
         if not os.path.exists(css_file):
-            c_fname = resource_filename(pkg_name,
-                                        os.path.join('data/site/css', css_fname))
+            c_fname = resource_filename(
+                pkg_name, os.path.join("data/site/css", css_fname)
+            )
 
             shutil.copy2(c_fname, css_file)
 
     # Directories
     pkg_dir_map = {
-        'entry_templates_loc': 'data/templates/entry_types',
-        'pages_templates_loc': 'data/templates/pages',
-        'rss_templates_loc': 'data/templates/rss',
-        'rss_entry_templates_loc': 'data/templates/rss/entry_types',
+        "entry_templates_loc": "data/templates/entry_types",
+        "pages_templates_loc": "data/templates/pages",
+        "rss_templates_loc": "data/templates/rss",
+        "rss_entry_templates_loc": "data/templates/rss/entry_types",
     }
 
     pkg_dir_map = {config_obj[k]: v for k, v in pkg_dir_map.items()}
-    pkg_dir_map.update({
-        k: v for k, v in zip(static_paths[:-1], ['data/site/site-images',
-                                                 'data/site/css'])
-    })
+    pkg_dir_map.update(
+        {
+            k: v
+            for k, v in zip(
+                static_paths[:-1], ["data/site/site-images", "data/site/css"]
+            )
+        }
+    )
 
     # This may duplicate some files if entries nested in the original package
     # are not nested in the installed configuration.
@@ -251,11 +290,21 @@ def find_missing_books():
     """
     pass
 
+
 @find_missing_books.command()
-@click.option('-yo', '--overwrite', is_flag=True,
-    help='Automatically answer yes to "overwrite" prompt.')
-@click.option('-o', '--output', type=str, default='missing.yml',
-    help='Where to load the dictionary mapping entry IDs to names and values.')
+@click.option(
+    "-yo",
+    "--overwrite",
+    is_flag=True,
+    help='Automatically answer yes to "overwrite" prompt.',
+)
+@click.option(
+    "-o",
+    "--output",
+    type=str,
+    default="missing.yml",
+    help="Where to load the dictionary mapping entry IDs to names and values.",
+)
 def load(overwrite, output):
     """
     Load the books from the current database that are missing into an optionally
@@ -268,33 +317,31 @@ def load(overwrite, output):
     from . import database_handler as dh
 
     if os.path.exists(output) and not overwrite:
-        click.confirm('Do you want to overwrite {}?'.format(output), abort=True)
+        click.confirm("Do you want to overwrite {}?".format(output), abort=True)
 
-    print('Loading database')
-    books_table = dh.get_database_table('books')
+    print("Loading database")
+    books_table = dh.get_database_table("books")
 
     # Retrieve all the books with no metadata sources
-    print('Searching for books with missing metadata')
+    print("Searching for books with missing metadata")
     books_no_metadata = {}
     for book_id, book_obj in books_table.items():
         if not book_obj.metadata_sources:
             books_no_metadata[book_id] = book_obj
 
-
     # For each book we want to save three pieces of information:
-    book_data = ['id', 'authors', 'title']
+    book_data = ["id", "authors", "title"]
 
     # And we want to provide space for the following IDs:
-    book_id_slots = ['isbn', 'isbn13', 'google_id', 'goodreads_id']
+    book_id_slots = ["isbn", "isbn13", "google_id", "goodreads_id"]
 
     books_out = []
-    print('Preparing output')
+    print("Preparing output")
     for book_id, book_obj in books_no_metadata.items():
         # Doing this as a list of dictionaries to maintain the order and make
         # it look nice when humans are interacting with it.
         book_out = [
-            {book_field: getattr(book_obj, book_field)}
-            for book_field in book_data
+            {book_field: getattr(book_obj, book_field)} for book_field in book_data
         ]
         book_out += [
             {book_field: getattr(book_obj, book_field, None)}
@@ -303,29 +350,38 @@ def load(overwrite, output):
 
         books_out.append(book_out)
 
-    books_out = sorted(books_out, key=lambda x: x[book_data.index('authors')]['authors'][0])
+    books_out = sorted(
+        books_out, key=lambda x: x[book_data.index("authors")]["authors"][0]
+    )
 
-    print('Writing output to {}'.format(output))
-    with open(output, 'w') as f:
+    print("Writing output to {}".format(output))
+    with open(output, "w") as f:
         yaml.dump(books_out, stream=f, default_flow_style=False)
-    
+
+
 @find_missing_books.command()
-@click.option('-i', '--input', type=str, default='missing.yml',
-    help='Where to load the missing books from.')
+@click.option(
+    "-i",
+    "--input",
+    type=str,
+    default="missing.yml",
+    help="Where to load the missing books from.",
+)
 def update(**kwargs):
     from ruamel import yaml
+
     from . import database_handler as dh
 
-    input_fpath = kwargs['input']
+    input_fpath = kwargs["input"]
 
-    with open(input_fpath, 'r') as f:
+    with open(input_fpath, "r") as f:
         missing_db = yaml.safe_load(f)
 
     # Fields we're expecting to find
-    book_data = ['id', 'authors', 'title']
-    book_id_slots = ['isbn', 'isbn13', 'google_id', 'goodreads_id']
+    book_data = ["id", "authors", "title"]
+    book_id_slots = ["isbn", "isbn13", "google_id", "goodreads_id"]
 
-    print('Loading missing book data from {}'.format(input_fpath))
+    print("Loading missing book data from {}".format(input_fpath))
     books_in = {}
     for book_in in missing_db:
         # These are a list of dictionaries, for human readability reasons.
@@ -335,13 +391,13 @@ def update(**kwargs):
 
         # Load anything which has a real value for one of the IDs.
         if any(book_dict[id_slot] for id_slot in book_id_slots):
-            books_in[book_dict['id']] = book_dict
+            books_in[book_dict["id"]] = book_dict
 
-    print('Loading book table database')
+    print("Loading book table database")
     db = dh.load_database()
-    books_table = db['books']
+    books_table = db["books"]
 
-    load_if_avail = ['authors', 'title'] + book_id_slots
+    load_if_avail = ["authors", "title"] + book_id_slots
 
     for book_id, book_dict in books_in.items():
         book_obj = books_table[book_id]
@@ -351,8 +407,7 @@ def update(**kwargs):
             if v:
                 setattr(book_obj, field, v)
 
-        db['books'][book_id]
+        db["books"][book_id]
 
-    print('Saving book database')
+    print("Saving book database")
     dh.save_database(db)
-

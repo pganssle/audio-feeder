@@ -1,26 +1,27 @@
+import itertools
 import os
 import re
 
-import itertools
 
 class BaseAudioLoader:
     """
     A base class that defines the interface for all audio loader classes.
     """
+
     def is_audio(cls, dirloc):
-        raise NotImplementedError('Function must be defined in child classes')
+        raise NotImplementedError("Function must be defined in child classes")
 
     def audio_files(cls, dir_loc):
-        raise NotImplementedError('Function must be defined in child classes.')
+        raise NotImplementedError("Function must be defined in child classes.")
 
     def audio_cover(cls, dir_loc):
-        raise NotImplementedError('Function must be defined in child classes.')
+        raise NotImplementedError("Function must be defined in child classes.")
 
     def parse_creator_names(cls, dir_loc):
-        raise NotImplementedError('Function must be defined in child classes')
+        raise NotImplementedError("Function must be defined in child classes")
 
     def parse_audio_info(cls, dir_path):
-        raise NotImplementedError('Function must be implemented in child classes')
+        raise NotImplementedError("Function must be implemented in child classes")
 
     @classmethod
     def natural_sort_key(cls, value):
@@ -36,7 +37,7 @@ class BaseAudioLoader:
             Returns a book name tokenized such that it can be sorted.
         """
         o = itertools.groupby(value, key=str.isdigit)
-        o = ((k, ''.join(g)) for k, g in o)
+        o = ((k, "".join(g)) for k, g in o)
         o = ((int(v) if k else v) for k, v in o)
 
         return tuple(o)
@@ -46,18 +47,21 @@ class AudiobookLoader(BaseAudioLoader):
     """
     This is a more or less static class that can be used to load audiobooks.
     """
-    AUDIO_EXTENSIONS = ['.mp3', '.mp4', '.ogg', '.ac3', '.aac', '.m4b', '.m4a']
 
-    COVER_EXTENSIONS = ['.png', '.jpg', '.svg', '.gif', '.tif', '.bmp']
+    AUDIO_EXTENSIONS = [".mp3", ".mp4", ".ogg", ".ac3", ".aac", ".m4b", ".m4a"]
 
-    COVER_PATTERNS = [re.compile('$.*\-Cover^', re.IGNORECASE),
-                      re.compile('cover', re.IGNORECASE)]
+    COVER_EXTENSIONS = [".png", ".jpg", ".svg", ".gif", ".tif", ".bmp"]
+
+    COVER_PATTERNS = [
+        re.compile("$.*\-Cover^", re.IGNORECASE),
+        re.compile("cover", re.IGNORECASE),
+    ]
 
     DIR_NAME_RE = re.compile(
-        '(?P<authors>.+?)(?= \- )' + 
-        '(?: \- \[(?P<series_name>.*?) (?P<series_number>\d+)\])? \- ' +
-        '(?P<title>.*$)')
-
+        "(?P<authors>.+?)(?= \- )"
+        + "(?: \- \[(?P<series_name>.*?) (?P<series_number>\d+)\])? \- "
+        + "(?P<title>.*$)"
+    )
 
     @classmethod
     def is_audio(cls, dirloc):
@@ -128,8 +132,7 @@ class AudiobookLoader(BaseAudioLoader):
             # Second sort index is its position in the cover extension index.
             ext_loc = cls.COVER_EXTENSIONS.index(fname_ext)
 
-            candidates.append((match_num, ext_loc,
-                               os.path.join(dir_loc, fname)))
+            candidates.append((match_num, ext_loc, os.path.join(dir_loc, fname)))
 
         if not len(candidates):
             return None
@@ -142,16 +145,16 @@ class AudiobookLoader(BaseAudioLoader):
     def parse_creator_names(cls, authors):
         """
         Splits author names by ',', '&' and 'and'
-        
+
         :param authors:
             A string containing possibly multiple author names.
 
         :return:
             Returns a :py:object:`list` of authors.
         """
-        o = authors.split(' & ')
-        o = itertools.chain.from_iterable(x.split(' and ') for x in o)
-        o = itertools.chain.from_iterable(x.split(', ') for x in o)
+        o = authors.split(" & ")
+        o = itertools.chain.from_iterable(x.split(" and ") for x in o)
+        o = itertools.chain.from_iterable(x.split(", ") for x in o)
 
         return list(o)
 
@@ -164,29 +167,27 @@ class AudiobookLoader(BaseAudioLoader):
 
         m = cls.DIR_NAME_RE.match(dir_name)
         if m is None:
-            msg = 'Directory name does not match the format: {}'
+            msg = "Directory name does not match the format: {}"
             msg = msg.format(dir_name)
 
             raise NoAudiobookInformation(msg)
 
-        authors = cls.parse_creator_names(m.group('authors'))
-        series = m.group('series_name')
-        series_number = m.group('series_number')
+        authors = cls.parse_creator_names(m.group("authors"))
+        series = m.group("series_name")
+        series_number = m.group("series_number")
         if series_number is not None:
             series_number = int(series_number)
 
-        title = m.group('title')
+        title = m.group("title")
 
         audiobook_data = dict(
-            authors=authors, series=(series, series_number),
-            title=title
+            authors=authors, series=(series, series_number), title=title
         )
 
         return audiobook_data
 
 
-def load_all_audio(base_dir, *, visited_dirs=None,
-                   audio_loader_class=AudiobookLoader):
+def load_all_audio(base_dir, *, visited_dirs=None, audio_loader_class=AudiobookLoader):
     """
     Traverse a directory and find all the directories that contain an
     audiobook (as returned by is_audiobook)
@@ -211,19 +212,21 @@ def load_all_audio(base_dir, *, visited_dirs=None,
     for subdir in os.listdir(base_dir):
         dirpath = os.path.abspath(os.path.join(base_dir, subdir))
         if dirpath in visited_dirs or not os.path.isdir(dirpath):
-            continue    # Avoid infinite recursion
+            continue  # Avoid infinite recursion
 
         if audio_loader_class.is_audio(dirpath):
             audiobook_paths.append(dirpath)
         else:
-            audiobook_paths += load_all_audio(dirpath,
+            audiobook_paths += load_all_audio(
+                dirpath,
                 visited_dirs=visited_dirs,
-                audio_loader_class=audio_loader_class)
+                audio_loader_class=audio_loader_class,
+            )
 
     return audiobook_paths
 
 
 class NoAudiobookInformation(ValueError):
-    """ Used when a book's directory name does not match the format used. """
-    pass
+    """Used when a book's directory name does not match the format used."""
 
+    pass

@@ -6,7 +6,7 @@ tables:
   entries: Entry
 
 
-types:  
+types:
     Entry:
         fields:
             - id

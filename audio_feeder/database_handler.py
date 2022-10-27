@@ -2,6 +2,7 @@ import imghdr
 import itertools
 import math
 import os
+import threading
 import shutil
 import warnings
 
@@ -23,6 +24,7 @@ from ruamel import yaml
 from PIL import Image
 
 DB_VERSION = 0
+DB_LOCK = threading.Lock()
 
 
 def load_table(table_loc, table_type):
@@ -122,8 +124,9 @@ def get_database(refresh=False):
     """
     db = getattr(get_database, '_database', None)
     if db is None or refresh:
-        db = load_database()
-        get_database._database = db
+        with DB_LOCK:
+            db = load_database()
+            get_database._database = db
 
     return db
 

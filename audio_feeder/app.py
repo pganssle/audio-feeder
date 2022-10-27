@@ -1,11 +1,33 @@
 #! /usr/bin/env python3
 from flask import Flask
 from .pages import root
+from . import database_handler as dh
+from . import cache_utils
 
 import os
 import logging as log
+import threading
 
-def create_app(load_db=True, populate_qr_cache=True, progressbar=False):
+def warm_caches(load_db=True, populate_qr_cache=True, progressbar=False):
+    log.info('Warming caches in a background thread')
+    if load_db:
+        log.info('Loading database.')
+        dh.get_database()       # This loads the database into memory.
+        log.info('Database loaded.')
+
+    if populate_qr_cache:
+        if progressbar:
+            from progressbar import ProgressBar, Bar, Timer, ETA
+            pbar = ProgressBar(widgets=['Populating QR cache: ', Bar(),
+                                        ' ', Timer(), ' ', ETA()])
+            kwargs = {'pbar': pbar}
+        else:
+            log.info('Populating QR cache.')
+            kwargs = {}
+
+        cache_utils.populate_qr_cache(**kwargs)
+
+def create_app(load_db=True, populate_qr_cache=True, progressbar=False, block=False):
     # Set up logging
     log_level = os.environ.get('AF_LOGGING_LEVEL', None)
     if log_level is not None:
@@ -23,24 +45,19 @@ def create_app(load_db=True, populate_qr_cache=True, progressbar=False):
     app = Flask(__name__)
     app.register_blueprint(root)
 
-    # Now load the database if requested
-    if load_db:
-        from . import database_handler as dh
-        log.info('Loading database.')
-        dh.get_database()       # This loads the database into memory.
-        log.info('Database loaded.')
+    # Now load the database and populate the QR cache in a background thread
+    # if requested.
+    kwargs = dict(
+        load_db=load_db,
+        populate_qr_cache=populate_qr_cache,
+        progressbar=progressbar
+    )
 
-    if populate_qr_cache:
-        if progressbar:
-            from progressbar import ProgressBar, Bar, Timer, ETA
-            pbar = ProgressBar(widgets=['Populating QR cache: ', Bar(),
-                                        ' ', Timer(), ' ', ETA()])
-            kwargs = {'pbar': pbar}
-        else:
-            log.info('Populating QR cache.')
-            kwargs = {}
-
-        from .cache_utils import populate_qr_cache
-        populate_qr_cache(**kwargs)
+    background_thread = threading.Thread(
+        target=warm_caches,
+        daemon=not block,
+        kwargs=kwargs
+    )
+    background_thread.start()
 
     return app

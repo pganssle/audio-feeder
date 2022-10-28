@@ -63,7 +63,7 @@ types:
             - title
             - subtitle
 
-            - authors                
+            - authors
             - author_ids             # Foreign key to the authors table
             - author_roles           # Author = 0, Narrator = 1, Contributor = 2, Editor = 3
             - description

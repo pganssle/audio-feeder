@@ -2,9 +2,9 @@
 Book handlers
 """
 
-from .schema_handler import load_schema
+import typing
 
-#: The Type Mapping maps the type strings in the schema to the types as loaded.
+from .schema_handler import load_schema
 
 
 class BaseObject(object):
@@ -53,7 +53,7 @@ def object_factory(name, properties, bases=(BaseObject,), clsdict=None):
     return type(name, bases, clsdict)
 
 
-def load_classes(schema=None):
+def load_classes(schema=None) -> None:
     args = (schema,) if schema else tuple()
     schema = load_schema(*args)
 
@@ -76,6 +76,10 @@ def load_classes(schema=None):
     global TYPE_MAPPING
     TYPE_MAPPING = {}
     TYPE_MAPPING.update(type_dict)
+
+
+#: The Type Mapping maps the type strings in the schema to the types as loaded.
+TYPE_MAPPING: typing.Mapping[str, BaseObject]
 
 
 # Use the base schema to generate the classes.

@@ -18,6 +18,7 @@ from . import directory_parser as dp
 from . import metadata_loader as mdl
 from . import object_handler as oh
 from . import schema_handler as sh
+from ._db_types import ID, Table
 from ._useful_types import PathType
 from .config import read_from_config
 from .html_utils import clean_html
@@ -25,8 +26,6 @@ from .resolver import get_resolver
 
 DB_VERSION = 0
 DB_LOCK = threading.Lock()
-
-Table = typing.Mapping[str, oh.BaseObject]
 
 
 def load_table(table_loc: PathType, table_type: typing.Type[oh.BaseObject]) -> Table:
@@ -40,7 +39,7 @@ def load_table(table_loc: PathType, table_type: typing.Type[oh.BaseObject]) -> T
     table_list = table_file["data"]
 
     raw_table = (table_type(**params) for params in table_list)
-    table_by_id = {x.id: x for x in raw_table}
+    table_by_id = {ID(x.id): x for x in raw_table}
 
     return table_by_id
 
@@ -63,7 +62,7 @@ def save_table(table_loc, table):
 def load_database(
     schema_loc: typing.Optional[PathType] = None,
     db_loc: typing.Optional[PathType] = None,
-) -> typing.Mapping[str, Table]:
+) -> typing.Mapping[ID, Table]:
     """
     Loads the 'database' into memory.
 

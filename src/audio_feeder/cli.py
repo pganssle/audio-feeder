@@ -1,6 +1,8 @@
 """
 Command line scripts
 """
+import pathlib
+
 import click
 
 
@@ -411,3 +413,33 @@ def update(**kwargs):
 
     print("Saving book database")
     dh.save_database(db)
+
+
+@cli.command()
+@click.argument(
+    "db_in",
+    metavar="DB_IN",
+    type=click.Path(path_type=pathlib.Path, exists=True),
+    required=True,
+)
+@click.argument(
+    "db_out",
+    metavar="DB_OUT",
+    type=click.Path(path_type=pathlib.Path, exists=False),
+    required=True,
+)
+def convert_db(db_in: pathlib.Path, db_out: pathlib.Path):
+    """
+    Take an old YAML-style "database" and convert it to sqlite3
+    """
+
+    if db_out.exists():
+        raise ValueError(f"Output path already exists: {db_out}")
+
+    from audio_feeder import database_handler as dh
+    from audio_feeder import sql_database_handler as sdh
+
+    sql_handler = sdh.DatabaseHandler(db_out)
+    old_db = dh.load_database(db_in)
+
+    sql_handler.save_database(old_db)

@@ -13,10 +13,8 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from . import object_handler as oh
+from ._db_types import ID, Table
 from ._useful_types import PathType
-
-ID = typing.NewType("ID", str)
-Table = typing.Mapping[ID, oh.BaseObject]
 
 
 def _map_type(t: type) -> sa.sql.type_api.TypeEngine:

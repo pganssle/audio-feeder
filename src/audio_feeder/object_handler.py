@@ -40,11 +40,8 @@ def object_factory(
         attrs=properties,
         bases=(BaseObject,),
         frozen=False,
-        slots=True,
-        eq=True,
+        slots=False,  # SqlAlchemy has problems with slots ☹
         repr=True,
-        cmp=False,
-        hash=False,
     )
 
     if docstring is not None:

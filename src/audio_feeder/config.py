@@ -14,7 +14,7 @@ from itertools import product
 import yaml
 
 from ._useful_types import PathType
-from .resolver import FileLocation
+from .file_location import FileLocation
 
 CONFIG_DIRS = [
     os.path.expanduser(x)

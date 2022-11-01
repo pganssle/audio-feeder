@@ -2,7 +2,6 @@ tables:
   books: Book
   series: Series
   authors: Author
-  users: User
   entries: Entry
 
 
@@ -52,7 +51,7 @@ types:
 
             - tags: Sequence[str]
 
-            - duration:
+            - duration: float
             - pages: int
 
             - title: str
@@ -63,7 +62,7 @@ types:
                 type: Sequence[int]
                 foreign_key: "authors.id"
                 comment: "Foreign key to the authors table"
-            - author_roles
+            - author_roles:
                 type: Sequence[int]
                 comment: "Author = 0, Narrator = 1, Contributor = 2, Editor = 3"
             - description: str

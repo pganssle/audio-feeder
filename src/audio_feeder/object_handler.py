@@ -76,7 +76,7 @@ def load_classes() -> None:
 
 
 #: The Type Mapping maps the type strings in the schema to the types as loaded.
-TYPE_MAPPING: typing.Mapping[str, BaseObject]
+TYPE_MAPPING: typing.Mapping[str, typing.Type[BaseObject]]
 
 
 # Use the base schema to generate the classes.

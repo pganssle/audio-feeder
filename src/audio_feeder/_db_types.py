@@ -13,7 +13,7 @@ Table = typing.Mapping[ID, oh.BaseObject]
 Database = typing.Mapping[TableName, Table]
 
 
-class DatabaseHandlerProtocol(typing.Protocol):
+class DatabaseHandler(typing.Protocol):
     def __init__(self, db_loc: PathType):
         ...
 

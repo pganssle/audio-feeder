@@ -60,7 +60,6 @@ def save_table(table_loc, table):
 
 
 def load_database(
-    schema_loc: typing.Optional[PathType] = None,
     db_loc: typing.Optional[PathType] = None,
 ) -> typing.Mapping[ID, Table]:
     """
@@ -70,7 +69,7 @@ def load_database(
     have not yet implemented the ability to make hand-modifications to the
     metadata, and I don't know how to easily edit SQL databases.
     """
-    schema_loc, db_loc = _get_schema_db_locs(schema_loc=schema_loc, db_loc=db_loc)
+    db_loc = _get_db_loc(db_loc=db_loc)
 
     schema = sh.load_schema()
 
@@ -89,11 +88,11 @@ def load_database(
     return tables
 
 
-def save_database(database, schema_loc=None, db_loc=None):
+def save_database(database: typing.Mapping[str, Table], db_loc : typing.Optional[PathType]=None) -> None:
     """
     Saves the 'database' into memory. See :func:`load_database` for details.
     """
-    schema_loc, db_loc = _get_schema_db_locs(schema_loc=schema_loc, db_loc=db_loc)
+    db_loc = _get_db_loc(db_loc=db_loc)
 
     schema = sh.load_schema()
 
@@ -760,14 +759,11 @@ def _get_table_loc(db_loc, table_loc):
     return os.path.join(db_loc, table_loc + ".yml")
 
 
-def _get_schema_db_locs(schema_loc=None, db_loc=None):
-    if schema_loc is None:
-        schema_loc = read_from_config("schema_loc")
-
+def _get_db_loc(db_loc: typing.Optional[PathType] = None) -> PathType:
     if db_loc is None:
         db_loc = read_from_config("database_loc")
 
-    return schema_loc, db_loc
+    return db_loc
 
 
 def _get_img_ext(fobj):

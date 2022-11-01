@@ -228,11 +228,6 @@ def install(config_dir, config_name):
     # Load package data if it doesn't already exist.
     pkg_name = "audio_feeder"
 
-    # Schema
-    if not os.path.exists(config_obj["schema_loc"]):
-        sl_fname = resource_filename(pkg_name, "data/database/schema.yml")
-        shutil.copy2(sl_fname, config_obj["schema_loc"])
-
     css_files = [
         os.path.join(css_path, fname) for fname in config_obj["main_css_files"]
     ]

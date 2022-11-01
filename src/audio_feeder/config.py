@@ -47,6 +47,7 @@ class Configuration:
             ("pages_templates_loc", "{{TEMPLATES}}/pages"),
             ("rss_templates_loc", "{{TEMPLATES}}/rss"),
             ("rss_entry_templates_loc", "{{TEMPLATES}}/rss/entry_types"),
+            # Deprecated — No longer has any effect
             ("schema_loc", "{{CONFIG}}/database/schema.yml"),
             ("database_loc", "{{CONFIG}}/database/db"),
             ("static_media_path", "{{CONFIG}}/static"),

@@ -99,7 +99,7 @@ def _map_tables() -> typing.Mapping[TableName, sa.Table]:
     return table_mapping
 
 
-class DatabaseHandler:
+class SqlDatabaseHandler:
     def __init__(self, db_loc: PathType):
         self._db = db_loc
         self._table_mapping = _map_tables()

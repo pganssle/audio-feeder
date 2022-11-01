@@ -434,7 +434,7 @@ def convert_db(db_in: pathlib.Path, db_out: pathlib.Path):
     from audio_feeder import database_handler as dh
     from audio_feeder import sql_database_handler as sdh
 
-    sql_handler = sdh.DatabaseHandler(db_out)
+    sql_handler = sdh.SqlDatabaseHandler(db_out)
     old_db = dh.load_database(db_in)
 
     sql_handler.save_database(old_db)

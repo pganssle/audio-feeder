@@ -10,7 +10,9 @@ from ._useful_types import PathType
 ID = typing.NewType("ID", int)
 TableName = typing.NewType("TableName", str)
 Table = typing.Mapping[ID, oh.BaseObject]
+MutableTable = typing.MutableMapping[ID, oh.BaseObject]
 Database = typing.Mapping[TableName, Table]
+MutableDatabase = typing.MutableMapping[TableName, MutableTable]
 
 
 class DatabaseHandler(typing.Protocol):

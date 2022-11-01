@@ -432,9 +432,6 @@ def convert_db(db_in: pathlib.Path, db_out: pathlib.Path):
         raise ValueError(f"Output path already exists: {db_out}")
 
     from audio_feeder import database_handler as dh
-    from audio_feeder import sql_database_handler as sdh
 
-    sql_handler = sdh.SqlDatabaseHandler(db_out)
     old_db = dh.load_database(db_in)
-
-    sql_handler.save_database(old_db)
+    dh.save_database(old_db, db_out)

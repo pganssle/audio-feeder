@@ -23,6 +23,7 @@ dependencies = [
     "click>=6.0",
     "progressbar2",
     "lxml>=2.0",
+    "SQLAlchemy>=1.4",
     "attrs>=22.0",
 ]
 classifiers = [

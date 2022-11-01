@@ -4,8 +4,8 @@ Schema handler
 import datetime
 import functools
 import os
-import re
 import pathlib
+import re
 import typing
 
 import attr

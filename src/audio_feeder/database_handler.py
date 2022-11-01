@@ -1,7 +1,9 @@
+import functools
 import imghdr
 import itertools
 import math
 import os
+import pathlib
 import shutil
 import threading
 import typing
@@ -18,7 +20,14 @@ from . import directory_parser as dp
 from . import metadata_loader as mdl
 from . import object_handler as oh
 from . import schema_handler as sh
-from ._db_types import ID, Table
+from ._db_types import (
+    ID,
+    Database,
+    DatabaseHandler,
+    MutableDatabase,
+    Table,
+    TableName,
+)
 from ._useful_types import PathType
 from .config import read_from_config
 from .html_utils import clean_html
@@ -28,40 +37,37 @@ DB_VERSION = 0
 DB_LOCK = threading.Lock()
 
 
-def load_table(table_loc: PathType, table_type: typing.Type[oh.BaseObject]) -> Table:
-    """
-    Loads a table of type ``table_type`` from the YAML file ``table_loc``.
-    """
-    with open(table_loc, "r") as yf:
-        table_file = yaml.safe_load(yf)
+@functools.lru_cache(None)
+def _get_handler_by_suffix(suffix: str) -> typing.Type[DatabaseHandler]:
+    suffix = suffix.lstrip(".")
+    if suffix in ("", "yml", "yaml"):
+        from .yaml_database_handler import YamlDatabaseHandler
 
-    assert table_file["db_version"] == DB_VERSION
-    table_list = table_file["data"]
+        return YamlDatabaseHandler
+    elif suffix in ("sqlite", "sqlite3"):
+        from .sql_database_handler import SqlDatabaseHandler
 
-    raw_table = (table_type(**params) for params in table_list)
-    table_by_id = {ID(x.id): x for x in raw_table}
+        return SqlDatabaseHandler
 
-    return table_by_id
+    raise ValueError(f"Cannot parse suffix: {suffix}")
 
 
-def save_table(table_loc, table):
-    """
-    Saves a table of type ``table_type`` to a YAML file ``table_loc``
-    """
-    table_list = [obj.to_dict_sparse() for obj_id, obj in table.items()]
-    table_obj = {"db_version": DB_VERSION, "data": table_list}
+@functools.lru_cache
+def _get_handler_from_db_loc(db_loc: PathType) -> DatabaseHandler:
+    handler_type = _get_handler_by_suffix(pathlib.Path(db_loc).suffix)
+    return handler_type(db_loc)
 
-    if os.path.exists(table_loc):
-        # Cache a backup of this
-        shutil.copy2(table_loc, _get_bak_loc(table_loc))
 
-    with open(table_loc, "w") as yf:
-        yaml.dump(table_obj, stream=yf, default_flow_style=False)
+@functools.lru_cache
+def _get_handler(db_loc: typing.Optional[PathType]) -> DatabaseHandler:
+    db_loc = _get_db_loc(db_loc)
+    handler_type = _get_handler_by_suffix(pathlib.Path(db_loc).suffix)
+    return handler_type(db_loc)
 
 
 def load_database(
     db_loc: typing.Optional[PathType] = None,
-) -> typing.Mapping[ID, Table]:
+) -> Database:
     """
     Loads the 'database' into memory.
 
@@ -69,67 +75,37 @@ def load_database(
     have not yet implemented the ability to make hand-modifications to the
     metadata, and I don't know how to easily edit SQL databases.
     """
-    db_loc = _get_db_loc(db_loc=db_loc)
+    handler = _get_handler(db_loc)
 
-    schema = sh.load_schema()
-
-    # The tables will just be "table.yml"
-    tables = {}
-    for table, type_name in schema["tables"].items():
-        table_type = oh.TYPE_MAPPING[type_name]
-
-        table_loc = _get_table_loc(db_loc, table)
-        if not os.path.exists(table_loc):
-            tables[table] = {}
-        else:
-            # Load the table
-            tables[table] = load_table(table_loc, table_type)
-
-    return tables
+    return handler.load_database()
 
 
-def save_database(database: typing.Mapping[str, Table], db_loc : typing.Optional[PathType]=None) -> None:
+def save_database(database: Database, db_loc: typing.Optional[PathType] = None) -> None:
     """
     Saves the 'database' into memory. See :func:`load_database` for details.
     """
-    db_loc = _get_db_loc(db_loc=db_loc)
-
-    schema = sh.load_schema()
-
-    if not os.path.exists(db_loc):
-        os.makedirs(db_loc)
-
-    # Try and do this as a pseudo-atomic operation
-    tables_saved = []
-    try:
-        for table in schema["tables"].keys():
-            table_loc = _get_table_loc(db_loc, table)
-            save_table(table_loc, database[table])
-            tables_saved.append(table_loc)
-    except Exception as e:
-        # Restore the .bak files that were made
-        for table_loc in tables_saved:
-            bak_loc = _get_bak_loc(table_loc)
-            if os.path.exists(bak_loc):
-                shutil.move(bak_loc, table_loc)
-
-        raise e
+    handler = _get_handler(db_loc)
+    return handler.save_database(database)
 
 
-def get_database(refresh=False):
+@functools.lru_cache
+def _get_default_database_cached() -> Database:
+    return load_database()
+
+
+def get_database(refresh: bool = False) -> Database:
     """
     Loads the current default database into a cached read-only memory
     """
-    db = getattr(get_database, "_database", None)
-    if db is None or refresh:
-        with DB_LOCK:
-            db = load_database()
-            get_database._database = db
+    if refresh:
+        _get_default_database_cached.cache_clear()
 
-    return db
+    return _get_default_database_cached()
 
 
-def get_database_table(table_name, database=None):
+def get_database_table(
+    table_name: TableName, database: typing.Optional[Database] = None
+) -> Table:
     """
     Loads a database table from a cached read-only database.
     """
@@ -138,7 +114,9 @@ def get_database_table(table_name, database=None):
     return db[table_name]
 
 
-def get_data_obj(entry_obj, database=None):
+def get_data_obj(
+    entry_obj, database: typing.Optional[Database] = None
+) -> oh.BaseObject:
     """
     Given an :class:`object_handler.Entry` object, return the corresponding data
     object, loaded from the appropriate table.
@@ -154,7 +132,7 @@ class IDHandler:
     This is a class for handling the assignment of new IDs.
     """
 
-    def __init__(self, invalid_ids=None):
+    def __init__(self, invalid_ids: typing.Optional[typing.Set[int]] = None):
         if invalid_ids is None:
             invalid_ids = set()
         else:
@@ -162,7 +140,7 @@ class IDHandler:
 
         self.invalid_ids = invalid_ids
 
-    def new_id(self):
+    def new_id(self) -> int:
         """
         Generates a new ID and adds it to the invalid ID list.
         """
@@ -183,17 +161,19 @@ class IDHandler:
 
 
 class BookDatabaseUpdater:
-    AUTHOR_TABLE_NAME = "authors"
-    BOOK_TABLE_NAME = "books"
+    AUTHOR_TABLE_NAME: typing.Final[TableName] = TableName("authors")
+    BOOK_TABLE_NAME: typing.Final[TableName] = TableName("books")
 
     def __init__(
         self,
-        books_location,
-        entry_table="entries",
-        table=None,
-        book_loader=dp.AudiobookLoader,
-        metadata_loaders=(mdl.GoogleBooksLoader(),),
-        id_handler=IDHandler,
+        books_location: PathType,
+        entry_table: TableName = TableName("entries"),
+        table: typing.Optional[TableName] = None,
+        book_loader: typing.Type[dp.BaseAudioLoader] = dp.AudiobookLoader,
+        metadata_loaders: typing.Sequence[mdl.MetaDataLoader] = (
+            mdl.GoogleBooksLoader(),
+        ),
+        id_handler: typing.Type[IDHandler] = IDHandler,
     ):
         self.table = table or self.BOOK_TABLE_NAME
         self.entry_table = entry_table
@@ -202,13 +182,13 @@ class BookDatabaseUpdater:
         self.metadata_loaders = metadata_loaders
         self.id_handler = id_handler
 
-    def load_book_paths(self):
+    def load_book_paths(self) -> typing.Sequence[pathlib.Path]:
         aps = dp.load_all_audio(self.books_location)
         media_loc = read_from_config("media_loc")
 
-        return [os.path.relpath(ap, media_loc.path) for ap in aps]
+        return [ap / media_loc.path for ap in aps]
 
-    def update_db_entries(self, database):
+    def update_db_entries(self, database: MutableDatabase) -> MutableDatabase:
         book_paths = self.load_book_paths()
 
         entry_table = database[self.entry_table]
@@ -239,13 +219,13 @@ class BookDatabaseUpdater:
 
         return database
 
-    def assign_books_to_entries(self, database):
+    def assign_books_to_entries(self, database: MutableDatabase) -> MutableDatabase:
         # Go through and assign a book to each entry for both new entries and
         # entries with missing book IDs.
         book_table = database[self.table]
         entry_table = database[self.entry_table]
 
-        book_id_handler = self.id_handler(invalid_ids=book_table.keys())
+        book_id_handler = self.id_handler(invalid_ids=set(book_table.keys()))
 
         book_to_entry = {}
         for entry_id, entry_obj in entry_table.items():
@@ -266,7 +246,12 @@ class BookDatabaseUpdater:
 
         return database
 
-    def update_book_metadata(self, database, pbar=None, reload_metadata=False):
+    def update_book_metadata(
+        self,
+        database: MutableDatabase,
+        pbar: typing.Any = None,
+        reload_metadata: bool = False,
+    ) -> MutableDatabase:
         book_table = database[self.table]
         # Set the priority on who gets to set the description.
         description_priority = (mdl.LOCAL_DATA_SOURCE,) + tuple(
@@ -317,7 +302,7 @@ class BookDatabaseUpdater:
 
         return database
 
-    def update_author_db(self, database):
+    def update_author_db(self, database: MutableDatabase) -> MutableDatabase:
         book_table = database[self.table]
         author_table = database[self.AUTHOR_TABLE_NAME]
 
@@ -381,7 +366,7 @@ class BookDatabaseUpdater:
 
         return database
 
-    def update_cover_images(self, database):
+    def update_cover_images(self, database: MutableDatabase) -> MutableDatabase:
         entry_table = database[self.entry_table]
         base_static_path = read_from_config("static_media_path")
         cover_cache_path = read_from_config("cover_cache_path")
@@ -465,7 +450,9 @@ class BookDatabaseUpdater:
 
         return database
 
-    def make_new_entry(self, rel_path, id_handler):
+    def make_new_entry(
+        self, rel_path: PathType, id_handler: IDHandler
+    ) -> oh.BaseObject:
         """
         Generates a new entry for the specified path.
 
@@ -492,7 +479,9 @@ class BookDatabaseUpdater:
 
         return entry_obj
 
-    def load_book(self, path, book_table, id_handler):
+    def load_book(
+        self, path: PathType, book_table: Table, id_handler: IDHandler
+    ) -> oh.BaseObject:
         """
         If the book is already in the table, load it by ID, otherwise create
         a new entry for it.
@@ -513,7 +502,10 @@ class BookDatabaseUpdater:
 
         # The path will be relative to the base media path
         resolver = get_resolver()
-        loc = resolver.resolve_media(path)
+        loc = resolver.resolve_media(os.fspath(path))
+
+        if loc.path is None:
+            raise ValueError(f"Could not resolve {path}")
 
         # First load title and author from the path.
         audio_info = self.book_loader.parse_audio_info(loc.path)
@@ -591,8 +583,14 @@ class BookDatabaseUpdater:
         return book_obj
 
     def load_author(
-        self, author_name, author_table, id_handler, disamb_func=lambda x: x[0]
-    ):
+        self,
+        author_name: str,
+        author_table: Table,
+        id_handler: IDHandler,
+        disamb_func: typing.Callable[
+            [typing.Sequence[oh.BaseObject]], oh.BaseObject
+        ] = lambda x: x[0],
+    ) -> oh.BaseObject:
         """
         If the author is already in the table, load it by ID, otherwise create
         a new entry for it.
@@ -683,7 +681,7 @@ class BookDatabaseUpdater:
         return disamb_func(author_list)
 
     @classmethod
-    def author_sort(cls, author_name):
+    def author_sort(cls, author_name: str) -> typing.Optional[str]:
         """
         Takes the author name and returns a plausible sort name.
 
@@ -746,17 +744,9 @@ class BookDatabaseUpdater:
         return author_sort_name
 
     @classmethod
-    def _book_key(cls, authors, title):
+    def _book_key(cls, authors: typing.Sequence[str], title: str) -> typing.Hashable:
         """The key should be hashable and reproducible"""
         return (tuple(sorted(authors)), title)
-
-
-def _get_bak_loc(table_loc):
-    return table_loc + ".bak"
-
-
-def _get_table_loc(db_loc, table_loc):
-    return os.path.join(db_loc, table_loc + ".yml")
 
 
 def _get_db_loc(db_loc: typing.Optional[PathType] = None) -> PathType:

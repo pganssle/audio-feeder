@@ -82,9 +82,11 @@ def _load_schema(schema_file: pathlib.Path) -> SchemaDict:
     if "types" not in schema:
         raise ValueError("Types missing from schema.")
 
-    schema_out : SchemaDict = {"tables": schema["tables"], "types": {}}
-    for type_name, type_entry in schema["types"]:
+    no_default_sentinel = object()
+    schema_out: SchemaDict = {"tables": schema["tables"], "types": {}}
+    for type_name, type_entry in schema["types"].items():
         new_type: TypeEntry = {"fields": {}}
+        schema_out["types"][type_name] = new_type
 
         if "docstring" in type_entry:
             new_type["docstring"] = type_entry["docstring"]
@@ -108,20 +110,28 @@ def _load_schema(schema_file: pathlib.Path) -> SchemaDict:
                     field_type = parse_type(value["type"])
 
                     for metadata_key in ("comment", "foreign_key", "required"):
-                        metadata[metadata_key] = value[metadata_key]
+                        if metadata_key in value:
+                            metadata[metadata_key] = value[metadata_key]
                 else:
                     raise ValueError(f"Unknown field format: {field}")
 
-                kwargs= {"type": field_type, "metadata": metadata}
+                if not metadata.get("required", False):
+                    field_type = typing.Optional[field_type]
+                    default = None
+                else:
+                    default = no_default_sentinel
+
+                kwargs = {"type": field_type, "metadata": metadata}
 
             if field_name == primary_key:
                 if "type" not in kwargs:
                     kwargs["type"] = int
                 kwargs.setdefault("metadata", {})["primary_key"] = True
+
+            if default is not no_default_sentinel:
+                kwargs["default"] = default
+
             fields_dict[field_name] = attr.ib(**kwargs)
-
-    return schema_out
-
 
 def load_schema(schema_file: typing.Optional[PathType] = None) -> SchemaDict:
     schema_file = schema_file or get_configuration().schema_loc

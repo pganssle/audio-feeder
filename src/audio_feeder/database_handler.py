@@ -73,7 +73,7 @@ def load_database(
     """
     schema_loc, db_loc = _get_schema_db_locs(schema_loc=schema_loc, db_loc=db_loc)
 
-    schema = sh.load_schema(schema_loc)
+    schema = sh.load_schema()
 
     # The tables will just be "table.yml"
     tables = {}
@@ -96,7 +96,7 @@ def save_database(database, schema_loc=None, db_loc=None):
     """
     schema_loc, db_loc = _get_schema_db_locs(schema_loc=schema_loc, db_loc=db_loc)
 
-    schema = sh.load_schema(schema_loc)
+    schema = sh.load_schema()
 
     if not os.path.exists(db_loc):
         os.makedirs(db_loc)

@@ -3,6 +3,7 @@ Schema handler
 """
 import datetime
 import functools
+import importlib.resources
 import os
 import pathlib
 import re
@@ -72,8 +73,11 @@ class SchemaDict(typing.TypedDict):
 
 
 @functools.lru_cache(None)
-def _load_schema(schema_file: pathlib.Path) -> SchemaDict:
-    with open(schema_file, "r") as sf:
+def load_schema() -> SchemaDict:
+    schema_file = importlib.resources.files("audio_feeder.data.database").joinpath(
+        "schema.yml"
+    )
+    with schema_file.open("r") as sf:
         schema = yaml.safe_load(sf)
 
     if "tables" not in schema:
@@ -133,8 +137,4 @@ def _load_schema(schema_file: pathlib.Path) -> SchemaDict:
 
             fields_dict[field_name] = attr.ib(**kwargs)
 
-def load_schema(schema_file: typing.Optional[PathType] = None) -> SchemaDict:
-    schema_file = schema_file or get_configuration().schema_loc
-    schema_file = pathlib.Path(os.path.abspath(schema_file))
-
-    return _load_schema(pathlib.Path(schema_file))
+    return schema_out

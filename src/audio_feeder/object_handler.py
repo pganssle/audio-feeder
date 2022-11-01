@@ -53,9 +53,8 @@ def object_factory(
     return object_class
 
 
-def load_classes(schema=None) -> None:
-    args = (schema,) if schema else tuple()
-    schema = load_schema(*args)
+def load_classes() -> None:
+    schema = load_schema()
 
     type_dict = {}
 

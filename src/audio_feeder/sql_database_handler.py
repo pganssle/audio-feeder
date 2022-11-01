@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from . import object_handler as oh
-from ._db_types import ID, Table
+from ._db_types import ID, Database, Table, TableName
 from ._useful_types import PathType
 
 
@@ -79,20 +79,18 @@ def _mapper_registry() -> orm.registry:
 
 
 @functools.lru_cache(None)
-def _map_tables() -> typing.Mapping[str, sa.Table]:
+def _map_tables() -> typing.Mapping[TableName, sa.Table]:
     metadata_object = _metadata_object()
     mapper_registry = _mapper_registry()
-    table_mapping: typing.Dict[str, sa.Table] = {}
+    table_mapping: typing.Dict[TableName, sa.Table] = {}
 
     for table_name, base_type in oh.TYPE_MAPPING.items():
         columns = [_attr_to_column(attr) for attr in attrs.fields(base_type)]
 
         table = sa.Table(table_name, metadata_object, *columns)
 
-        table_mapping[table_name] = table
+        table_mapping[TableName(table_name)] = table
 
-    for table_name, table in table_mapping.items():
-        base_type = oh.TYPE_MAPPING[table_name]
         mapper_registry.map_imperatively(
             base_type,
             table,
@@ -113,26 +111,36 @@ class DatabaseHandler:
     def session(self) -> orm.Session:
         return orm.Session(self.engine)
 
-    def load_table(self, table_name: str) -> Table:
+    def _load_table(self, session: orm.Session, table_type: oh.BaseObject) -> Table:
+        query = session.query(table_type)
+        return {ID(result.id): result for result in query.all()}
+
+    def load_table(self, table_name: TableName) -> Table:
         with self.session() as session:
-            query = session.query(oh.TYPE_MAPPING[table_name])
-            return {ID(result.id): result for result in query.all()}
+            return self._load_table(session, oh.TYPE_MAPPING[table_name])
 
     def _save_table(
-        self, session: orm.Session, table_name: str, table_contents: Table
+        self, session: orm.Session, table_name: TableName, table_contents: Table
     ) -> None:
         session.add_all(list(table_contents.values()))
 
-    def save_table(self, table_name: str, table_contents: Table) -> None:
+    def save_table(self, table_name: TableName, table_contents: Table) -> None:
         _metadata_object().create_all(self.engine)
         with self.session() as session:
             self._save_table(session, table_name, table_contents)
             session.commit()
 
-    def save_database(self, database: typing.Mapping[str, Table]) -> None:
+    def save_database(self, database: Database) -> None:
         _metadata_object().create_all(self.engine)
         with self.session() as session:
             for table_name, contents in database.items():
                 self._save_table(session, table_name, contents)
 
             session.commit()
+
+    def load_database(self) -> Database:
+        out: typing.Dict[TableName, Table] = {}
+        with self.session() as session:
+            for table_name, table_type in oh.TYPE_MAPPING.items():
+                out[TableName(table_name)] = self._load_table(session, table_type)
+        return out

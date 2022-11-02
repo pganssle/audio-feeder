@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import html
+import functools
 import itertools as it
 import logging
 import os
@@ -30,6 +31,18 @@ def main_index():
     return flask.redirect(flask.url_for("root.books"))
 
 
+@functools.lru_cache(None)
+def _book_entry_cache():
+    return {}
+
+@functools.lru_cache
+def _book_nav_generator(nav_len: int, endpoint: str) -> pg.NavGenerator:
+    return pg.NavGenerator(nav_len, flask.url_for(endpoint))
+
+def _clear_book_caches():
+    _book_entry_cache.cache_clear()
+    _book_nav_generator.cache_clear()
+
 @root.route("/books")
 def books():
     """
@@ -38,10 +51,7 @@ def books():
     sort_args = get_sortable_args(request.args)
 
     # Retrieve or populate the entry cache.
-    entry_cache = getattr(books, "_cache", None)
-    if entry_cache is None:
-        entry_cache = {}
-        books._cache = entry_cache
+    entry_cache = _book_entry_cache()
 
     if "base" not in entry_cache:
         # Get the list of entries (SELECT * from entries WHERE type == 'book')
@@ -55,11 +65,7 @@ def books():
     else:
         entries = entry_cache["base"]
 
-    nav_generator = getattr(books, "_generator", None)
-    if nav_generator is None:
-        nav_generator = pg.NavGenerator(len(entries), flask.url_for(request.endpoint))
-
-        books._generator = nav_generator
+    nav_generator = _book_nav_generator(len(entries), request.endpoint)
 
     # Retrieve or populate the specific sort cache
     arg_sort = tuple(sorted(sort_args.items()))
@@ -158,6 +164,36 @@ def rss_feed(e_id):
     t = get_feed_template()
 
     return t.render(payload)
+
+
+@root.route("/update")
+def update():
+    """
+    Trigger an update to the database.
+    """
+    from . import resolver, updater
+
+    path = resolver.Resolver().resolve_media(".").path
+
+    book_updater = updater.BookDatabaseUpdater(path)
+
+    db = dh.load_database()
+
+    ops = [
+        book_updater.update_db_entries,
+        book_updater.assign_books_to_entries,
+        book_updater.update_book_metadata,
+        book_updater.update_author_db,
+        book_updater.update_cover_images,
+    ]
+
+    for op in ops:
+        op(db)
+        dh.save_database(db)
+
+    _clear_book_caches()
+    dh.get_database(refresh=True)
+    return "Database successfully refreshed"
 
 
 ###

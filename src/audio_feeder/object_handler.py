@@ -2,6 +2,7 @@
 Book handlers
 """
 
+import functools
 import typing
 
 import attrs
@@ -14,6 +15,7 @@ def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
 
 
 _Self = typing.TypeVar("_Self", bound="BaseObject")
+
 
 class BaseObject:
     id: int
@@ -56,6 +58,7 @@ def object_factory(
     return object_class
 
 
+@functools.lru_cache(None)
 def load_classes() -> None:
     schema = load_schema()
 
@@ -79,6 +82,7 @@ def load_classes() -> None:
     global TYPE_MAPPING
     TYPE_MAPPING = {}
     TYPE_MAPPING.update(type_dict)
+    globals().update(TYPE_MAPPING)
 
 
 #: The Type Mapping maps the type strings in the schema to the types as loaded.
@@ -87,9 +91,13 @@ TYPE_MAPPING: typing.Mapping[str, typing.Type[BaseObject]]
 
 # Use the base schema to generate the classes.
 def __getattr__(name):
-    if name != "TYPE_MAPPING":
-        raise AttributeError(f"module {__name__} has no attribute {name}")
-
     load_classes()
     global TYPE_MAPPING
     return TYPE_MAPPING
+
+    if name == "TYPE_MAPPING":
+        return TYPE_MAPPING
+    elif name in TYPE_MAPPING:
+        return TYPE_MAPPING[name]
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

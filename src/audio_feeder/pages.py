@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-import html
 import functools
+import html
 import itertools as it
 import logging
 import os
@@ -35,13 +35,16 @@ def main_index():
 def _book_entry_cache():
     return {}
 
+
 @functools.lru_cache
 def _book_nav_generator(nav_len: int, endpoint: str) -> pg.NavGenerator:
     return pg.NavGenerator(nav_len, flask.url_for(endpoint))
 
+
 def _clear_book_caches():
     _book_entry_cache.cache_clear()
     _book_nav_generator.cache_clear()
+
 
 @root.route("/books")
 def books():

@@ -103,6 +103,7 @@ def update(content_type, reload_metadata, path):
 
     from . import database_handler as dh
     from .resolver import Resolver
+    from .updater import BookDatabaseUpdater
 
     def pbar(msg):
         return ProgressBar(widgets=[msg, " ", Bar(), " ", Timer(), " ", ETA()])
@@ -112,9 +113,9 @@ def update(content_type, reload_metadata, path):
     path = Resolver().resolve_media(path).path
 
     if content_type in ("b", "books"):
-        updater = dh.BookDatabaseUpdater(path)
+        updater = BookDatabaseUpdater(path)
     else:
-        raise ValueError("Unknown type {}".format(utype))
+        raise ValueError(f"Unknown type {content_type}")
 
     print("Loading database")
     db = dh.load_database()

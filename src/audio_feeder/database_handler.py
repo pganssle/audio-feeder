@@ -93,6 +93,19 @@ def get_database_table(
     return db[table_name]
 
 
+def get_data_obj(
+    entry_obj, database: typing.Optional[Database] = None
+) -> oh.BaseObject:
+    """
+    Given an :class:`object_handler.Entry` object, return the corresponding data
+    object, loaded from the appropriate table.
+    """
+    # Loads the data table
+    table = get_database_table(entry_obj.table, database=database)
+
+    return table[entry_obj.data_id]
+
+
 def _get_db_loc(db_loc: typing.Optional[PathType] = None) -> PathType:
     if db_loc is None:
         db_loc = read_from_config("database_loc")

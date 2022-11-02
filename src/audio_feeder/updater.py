@@ -300,7 +300,7 @@ class BookDatabaseUpdater:
             old_best_img = new_cover_images[0] if len(new_cover_images) else None
 
             # Check for the best cover image
-            data_obj = get_data_obj(entry_obj, database)
+            data_obj = dh.get_data_obj(entry_obj, database)
             if hasattr(data_obj, "cover_images") and data_obj.cover_images is not None:
                 local_cover_img = data_obj.cover_images.get(mdl.LOCAL_DATA_SOURCE, None)
 
@@ -651,19 +651,6 @@ class BookDatabaseUpdater:
     def _book_key(cls, authors: typing.Sequence[str], title: str) -> typing.Hashable:
         """The key should be hashable and reproducible"""
         return (tuple(sorted(authors)), title)
-
-
-def get_data_obj(
-    entry_obj, database: typing.Optional[Database] = None
-) -> oh.BaseObject:
-    """
-    Given an :class:`object_handler.Entry` object, return the corresponding data
-    object, loaded from the appropriate table.
-    """
-    # Loads the data table
-    table = dh.get_database_table(entry_obj.table, database=database)
-
-    return table[entry_obj.data_id]
 
 
 ###

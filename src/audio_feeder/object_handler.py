@@ -13,6 +13,8 @@ def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
     return value is not None
 
 
+_Self = typing.TypeVar("_Self", bound="BaseObject")
+
 class BaseObject:
     id: int
 
@@ -23,6 +25,10 @@ class BaseObject:
         self, *, _filter=_filter_sparse
     ) -> typing.Mapping[str, typing.Any]:
         return attrs.asdict(self, filter=_filter)
+
+    def copy(self: _Self) -> _Self:
+        """Make a new copy of this object."""
+        return attrs.evolve(self)
 
 
 def object_factory(

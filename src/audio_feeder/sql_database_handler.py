@@ -122,7 +122,14 @@ class SqlDatabaseHandler:
     def _save_table(
         self, session: orm.Session, table_name: TableName, table_contents: Table
     ) -> None:
-        session.add_all(list(table_contents.values()))
+        try:
+            session.add_all(list(table_contents.values()))
+        except orm.exc.UnmappedInstanceError:
+            # If the instances were created before the ORM mapping was set up,
+            # instrumentation won't be set up on the instances, so we need to
+            # create new copies of the instances (at least until we find a
+            # better way to do this.
+            session.add_all([table_entry.copy() for table_entry in table_contents.values()])
 
     def save_table(self, table_name: TableName, table_contents: Table) -> None:
         _metadata_object().create_all(self.engine)

@@ -13,8 +13,20 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from . import object_handler as oh
+from . import schema_handler as sh
 from ._db_types import ID, Database, Table, TableName
 from ._useful_types import PathType
+
+
+class SQLPath(sa.types.TypeDecorator):
+    impl = sa.types.String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return os.fspath(value)
+
+    def process_result_value(self, value, dialect):
+        return pathlib.Path(value)
 
 
 def _map_type(t: type) -> sa.sql.type_api.TypeEngine:
@@ -29,7 +41,7 @@ def _map_type(t: type) -> sa.sql.type_api.TypeEngine:
     elif t == datetime.date:
         return sa.Date
     elif t == pathlib.Path:
-        return sa.String
+        return SQLPath
     else:
         type_container = typing.get_origin(t)
         argtypes = [
@@ -82,9 +94,11 @@ def _mapper_registry() -> orm.registry:
 def _map_tables() -> typing.Mapping[TableName, sa.Table]:
     metadata_object = _metadata_object()
     mapper_registry = _mapper_registry()
+    schema = sh.load_schema()
     table_mapping: typing.Dict[TableName, sa.Table] = {}
 
-    for table_name, base_type in oh.TYPE_MAPPING.items():
+    for table_name, type_name in schema["tables"].items():
+        base_type = oh.TYPE_MAPPING[type_name]
         columns = [_attr_to_column(attr) for attr in attrs.fields(base_type)]
 
         table = sa.Table(table_name, metadata_object, *columns)
@@ -101,7 +115,7 @@ def _map_tables() -> typing.Mapping[TableName, sa.Table]:
 
 class SqlDatabaseHandler:
     def __init__(self, db_loc: PathType):
-        self._db = db_loc
+        self._db = pathlib.Path(db_loc)
         self._table_mapping = _map_tables()
 
     @functools.cached_property
@@ -109,19 +123,26 @@ class SqlDatabaseHandler:
         return sa.create_engine(f"sqlite:///{os.fspath(self._db)}", future=True)
 
     def session(self) -> orm.Session:
-        return orm.Session(self.engine)
+        return orm.Session(self.engine, expire_on_commit=False)
 
-    def _load_table(self, session: orm.Session, table_type: oh.BaseObject) -> Table:
+    def _load_table(
+        self, session: orm.Session, table_type: typing.Type[oh.BaseObject]
+    ) -> Table:
         query = session.query(table_type)
         return {ID(result.id): result for result in query.all()}
+
+    def _initialize_db(self) -> None:
+        if not self._db.exists():
+            # schema = sh.load_schema()
+            # db : Database = {TableName(table_name): {} for table_name in schema["tables"].keys()}
+            _metadata_object().create_all(self.engine)
+            # self.save_database(db)
 
     def load_table(self, table_name: TableName) -> Table:
         with self.session() as session:
             return self._load_table(session, oh.TYPE_MAPPING[table_name])
 
-    def _save_table(
-        self, session: orm.Session, table_name: TableName, table_contents: Table
-    ) -> None:
+    def _save_table(self, session: orm.Session, table_contents: Table) -> None:
         try:
             session.add_all(list(table_contents.values()))
         except orm.exc.UnmappedInstanceError:
@@ -129,25 +150,30 @@ class SqlDatabaseHandler:
             # instrumentation won't be set up on the instances, so we need to
             # create new copies of the instances (at least until we find a
             # better way to do this.
-            session.add_all([table_entry.copy() for table_entry in table_contents.values()])
+            session.add_all(
+                [table_entry.copy() for table_entry in table_contents.values()]
+            )
 
     def save_table(self, table_name: TableName, table_contents: Table) -> None:
-        _metadata_object().create_all(self.engine)
+        del table_name  # This is already incorporated into table_contents
         with self.session() as session:
-            self._save_table(session, table_name, table_contents)
+            self._save_table(session, table_contents)
             session.commit()
 
     def save_database(self, database: Database) -> None:
-        _metadata_object().create_all(self.engine)
+        self._initialize_db()
         with self.session() as session:
             for table_name, contents in database.items():
-                self._save_table(session, table_name, contents)
+                self._save_table(session, contents)
 
             session.commit()
 
     def load_database(self) -> Database:
+        self._initialize_db()
+        schema = sh.load_schema()
         out: typing.Dict[TableName, Table] = {}
         with self.session() as session:
-            for table_name, table_type in oh.TYPE_MAPPING.items():
+            for table_name, type_name in schema["tables"].items():
+                table_type = oh.TYPE_MAPPING[type_name]
                 out[TableName(table_name)] = self._load_table(session, table_type)
         return out

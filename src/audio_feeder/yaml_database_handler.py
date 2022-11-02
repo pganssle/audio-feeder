@@ -28,15 +28,11 @@ class YamlDatabaseHandler:
         self._db = pathlib.Path(db_loc)
 
     @functools.cached_property
-    def schema(self):
+    def schema(self) -> schema_handler.SchemaDict:
         return schema_handler.load_schema()
 
     def _get_table_loc(self, table_name: TableName) -> pathlib.Path:
-        for db_table_name, type_name in self.schema["tables"].items():
-            if table_name == type_name:
-                return self._db / f"{db_table_name}.yml"
-
-        raise ValueError(f"Unknown table: {table_name}")
+        return self._db / f"{table_name}.yml"
 
     def _get_bak_loc(self, table_loc: pathlib.Path) -> pathlib.Path:
         return table_loc.with_suffix(f"{table_loc.suffix}.bak")
@@ -62,7 +58,8 @@ class YamlDatabaseHandler:
         Loads a table from the YAML file ``table_loc``.
         """
 
-        table_type = oh.TYPE_MAPPING[table_name]
+        type_name = self.schema["tables"][table_name]
+        table_type = oh.TYPE_MAPPING[type_name]
         table_loc = self._get_table_loc(table_name)
         with open(table_loc, "r") as yf:
             table_file = yaml.safe_load(yf)
@@ -85,8 +82,7 @@ class YamlDatabaseHandler:
         # Try and do this as a pseudo-atomic operation
         tables_saved = []
         try:
-            for table_name in oh.TYPE_MAPPING.keys():
-                table_name = TableName(table_name)
+            for table_name, type_name in self.schema["tables"].items():
                 self.save_table(table_name, database[table_name])
                 tables_saved.append(table_name)
         except Exception as e:
@@ -104,8 +100,8 @@ class YamlDatabaseHandler:
 
         tables: MutableDatabase = {}
 
-        for table_name, table_type in oh.TYPE_MAPPING.items():
-            table_name = TableName(table_name)
+        for table_name, type_name in self.schema["tables"].items():
+            table_type = oh.TYPE_MAPPING[type_name]
             table_loc = self._get_table_loc(table_name)
             if not table_loc.exists():
                 tables[table_name] = {}

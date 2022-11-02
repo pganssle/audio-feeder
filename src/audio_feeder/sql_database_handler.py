@@ -125,6 +125,10 @@ class SqlDatabaseHandler:
     def session(self) -> orm.Session:
         return orm.Session(self.engine, expire_on_commit=False)
 
+    @functools.cached_property
+    def schema(self) -> sh.SchemaDict:
+        return sh.load_schema()
+
     def _load_table(
         self, session: orm.Session, table_type: typing.Type[oh.BaseObject]
     ) -> Table:
@@ -133,14 +137,12 @@ class SqlDatabaseHandler:
 
     def _initialize_db(self) -> None:
         if not self._db.exists():
-            # schema = sh.load_schema()
-            # db : Database = {TableName(table_name): {} for table_name in schema["tables"].keys()}
             _metadata_object().create_all(self.engine)
-            # self.save_database(db)
 
     def load_table(self, table_name: TableName) -> Table:
         with self.session() as session:
-            return self._load_table(session, oh.TYPE_MAPPING[table_name])
+            type_name = self.schema["tables"][table_name]
+            return self._load_table(session, oh.TYPE_MAPPING[type_name])
 
     def _save_table(self, session: orm.Session, table_contents: Table) -> None:
         try:
@@ -170,10 +172,9 @@ class SqlDatabaseHandler:
 
     def load_database(self) -> Database:
         self._initialize_db()
-        schema = sh.load_schema()
         out: typing.Dict[TableName, Table] = {}
         with self.session() as session:
-            for table_name, type_name in schema["tables"].items():
+            for table_name, type_name in self.schema["tables"].items():
                 table_type = oh.TYPE_MAPPING[type_name]
                 out[TableName(table_name)] = self._load_table(session, table_type)
         return out

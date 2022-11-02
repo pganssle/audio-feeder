@@ -16,8 +16,8 @@ import yaml
 from ._useful_types import PathType
 from .file_location import FileLocation
 
-CONFIG_DIRS = [
-    os.path.expanduser(x)
+CONFIG_DIRS = [pathlib.Path.cwd()] + [
+    pathlib.Path(os.path.expanduser(x))
     for x in (
         "/etc/audio_feeder/",
         "~/.config/audio_feeder/",
@@ -26,7 +26,7 @@ CONFIG_DIRS = [
 
 CONFIG_NAMES = ["config.yml"]
 CONFIG_LOCATIONS = list(
-    os.path.join(bdir, cfile) for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
+    (bdir / cfile) for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
 )
 
 

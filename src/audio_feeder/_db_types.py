@@ -5,12 +5,13 @@ This exists for compatibility while the old database_handler code still exists.
 import typing
 
 from . import object_handler as oh
+from ._object_types import SchemaObject
 from ._useful_types import PathType
 
 ID = typing.NewType("ID", int)
 TableName = typing.NewType("TableName", str)
-Table = typing.Mapping[ID, oh.BaseObject]
-MutableTable = typing.MutableMapping[ID, oh.BaseObject]
+Table = typing.Mapping[ID, SchemaObject]
+MutableTable = typing.MutableMapping[ID, SchemaObject]
 Database = typing.Mapping[TableName, Table]
 MutableDatabase = typing.MutableMapping[TableName, MutableTable]
 

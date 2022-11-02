@@ -13,13 +13,26 @@ import attr
 import attrs
 import yaml
 
+from ._db_types import TableName
+from ._object_types import TypeName
 from ._useful_types import PathType
 from .config import get_configuration
+
+
+class TypeEntry(typing.TypedDict, total=False):
+    docstring: str
+    fields: typing.Mapping[str, attrs.Attribute]
+
+
+class SchemaDict(typing.TypedDict):
+    tables: typing.Mapping[TableName, TypeName]
+    types: typing.Mapping[TypeName, TypeEntry]
+
 
 _CONTAINER_MATCH = re.compile("^([a-zA-Z][a-zA-Z0-9]*)\[(.+)\]$")
 
 
-def _split_type_arguments(arguments: str) -> typing.Sequence[str]:
+def _split_type_arguments(arguments: str) -> typing.Iterable[str]:
     bracket_level = 0
     split_point = -1
     for i, c in enumerate(arguments):
@@ -35,7 +48,7 @@ def _split_type_arguments(arguments: str) -> typing.Sequence[str]:
     yield arguments[split_point + 1 :].strip()
 
 
-def parse_type(type_str: str) -> type:
+def parse_type(type_str: str) -> typing.Type[object]:
     if type_str == "int":
         return int
     elif type_str == "float":
@@ -62,16 +75,6 @@ def parse_type(type_str: str) -> type:
     raise ValueError(f"Unknown type: {type_str}")
 
 
-class TypeEntry(typing.TypedDict, total=False):
-    docstring: str
-    fields: typing.Sequence[typing.Union[str, attrs.Attribute]]
-
-
-class SchemaDict(typing.TypedDict):
-    tables: typing.Mapping[str, str]
-    types: typing.Mapping[str, TypeEntry]
-
-
 @functools.lru_cache(None)
 def load_schema() -> SchemaDict:
     schema_file = importlib.resources.files("audio_feeder.data.database").joinpath(
@@ -87,16 +90,19 @@ def load_schema() -> SchemaDict:
         raise ValueError("Types missing from schema.")
 
     no_default_sentinel = object()
-    schema_out: SchemaDict = {"tables": schema["tables"], "types": {}}
+    types_dict: typing.Dict[TypeName, TypeEntry] = {}
     for type_name, type_entry in schema["types"].items():
+        type_name: TypeName = TypeName(type_name)  # type: ignore[no-redef]
         new_type: TypeEntry = {"fields": {}}
-        schema_out["types"][type_name] = new_type
+        types_dict[type_name] = new_type
 
         if "docstring" in type_entry:
             new_type["docstring"] = type_entry["docstring"]
 
         primary_key = type_entry.get("primary_key", "id")
         fields_dict = new_type["fields"]
+        field_type: typing.Type
+        kwargs: typing.Dict[str, typing.Any]
         for field in type_entry["fields"]:
             if isinstance(field, str):
                 field_name = field
@@ -137,4 +143,4 @@ def load_schema() -> SchemaDict:
 
             fields_dict[field_name] = attr.ib(**kwargs)
 
-    return schema_out
+    return {"tables": schema["tables"], "types": types_dict}

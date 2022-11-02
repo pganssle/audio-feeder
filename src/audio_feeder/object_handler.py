@@ -7,14 +7,14 @@ import typing
 
 import attrs
 
+from ._compat import Self
+from ._db_types import TableName
+from ._object_types import SchemaObject, SchemaType, TypeName
 from .schema_handler import load_schema
 
 
 def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
     return value is not None
-
-
-_Self = typing.TypeVar("_Self", bound="BaseObject")
 
 
 class BaseObject:
@@ -28,7 +28,7 @@ class BaseObject:
     ) -> typing.Mapping[str, typing.Any]:
         return attrs.asdict(self, filter=_filter)
 
-    def copy(self: _Self) -> _Self:
+    def copy(self: Self) -> Self:
         """Make a new copy of this object."""
         return attrs.evolve(self)
 
@@ -39,7 +39,7 @@ def object_factory(
         typing.Sequence[str], typing.Mapping[str, attrs.Attribute]
     ],
     docstring: typing.Optional[str] = None,
-) -> typing.Type[BaseObject]:
+) -> SchemaType:
     """
     A function for generating classes from the schema-specified types.
     """
@@ -62,7 +62,7 @@ def object_factory(
 def load_classes() -> None:
     schema = load_schema()
 
-    type_dict = {}
+    type_dict: typing.Dict[TypeName, SchemaType] = {}
 
     for ctype_name, ctype_def in schema["types"].items():
         # The properties are defined in 'fields'
@@ -77,16 +77,15 @@ def load_classes() -> None:
 
         type_dict[ctype_name] = ctype
 
-    globals().update(type_dict)
+    globals().update(typing.cast(typing.Dict[str, SchemaType], type_dict))
 
     global TYPE_MAPPING
     TYPE_MAPPING = {}
     TYPE_MAPPING.update(type_dict)
-    globals().update(TYPE_MAPPING)
 
 
 #: The Type Mapping maps the type strings in the schema to the types as loaded.
-TYPE_MAPPING: typing.Mapping[str, typing.Type[BaseObject]]
+TYPE_MAPPING: typing.Mapping[TypeName, SchemaType]
 
 
 # Use the base schema to generate the classes.

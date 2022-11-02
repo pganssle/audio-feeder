@@ -803,49 +803,6 @@ def _generate_thumbnail(img_loc, thumb_loc):
     img.save(thumb_loc)
 
 
-###
-# Scripts
-def update_database():
-    """
-    This is a console script for updating the databases from a given path.
-    """
-    import argparse
-
-    desc = """Runs an update on the content databases."""
-
-    parser = argparse.ArgumentParser(description=desc)
-
-    parser.add_argument(
-        "path",
-        metavar="P",
-        type=str,
-        help="The base path of the content to update the databases with.",
-    )
-
-    parser.add_argument(
-        "-t",
-        "--type",
-        type=str,
-        default="books",
-        help=(
-            "The type of content to load from the directories. Options:"
-            "b / books : Audiobooks"
-        ),
-    )
-
-    args = parser.parse_args()
-
-    if not os.path.exists(args.path):
-        raise ValueError("Path not found: {}".format(args.path))
-
-    if args.type in ("b", "books"):
-        updater = BookDatabaseUpdater(args.path)
-    else:
-        raise ValueError("Unknown type {}".format(args.type))
-
-    db = load_database()
-    updater.update_db(db)
-    save_database(db)
 
 
 ###

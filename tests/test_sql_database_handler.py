@@ -128,7 +128,6 @@ def test_save_database_remove(db: pathlib.Path) -> None:
 
     assert books_table is not db_tables["books"]
 
-    shutil.copyfile(db, pathlib.Path(__file__).parent.parent / "test_db.sqlite")
     for book_id in book_ids[:3]:
         assert book_id not in books_table
 

@@ -83,9 +83,16 @@ def books():
 
     nav_list = nav_generator.get_pages(sort_args)
     page = sort_args["page"]
-    first_index = nav_list[0].url or request.path
-    prev_index = nav_list[max((page - 1, 0))]
-    next_index = nav_list[min((page + 1, len(nav_list) - 1))]
+    if nav_list:
+        first_index = nav_list[0].url or request.path
+        prev_index = nav_list[max((page - 1, 0))].url
+        next_index = nav_list[min((page + 1, len(nav_list) - 1))].url
+        final_index = nav_list[-1].url
+    else:
+        first_index = None
+        prev_index = None
+        next_index = None
+        final_index = None
 
     resolver = get_resolver()
     site_images = resolver.resolve_static(read_from_config("site_images_loc"))
@@ -93,11 +100,11 @@ def books():
     page_data = {
         "entries": get_rendered_entries(entry_page),
         "nav_list": nav_generator.get_pages(sort_args),
-        "first_index": nav_list[0].url,
-        "final_index": nav_list[-1].url,
-        "prev_index": prev_index.url,
-        "next_index": next_index.url,
-        "pagetitle": "Books: Page {} of {}".format(page, len(nav_list)),
+        "first_index": first_index,
+        "final_index": final_index,
+        "prev_index": prev_index,
+        "next_index": next_index,
+        "pagetitle": f"Books: Page {page+1} of {len(nav_list)}",
         "site_images_url": site_images.url,
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
         "stylesheet_links": get_css_links(),

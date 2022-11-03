@@ -112,3 +112,25 @@ def test_save_table(db: pathlib.Path) -> None:
     db_tables_reload = handler.load_database()
     assert 2444 in db_tables_reload["authors"]
     assert 11243 not in db_tables_reload["books"]
+
+
+def test_save_database_remove(db: pathlib.Path) -> None:
+    handler = sdh.SqlDatabaseHandler(db)
+    db_tables = handler.load_database()
+
+    book_ids = [book_id for book_id in db_tables["books"].keys()]
+    for book_id in book_ids[:3]:
+        del db_tables["books"][book_id]
+
+    handler.save_table("books", db_tables["books"])
+
+    books_table = handler.load_table("books")
+
+    assert books_table is not db_tables["books"]
+
+    shutil.copyfile(db, pathlib.Path(__file__).parent.parent / "test_db.sqlite")
+    for book_id in book_ids[:3]:
+        assert book_id not in books_table
+
+    for book_id in book_ids[3:]:
+        assert book_id in books_table

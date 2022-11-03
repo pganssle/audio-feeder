@@ -144,7 +144,16 @@ class SqlDatabaseHandler:
             type_name = self.schema["tables"][table_name]
             return self._load_table(session, oh.TYPE_MAPPING[type_name])
 
-    def _save_table(self, session: orm.Session, table_contents: Table) -> None:
+    def _save_table(
+        self, session: orm.Session, table_name: TableName, table_contents: Table
+    ) -> None:
+        table_type = oh.TYPE_MAPPING[self.schema["tables"][table_name]]
+
+        stmt = sa.delete(table_type).where(
+            sa.column("id").not_in(table_contents.keys())
+        )
+        session.execute(stmt)
+
         try:
             session.add_all(list(table_contents.values()))
         except orm.exc.UnmappedInstanceError:
@@ -157,16 +166,15 @@ class SqlDatabaseHandler:
             )
 
     def save_table(self, table_name: TableName, table_contents: Table) -> None:
-        del table_name  # This is already incorporated into table_contents
         with self.session() as session:
-            self._save_table(session, table_contents)
+            self._save_table(session, table_name, table_contents)
             session.commit()
 
     def save_database(self, database: Database) -> None:
         self._initialize_db()
         with self.session() as session:
             for table_name, contents in database.items():
-                self._save_table(session, contents)
+                self._save_table(session, table_name, contents)
 
             session.commit()
 

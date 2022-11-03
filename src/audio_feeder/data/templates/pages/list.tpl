@@ -45,56 +45,103 @@ function toggle_hidden(entry_id) {
         ellipsis.style.display = "inline";
     }
 }
+
+// Modal opening function
+const qr_img_urls = new Map([
+{% for entry in entries %}
+    [ {{entry.id}}, "{{ entry.qr_img_url }}" ],
+{% endfor %}
+]);
+let modal_divs = new Map();
+let active_modal = null;
+const qr_container = document.querySelector("body");
+let overlay = null;
+
+function get_overlay() {
+    if (overlay === null) {
+        overlay = document.querySelector("#div-overlay");
+    }
+    return overlay;
+}
+
+function make_qr_modal(entry_id) {
+    const modal_div = document.createElement("div");
+    modal_div.setAttribute("id", "qr-" + entry_id);
+    modal_div.setAttribute("class", "modal-window");
+
+    const qr_img = document.createElement("img");
+    qr_img.setAttribute("src", qr_img_urls.get(entry_id));
+    qr_img.setAttribute("class", "qr_img");
+
+    modal_div.appendChild(qr_img);
+    qr_container.appendChild(modal_div);
+    return modal_div;
+}
+
+function toggle_modal(entry_id) {
+    if (active_modal === null) {
+        active_modal = entry_id;
+    } else {
+        active_modal = null;
+    }
+
+    let modal_div;
+    if (!modal_divs.has(entry_id)) {
+        modal_div = make_qr_modal(entry_id);
+        modal_divs.set(entry_id, modal_div);
+    } else {
+        modal_div = modal_divs.get(entry_id);
+    }
+
+    get_overlay().classList.toggle("overlay-active");
+    modal_div.classList.toggle("show-modal");
+}
+
+window.addEventListener("click", (event) => { if (event.target === get_overlay() && active_modal !== null) {toggle_modal(active_modal);}});
 </script>
 
 {% block topnav %}{% endblock %}
-    <table class='maintable'>
+    <div class='maintable'>
     {% block navbar %}
-        <tr>
-            <td colspan=3><center>
-                <table class="navtable" width="100%">
-                    <tr>
-                        <td class="nav_arrow"><a{% if not first_index is sameas none %} href="{{ first_index }}"{% endif %}><img class="nav_arrow" id="firstnav" src="{{ site_images_url }}/double_left_arrow.svg" align="left"></a></td>
-                        <td class="nav_arrow"><a{% if not prev_index is sameas none %} href="{{prev_index}}"{% endif %}><img class="nav_arrow" id="backnav" src="{{ site_images_url }}/left_arrow.svg" align="left"></a></td>
-                        <td class="nav_links">
-                            {% block navlist %}
-                            {% for nav_item in nav_list %}
-                                {% if not nav_item.url is sameas none %}
-                                    <a class="nav_link" href="{{ nav_item.url }}">{{ nav_item.display }}</a>
-                                {% else %}
-                                    {{ nav_item.display }}
-                                {% endif %}
-                            {% endfor %}
-                            {% endblock %}
-                        </td>
-                        <td class="nav_arrow"><a {% if not next_index is sameas none %} href="{{next_index}}"{% endif%}><img class="nav_arrow" id="fwdnav" src="{{ site_images_url }}/right_arrow.svg" align="right"></a></td>
-                        <td class="nav_arrow"><a {% if not final_index is sameas none %} href="{{ final_index }}" {% endif %}><img class="nav_arrow" id="lastnav" src="{{ site_images_url }}/double_right_arrow.svg" align="right"></a></td>
-                    </tr>
-                </table>
-                </center>
-            </td>
-        </tr>
+    <div class="navbar">
+        <div class="nav_arrow"><a{% if not first_index is sameas none %} href="{{ first_index }}"{% endif %}><img class="nav_arrow" id="firstnav" src="{{ site_images_url }}/double_left_arrow.svg" align="left"></a></div>
+
+        <div class="nav_arrow"><a{% if not prev_index is sameas none %} href="{{prev_index}}"{% endif %}><img class="nav_arrow" id="backnav" src="{{ site_images_url }}/left_arrow.svg" align="left"></a></div>
+        <div class="nav_links">
+            {% block navlist %}
+            {% for nav_item in nav_list %}
+                {% if not nav_item.url is sameas none %}
+                    <a class="nav_link" href="{{ nav_item.url }}">{{ nav_item.display }}</a>
+                {% else %}
+                    {{ nav_item.display }}
+                {% endif %}
+            {% endfor %}
+            {% endblock %}
+        </div>
+        <div class="nav_arrow"><a {% if not next_index is sameas none %} href="{{next_index}}"{% endif%}><img class="nav_arrow" id="fwdnav" src="{{ site_images_url }}/right_arrow.svg" align="right"></a></div>
+        <div class="nav_arrow"><a {% if not final_index is sameas none %} href="{{ final_index }}" {% endif %}><img class="nav_arrow" id="lastnav" src="{{ site_images_url }}/double_right_arrow.svg" align="right"></a></div>
+        </div>
     {% endblock %}
     {% block mainlist %}
     {% for entry in entries %}
-        <tr class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
-            <td class="cover_col" id="{{ entry.id }}">
+        <div class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
+            <div class="cover_col" id="{{ entry.id }}">
                 <img src="{{ entry.cover_url if not entry.cover_url is sameas none else default_cover }}" class="cover_img" />
-            </td>
-            <td class="qr_col" id="{{ entry.id }}">
-                <img src="{{ entry.qr_img_url }}" class="qr_img" />
-            </td>
-            <td class="entry_body" id="{{ entry.id }}">
+            <a class="qr_link" onclick="toggle_modal({{entry.id}})">QR</a>
+            </div>
+            <div class="entry_body" id="{{ entry.id }}">
                 <h3 class="entry_title"><a class="entry_link" href="{{ entry.rss_url }}">{{ entry.name }}</a></h3>
                 {% if entry.truncation_point <= 0 %}{{ entry.description }}{% else %}
                 {{ entry.description[0:entry.truncation_point] }}{% if entry.description|length > entry.truncation_point %}<span class="hidden_description_section" id="e{{ entry.id }}">{{ entry.description[entry.truncation_point:] }}</span><span class="hidden_expander_span" id="e{{ entry.id }}"><span class="expander_ellipsis" id="e{{entry.id}}">... </span><a href="javascript:void(0);" class='read_more_link' id="e{{ entry.id }}" onclick="toggle_hidden({{ entry.id }})">(Read More)</a></span>{%endif%}
                 {% endif %}
-            </td>
-        </tr>
+            </div>
+        </div>
     {% endfor %}
+    <div class="qr_holder" id="qr_container"></div>
     {% endblock %}
     {{ self.navbar() }}
-    </table>
+    </div>
+    <div class="overlay" id="div-overlay"/>
 {% block botnav %}{% endblock %}
 </body>
 </html>

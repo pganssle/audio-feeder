@@ -40,47 +40,62 @@ td, th {
 /* Books
 =============================================*/
 /* Table */
-table.maintable {
-    width: 90%;
+div.maintable {
     margin: auto;
+    display: flex;
+    flex-direction: column;
 }
 
-tr.entry_row.even {
+div.entry_row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+}
+
+div.entry_row.even {
   background-color: #adadad;
 }
 
-tr.entry_row.odd {
+div.entry_row.odd {
   background-color: #e5e5e5;
 }
 
-td.entry_body {
+div.entry_body {
     font-size: 0.8em;
     padding: 5px;
+    width: 85%;
     vertical-align: top;
+    flex-grow: 1;
 }
 
-td.cover_col {
-  width: 10%;
-  padding-top: 20px;
-  vertical-align: top;
-}
-
-td.qr_col {
-  width: 12%;
-  padding-top: 20px;
-  padding-right: 15px;
-  vertical-align: top;
-}
-
-img.qr_img {
-  width: 100%;
-  background-color: #fff;
-  padding: 5px;
+div.cover_col {
+    width: 15%;
+    padding-top: 20px;
+    vertical-align: top;
+    text-align: center;
+    flex-grow: 0;
 }
 
 img.cover_img {
-  width: 95%;
+    width: 15vw;
+    max-height: 10vw;
+    object-fit: contain;
 }
+
+a.qr_link {
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: bold;
+    font-size: 1.5em;
+}
+
+img.qr_img {
+  max-width: 50vw;
+  background-color: #fff;
+  padding: 2px;
+}
+
 
 a.entry_link {
   color: #2f2f2f;
@@ -115,15 +130,59 @@ span.hidden_expander_span a.read_more_link {
 }
 
 /* Navigation bar */
-td.nav_arrow {
+div.navbar {
+    display: flex;
+    flex-direction: row;
+}
+
+div.nav_arrow {
     white-space: nowrap;
     margin-left: 2%;
     margin-right: 2%;
+    flex-grow: 0;
 }
 
-td.nav_links {
+div.nav_links {
     width: 100%;
     font-size: 1.25em;
     overflow: hidden;
     text-align: center;
+    flex-grow: 1;
+}
+
+/* Popup */
+.show-modal {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto;
+}
+
+.modal-window {
+    display: inline-block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    visibility: hidden;
+    z-index: 999;
+    opacity: 0;
+    padding: 2em;
+    background: white;
+}
+
+.overlay {
+    visibility: collapse;
+    opacity: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index=100;
+}
+
+.overlay-active {
+    visibility: visible;
+    opacity: 50%;
+    background-color: "grey";
 }

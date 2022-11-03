@@ -5,6 +5,9 @@ import html
 import itertools as it
 import logging
 import os
+import textwrap
+import threading
+import typing
 from datetime import datetime, timezone
 
 import flask
@@ -176,34 +179,104 @@ def rss_feed(e_id):
     return t.render(payload)
 
 
-@root.route("/update")
-def update():
+UPDATE_LOCK = threading.Lock()
+UPDATE_IN_PROGRESS: bool = False
+UPDATE_OUTPUT: typing.Sequence[str] = []
+
+
+def _log_update_output(update: str) -> None:
+    global UPDATE_OUTPUT
+    if UPDATE_OUTPUT is None:
+        UPDATE_OUTPUT = []
+
+    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).append(update)
+    logging.info(update)
+
+
+def _clear_update_output() -> None:
+    global UPDATE_OUTPUT
+    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).clear()
+
+
+def _update_db() -> None:
     """
     Trigger an update to the database.
     """
+
     from . import resolver, updater
 
+    _log_update_output("Updating audiobooks from all directories.")
     path = resolver.Resolver().resolve_media(".").path
 
     book_updater = updater.BookDatabaseUpdater(path)
 
+    _log_update_output("Loading existing database")
     db = dh.load_database()
 
     ops = [
-        book_updater.update_db_entries,
-        book_updater.assign_books_to_entries,
-        book_updater.update_book_metadata,
-        book_updater.update_author_db,
-        book_updater.update_cover_images,
+        (book_updater.update_db_entries, "Updating databse entries."),
+        (book_updater.assign_books_to_entries, "Assigning books to entries"),
+        (book_updater.update_book_metadata, "Updating book metadata"),
+        (book_updater.update_author_db, "Updating author db"),
+        (book_updater.update_cover_images, "Updating cover images"),
     ]
 
-    for op in ops:
+    for op, log_output in ops:
+        _log_update_output(log_output)
         op(db)
         dh.save_database(db)
 
     _clear_book_caches()
+    _log_update_output("Reloading database")
     dh.get_database(refresh=True)
-    return "Database successfully refreshed"
+
+    _clear_update_output()
+
+    global UPDATE_IN_PROGRESS
+    UPDATE_IN_PROGRESS = False
+
+
+@root.route("/update_status")
+def update_status():
+    if not UPDATE_IN_PROGRESS:
+        return flask.redirect(flask.url_for("root.books"))
+
+    html_template = textwrap.dedent(
+        """
+    <html>
+        <head>
+            <title>Updating audiobook database</title>
+            <meta http-equiv="refresh" content="1">
+        </head>
+        <body>
+            <b>Audiobook database update in progress, current status:<b><br/>
+            <br/>
+            <tt>
+            {logs}
+            </tt>
+            <br/>
+            <br/>
+            This page will refresh every 5 seconds until done, at which point
+            you will be redirected back to <a href="{root_url}">the main page.</a>
+        </body>
+    </html>"""
+    )
+
+    return html_template.format(
+        logs="<br/>\n".join(UPDATE_OUTPUT), root_url=flask.url_for("root.books")
+    )
+
+
+@root.route("/update")
+def update():
+    global UPDATE_IN_PROGRESS
+    with UPDATE_LOCK:
+        if not UPDATE_IN_PROGRESS:
+            background_thread = threading.Thread(target=_update_db, daemon=True)
+            UPDATE_IN_PROGRESS = True
+            background_thread.start()
+
+        return flask.redirect(flask.url_for("root.update_status"))
 
 
 ###

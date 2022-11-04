@@ -85,11 +85,12 @@ def books():
     entry_page = get_paged_entries(entries, sort_args)
 
     nav_list = nav_generator.get_pages(sort_args)
-    page = sort_args["page"]
+    max_page = len(nav_list) - 1
+    page = min(sort_args["page"], max_page)
     if nav_list:
         first_index = nav_list[0].url or request.path
         prev_index = nav_list[max((page - 1, 0))].url
-        next_index = nav_list[min((page + 1, len(nav_list) - 1))].url
+        next_index = nav_list[min((page + 1, max_page))].url
         final_index = nav_list[-1].url
     else:
         first_index = None

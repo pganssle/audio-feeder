@@ -171,8 +171,8 @@ div.topnav {
     padding-left: 5%;
     padding-right: 5%;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    justify-content: flex-end;
+    align-items: center;
     flex-wrap: wrap;
     flex-flow: row;
     background-color: #353535;
@@ -190,25 +190,18 @@ div.topnav {
 div.topnav-icons {
     display: flex;
     flex-flow: row;
-    justify-content: flex-start;
-}
-
-div.topnav-options {
-    display: flex;
-    flex-flow: row;
     justify-content: flex-end;
 }
 
-
 .topnav-icon {
-    font-size: 2.5em;
+    font-size: 2.5rem;
     color: #fff;
     margin-left: 30px;
 }
 
 .topnav-button-icon {
     font-size: 2em;
-    color: #fff;
+    color: #000;
     margin-left: 5px;
     background-color: transparent;
     background-repeat: no-repeat;
@@ -218,15 +211,38 @@ div.topnav-options {
     outline: none
 }
 
-.sort-options {
-    display: flex;
-    flex-flow: row;
-    justify-content: flex-end;
-    align-items: center;
+.options-dropdown {
+    position: absolute;
+    display: none;
+    background-color: #fff;
+    color: #000;
+    min-height:50px;
+    min-width: 20%;
+    right: 5%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #000;
 }
 
-.topnav-dropdown {
-    font-size: 1.2em;
+.options-line {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.topnav-settings-container:hover .options-dropdown {
+    display: block;
+    cursor: pointer;
+}
+
+.topnav-form {
+    font-size: 1.2rem;
+}
+
+.topnav-label {
+    font-size: 1.2rem;
+    font-weight: bold;
 }
 
 

@@ -100,7 +100,34 @@ function toggle_modal(entry_id) {
 window.addEventListener("click", (event) => { if (event.target === get_overlay() && active_modal !== null) {toggle_modal(active_modal);}});
 </script>
 
-{% block topnav %}{% endblock %}
+{% block topnav %}
+<div class="topnav">
+    <div class="topnav-icons">
+        <!-- TODO: Implement this
+
+        <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
+        <a href="/settings"><i class="fa fa-gear topnav-icon"></i></a>
+        -->
+    </div>
+    <div class="topnav-options">
+        <form action="/books" class="sort-options">
+        <select id="sort-dropdown" class="topnav-dropdown" name="orderBy">
+            {% for sort_label, sort_value in sort_options.items() %}
+            <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
+                {{ sort_label }}
+             </option>
+            {% endfor %}
+        </select>
+        <select id="sort-ascending" name="sortAscending" class="topnav-dropdown">
+            <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
+            <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
+        </select>
+
+        <button type="submit" class="topnav-button-icon"><i class="fa fa-arrow-down-wide-short"></i></button>
+        </form>
+    </div>
+</div>
+{% endblock %}
     <div class='maintable'>
     {% block navbar %}
     <div class="navbar">

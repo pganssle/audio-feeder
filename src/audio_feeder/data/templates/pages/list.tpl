@@ -102,29 +102,35 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
 
 {% block topnav %}
 <div class="topnav">
-    <div class="topnav-icons">
-        <!-- TODO: Implement this
-
-        <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
-        <a href="/settings"><i class="fa fa-gear topnav-icon"></i></a>
-        -->
-    </div>
-    <div class="topnav-options">
-        <form action="/books" class="sort-options">
-        <select id="sort-dropdown" class="topnav-dropdown" name="orderBy">
-            {% for sort_label, sort_value in sort_options.items() %}
-            <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
-                {{ sort_label }}
-             </option>
-            {% endfor %}
-        </select>
-        <select id="sort-ascending" name="sortAscending" class="topnav-dropdown">
-            <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
-            <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
-        </select>
-
-        <button type="submit" class="topnav-button-icon"><i class="fa fa-arrow-down-wide-short"></i></button>
-        </form>
+    <!-- TODO: Implement login
+    <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
+    -->
+    <div class="topnav-settings-container topnav-icon">
+            <i class="fa fa-gear"></i>
+            <form action="/books" class="options-dropdown">
+            <div class="options-line">
+                <label for="sort-dropdown" class="topnav-label">Sort order:</label>
+                <select id="sort-dropdown" class="topnav-form" name="orderBy">
+                    {% for sort_label, sort_value in sort_options.items() %}
+                    <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
+                        {{ sort_label }}
+                     </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="options-line">
+                <label for="sort-ascending" class="topnav-label">Direction:</label>
+                <select id="sort-ascending" name="sortAscending" class="topnav-form">
+                    <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
+                    <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
+                </select>
+            </div>
+            <div class="options-line">
+                <div></div> <!-- Spacer-->
+                <button type="submit" class="topnav-form">Submit</button>
+            </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

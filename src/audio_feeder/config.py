@@ -61,7 +61,7 @@ class Configuration:
             # Relative to base
             ("rss_feed_urls", "rss/{id}.xml"),
             # Relative to others
-            ("main_css_files", ["main.css"]),  # CSS
+            ("main_css_files", ["main.css", "fontawesome-subset.css"]),  # CSS
             ("thumb_max", [200, 400]),  # width, height
             ("base_protocol", "http"),
             ("base_host", "localhost"),

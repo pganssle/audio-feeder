@@ -138,8 +138,9 @@ span.hidden_expander_span a.read_more_link {
 
 /* Navigation bar */
 div.navbar {
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
+    justify-content: center;
 }
 
 div.nav_arrow {
@@ -149,9 +150,14 @@ div.nav_arrow {
     flex-grow: 0;
 }
 
+i.nav_arrow {
+    font-size: 3em;
+    font-weight: bold;
+}
+
 div.nav_links {
     width: 100%;
-    font-size: 1.25em;
+    font-size: 2em;
     overflow: hidden;
     text-align: center;
     flex-grow: 1;

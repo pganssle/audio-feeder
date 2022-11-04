@@ -110,6 +110,8 @@ def books():
         "pagetitle": f"Books: Page {page+1} of {len(nav_list)}",
         "site_images_url": site_images.url,
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
+        "sort_options": get_sort_options(),
+        "sort_args": sort_args,
         "stylesheet_links": get_css_links(),
         "favicon": None,
     }
@@ -361,13 +363,19 @@ def get_entry_objects(entry_list):
             yield (entry_obj, data_obj, author_objs)
 
 
-def get_sortable_args(args):
-    # Ascending / descending
-    sort_order = args.get("sortAscending", "True").lower()
-    sort_ascending = sort_order != "false"
+@functools.lru_cache(None)
+def get_sort_options() -> typing.Mapping[str, str]:
+    return {
+        "Date Added": "date_added",
+        "Author": "author",
+        "Title": "title",
+        "Last Modified": "last_modified",
+    }
 
+
+def get_sortable_args(args):
     # Sort field
-    sort_options = ("author", "title", "date_added", "last_modified")
+    sort_options = tuple(get_sort_options().values())
     order_by = args.get("orderBy", None)
 
     if order_by is not None and order_by not in sort_options:
@@ -379,6 +387,15 @@ def get_sortable_args(args):
 
     if order_by is None:
         order_by = sort_options[0]
+
+    # Ascending / descending
+    if order_by in ("date_added", "last_modified"):
+        default_ascending = "False"
+    else:
+        default_ascending = "True"
+
+    sort_order = args.get("sortAscending", default_ascending).lower()
+    sort_ascending = sort_order != "false"
 
     # Items per page
     per_page_dflt = 25

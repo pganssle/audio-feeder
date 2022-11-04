@@ -12,7 +12,7 @@ body {
     color: #000;
     background-color: #f2f2f2;
     margin: 0;
-    margin-top: 15px;
+    margin-top: 0px;
     margin-bottom: 15px;
 }
 
@@ -162,6 +162,73 @@ div.nav_links {
     text-align: center;
     flex-grow: 1;
 }
+
+/* Top nav bar */
+div.topnav {
+    position: relative;
+    margin-top: 0;
+    margin-bottom: 5px;
+    padding-left: 5%;
+    padding-right: 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    flex-flow: row;
+    background-color: #353535;
+    padding-top:5px;
+    padding-bottom: 5px;
+}
+
+@media (max-width: 750px) {
+    div.topnav {
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+}
+
+div.topnav-icons {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-start;
+}
+
+div.topnav-options {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-end;
+}
+
+
+.topnav-icon {
+    font-size: 2.5em;
+    color: #fff;
+    margin-left: 30px;
+}
+
+.topnav-button-icon {
+    font-size: 2em;
+    color: #fff;
+    margin-left: 5px;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    border: 1px;
+    cursor: pointer;
+    overflow: hidden;
+    outline: none
+}
+
+.sort-options {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.topnav-dropdown {
+    font-size: 1.2em;
+}
+
 
 /* Popup */
 .show-modal {

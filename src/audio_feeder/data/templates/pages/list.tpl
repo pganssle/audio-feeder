@@ -104,9 +104,9 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <div class='maintable'>
     {% block navbar %}
     <div class="navbar">
-        <div class="nav_arrow"><a{% if not first_index is sameas none %} href="{{ first_index }}"{% endif %}><img class="nav_arrow" id="firstnav" src="{{ site_images_url }}/double_left_arrow.svg" align="left"></a></div>
+        <div class="nav_arrow"><a{% if not first_index is sameas none %} href="{{ first_index }}"{% endif %}><i class="fa fa-angle-double-left nav_arrow" id="firstnav"></i></a></div>
 
-        <div class="nav_arrow"><a{% if not prev_index is sameas none %} href="{{prev_index}}"{% endif %}><img class="nav_arrow" id="backnav" src="{{ site_images_url }}/left_arrow.svg" align="left"></a></div>
+        <div class="nav_arrow"><a{% if not prev_index is sameas none %} href="{{prev_index}}"{% endif %}><i class="fa fa-angle-left nav_arrow" id="backnav"></i></a></div>
         <div class="nav_links">
             {% block navlist %}
             {% for nav_item in nav_list %}
@@ -118,8 +118,8 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
             {% endfor %}
             {% endblock %}
         </div>
-        <div class="nav_arrow"><a {% if not next_index is sameas none %} href="{{next_index}}"{% endif%}><img class="nav_arrow" id="fwdnav" src="{{ site_images_url }}/right_arrow.svg" align="right"></a></div>
-        <div class="nav_arrow"><a {% if not final_index is sameas none %} href="{{ final_index }}" {% endif %}><img class="nav_arrow" id="lastnav" src="{{ site_images_url }}/double_right_arrow.svg" align="right"></a></div>
+        <div class="nav_arrow"><a {% if not next_index is sameas none %} href="{{next_index}}"{% endif%}><i class="fa fa-angle-right nav_arrow" id="fwdnav"></i></a></div>
+        <div class="nav_arrow"><a {% if not final_index is sameas none %} href="{{ final_index }}" {% endif %}><i class="fa fa-angle-double-right nav_arrow" id="lastnav"></i></a></div>
         </div>
     {% endblock %}
     {% block mainlist %}

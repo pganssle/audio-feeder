@@ -126,6 +126,12 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 </select>
             </div>
             <div class="options-line">
+                <label for="per-page" class="topnav-label">Items per page:</label>
+                <input type="number" class="topnav-form" style="width: 120px;"
+                       id="per-page" name="perPage"
+                       min="1" value="{{ sort_args["perPage"] }}">
+            </div>
+            <div class="options-line">
                 <div></div> <!-- Spacer-->
                 <button type="submit" class="topnav-form">Submit</button>
             </div>

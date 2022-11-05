@@ -1,0 +1,1 @@
+- Updated books pagination to consistently use a zero-based index.

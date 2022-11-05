@@ -108,7 +108,7 @@ def books():
         "final_index": final_index,
         "prev_index": prev_index,
         "next_index": next_index,
-        "pagetitle": f"Books: Page {page+1} of {len(nav_list)}",
+        "pagetitle": f"Books: Page {page} of {max_page}",
         "site_images_url": site_images.url,
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
         "sort_options": get_sort_options(),

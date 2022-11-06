@@ -22,6 +22,39 @@ from ._useful_types import PathType
 DB_VERSION: int = 0
 
 
+def _path_constructor(
+    loader: yaml.SafeLoader, node: yaml.nodes.ScalarNode
+) -> pathlib.Path:
+    """Construct a pathlib.Path"""
+    return pathlib.Path(loader.construct_scalar(node))
+
+
+def _path_representer(
+    dumper: yaml.SafeDumper, path: pathlib.Path
+) -> yaml.nodes.ScalarNode:
+    return dumper.represent_scalar("!Path", os.fspath(path))
+
+
+@functools.lru_cache(None)
+def _loader() -> yaml.SafeLoader:
+    class SafeLoaderWithPath(yaml.SafeLoader):
+        pass
+
+    SafeLoaderWithPath.add_constructor("!Path", _path_constructor)
+
+    return SafeLoaderWithPath
+
+
+@functools.lru_cache(None)
+def _dumper() -> yaml.SafeDumper:
+    class SafeDumperWithPath(yaml.SafeDumper):
+        pass
+
+    for path_type in [pathlib.Path, pathlib.PosixPath, pathlib.WindowsPath]:
+        SafeDumperWithPath.add_representer(path_type, _path_representer)
+    return SafeDumperWithPath
+
+
 class YamlDatabaseHandler:
     def __init__(self, db_loc: PathType):
         self._db = pathlib.Path(db_loc)
@@ -46,7 +79,7 @@ class YamlDatabaseHandler:
             shutil.copy2(table_loc, self._get_bak_loc(table_loc))
 
         with open(table_loc, "w") as yf:
-            yaml.dump(table_obj, stream=yf, default_flow_style=False)
+            yaml.dump(table_obj, stream=yf, default_flow_style=False, Dumper=_dumper())
 
     def load_table(self, table_name: TableName) -> Table:
         """
@@ -57,7 +90,7 @@ class YamlDatabaseHandler:
         table_type = oh.TYPE_MAPPING[type_name]
         table_loc = self._get_table_loc(table_name)
         with open(table_loc, "r") as yf:
-            table_file = yaml.safe_load(yf)
+            table_file = yaml.load(yf, Loader=_loader())
 
         assert table_file["db_version"] == DB_VERSION
         table_list = table_file["data"]

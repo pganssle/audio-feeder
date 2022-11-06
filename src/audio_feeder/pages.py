@@ -217,7 +217,7 @@ def _update_db() -> None:
     db = dh.load_database()
 
     ops = [
-        (book_updater.update_db_entries, "Updating databse entries."),
+        (book_updater.update_db_entries, "Updating database entries."),
         (book_updater.assign_books_to_entries, "Assigning books to entries"),
         (book_updater.update_book_metadata, "Updating book metadata"),
         (book_updater.update_author_db, "Updating author db"),

@@ -1,0 +1,227 @@
+data:
+- author_ids:
+  - 363409
+  authors:
+  - Louisa May Alcott
+  cover_images:
+    local: media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little
+      Women/Cover.jpg
+  description: <p>Chronicles the joys and sorrows of the four March sisters as they
+    grow into young women in nineteenth-century New England.</p>
+  descriptions:
+    google_books: Chronicles the joys and sorrows of the four March sisters as they
+      grow into young women in nineteenth-century New England.
+  google_id: cXrrAj1cP3QC
+  id: 44367
+  isbn13: 0099572966
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 436
+  pub_date: '2012'
+  publisher: Random House
+  series_name: Little Women
+  series_number: 1
+  tags:
+  - children's stories
+  title: Little Women
+- author_ids:
+  - 496925
+  authors:
+  - Edith Wharton
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=bNhZAAAAMAAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=bNhZAAAAMAAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: ''
+  descriptions:
+    google_books: null
+  google_id: bNhZAAAAMAAJ
+  id: 643570
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 176
+  pub_date: '1925'
+  publisher: 'New York ; London : C. Scribner''s Sons'
+  tags:
+  - fiction
+  title: The Writing of Fiction
+- author_ids:
+  - 509539
+  authors:
+  - Mary Shelley
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=WbNDDwAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=WbNDDwAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: "<p>For the bicentennial of its first publication, Mary Shelley\u2019\
+    s original 1818 text, introduced by National Book Critics Circle award-winner\
+    \ Charlotte Gordon. Nominated as one of America\u2019s best-loved novels by PBS\u2019\
+    s The Great American Read 2018 marks the bicentennial of Mary Shelley\u2019s seminal\
+    \ novel. For the first time, Penguin Classics will publish the original 1818 text,\
+    \ which preserves the hard-hitting and politically-charged aspects of Shelley\u2019\
+    s original writing, as well as her unflinching wit and strong female voice. This\
+    \ edition also emphasizes Shelley\u2019s relationship with her mother\u2014trailblazing\
+    \ feminist Mary Wollstonecraft, who penned A Vindication of the Rights of Woman\u2014\
+    and demonstrates her commitment to carrying forward her mother\u2019s ideals,\
+    \ placing her in the context of a feminist legacy rather than the sole female\
+    \ in the company of male poets, including Percy Shelley and Lord Byron. This edition\
+    \ includes a new introduction and suggestions for further reading by National\
+    \ Book Critics Circle award-winner and Shelley expert Charlotte Gordon, literary\
+    \ excerpts and reviews selected by Gordon, and a chronology and essay by preeminent\
+    \ Shelley scholar Charles E. Robinson. For more than seventy years, Penguin has\
+    \ been the leading publisher of classic literature in the English-speaking world.\
+    \ With more than 1,800 titles, Penguin Classics represents a global bookshelf\
+    \ of the best works throughout history and across genres and disciplines. Readers\
+    \ trust the series to provide authoritative texts enhanced by introductions and\
+    \ notes by distinguished scholars and contemporary authors, as well as up-to-date\
+    \ translations by award-winning translators.</p>"
+  descriptions:
+    google_books: "For the bicentennial of its first publication, Mary Shelley\u2019\
+      s original 1818 text, introduced by National Book Critics Circle award-winner\
+      \ Charlotte Gordon. Nominated as one of America\u2019s best-loved novels by\
+      \ PBS\u2019s The Great American Read 2018 marks the bicentennial of Mary Shelley\u2019\
+      s seminal novel. For the first time, Penguin Classics will publish the original\
+      \ 1818 text, which preserves the hard-hitting and politically-charged aspects\
+      \ of Shelley\u2019s original writing, as well as her unflinching wit and strong\
+      \ female voice. This edition also emphasizes Shelley\u2019s relationship with\
+      \ her mother\u2014trailblazing feminist Mary Wollstonecraft, who penned A Vindication\
+      \ of the Rights of Woman\u2014and demonstrates her commitment to carrying forward\
+      \ her mother\u2019s ideals, placing her in the context of a feminist legacy\
+      \ rather than the sole female in the company of male poets, including Percy\
+      \ Shelley and Lord Byron. This edition includes a new introduction and suggestions\
+      \ for further reading by National Book Critics Circle award-winner and Shelley\
+      \ expert Charlotte Gordon, literary excerpts and reviews selected by Gordon,\
+      \ and a chronology and essay by preeminent Shelley scholar Charles E. Robinson.\
+      \ For more than seventy years, Penguin has been the leading publisher of classic\
+      \ literature in the English-speaking world. With more than 1,800 titles, Penguin\
+      \ Classics represents a global bookshelf of the best works throughout history\
+      \ and across genres and disciplines. Readers trust the series to provide authoritative\
+      \ texts enhanced by introductions and notes by distinguished scholars and contemporary\
+      \ authors, as well as up-to-date translations by award-winning translators."
+  google_id: WbNDDwAAQBAJ
+  id: 799712
+  isbn13: 0143131842
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 290
+  pub_date: '2018-01-16'
+  publisher: Penguin
+  tags:
+  - fiction
+  title: Frankenstein
+- author_ids:
+  - 771225
+  authors:
+  - Bram Stoker
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=sCY6EAAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=sCY6EAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: "<p>Bram Stoker\u2019s gothic horror masterpiece pits good against\
+    \ evil and life against death, all under the thrall of the original vampire....\
+    \ \u201CListen to them\u2014the children of the night. What music they make!\u201D\
+    \ He is a creature of darkness. His face deathly pale, his eyes ablaze with the\
+    \ fires of hell. He has been dead for centuries, yet he may never die. He waits\
+    \ in his crumbling castle in the mountains of Transylvania, as his prey draws\
+    \ closer and closer to destruction.... Here begins one of the most celebrated\
+    \ horror stories in history, the tale of an undead monster who craves the blood\
+    \ of his victims and relishes his dominance over mankind. With its delicious mix\
+    \ of action, suspense, and looming dread, Bram Stoker\u2019s Dracula has terrified\
+    \ and inspired readers for more than a hundred years. With an Introduction by\
+    \ Leonard Wolf and an Afterword by Jeffrey Meyers</p>"
+  descriptions:
+    google_books: "Bram Stoker\u2019s gothic horror masterpiece pits good against\
+      \ evil and life against death, all under the thrall of the original vampire....\
+      \ \u201CListen to them\u2014the children of the night. What music they make!\u201D\
+      \ He is a creature of darkness. His face deathly pale, his eyes ablaze with\
+      \ the fires of hell. He has been dead for centuries, yet he may never die. He\
+      \ waits in his crumbling castle in the mountains of Transylvania, as his prey\
+      \ draws closer and closer to destruction.... Here begins one of the most celebrated\
+      \ horror stories in history, the tale of an undead monster who craves the blood\
+      \ of his victims and relishes his dominance over mankind. With its delicious\
+      \ mix of action, suspense, and looming dread, Bram Stoker\u2019s Dracula has\
+      \ terrified and inspired readers for more than a hundred years. With an Introduction\
+      \ by Leonard Wolf and an Afterword by Jeffrey Meyers"
+  google_id: sCY6EAAAQBAJ
+  id: 832420
+  isbn13: 0593438493
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 417
+  pub_date: '2021-08-24'
+  publisher: Penguin
+  tags:
+  - fiction
+  title: Dracula
+- author_ids:
+  - 837812
+  authors:
+  - Louisa May Alcott
+  cover_images:
+    local: media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little
+      Men/Little Men-Cover.jpg
+  description: "<p>The beloved March family trilogy\u2014presented in one \u201Csingle,\
+    \ beautifully crafted volume\u201D featuring original illustrations (John Matteson,\
+    \ Pulitzer Prize\u2013winning author) From the incidents of her own remarkable\
+    \ childhood, Louisa May Alcott fashioned a trilogy of novels that catapulted her\
+    \ to fame and fortune and that remain among the most beloved works in all of American\
+    \ literature. Here, in an authoritative single-volume edition restoring Alcott\u2019\
+    s original text as well as her sister May (the original of Amy)\u2019s illustrations,\
+    \ is the complete series. Set in a small New England town during the Civil War\
+    \ and Reconstruction, Little Women introduces Alcott\u2019s remarkable heroines,\
+    \ the March sisters\u2014above all, her alter ego Jo March, with her literary\
+    \ ambition and independent spirit. The follow-up, Little Men, follows Jo into\
+    \ adulthood and marriage as she finds herself the caretaker of a houseful of rambunctious\
+    \ children at Plumfield School. Jo\u2019s Boys returns to Plumfield a decade later;\
+    \ now grown, Jo\u2019s children recount adventures of their own. At once heartwarming\
+    \ and true to life, Alcott\u2019s novels will continue to win over readers both\
+    \ young and old, as they have for generations. LIBRARY OF AMERICA is an independent\
+    \ nonprofit cultural organization founded in 1979 to preserve our nation\u2019\
+    s literary heritage by publishing, and keeping permanently in print, America\u2019\
+    s best and most significant writing. The Library of America series includes more\
+    \ than 300 volumes to date, authoritative editions that average 1,000 pages in\
+    \ length, feature cloth covers, sewn bindings, and ribbon markers, and are printed\
+    \ on premium acid-free paper that will last for centuries.</p>"
+  descriptions:
+    google_books: "The beloved March family trilogy\u2014presented in one \u201Csingle,\
+      \ beautifully crafted volume\u201D featuring original illustrations (John Matteson,\
+      \ Pulitzer Prize\u2013winning author) From the incidents of her own remarkable\
+      \ childhood, Louisa May Alcott fashioned a trilogy of novels that catapulted\
+      \ her to fame and fortune and that remain among the most beloved works in all\
+      \ of American literature. Here, in an authoritative single-volume edition restoring\
+      \ Alcott\u2019s original text as well as her sister May (the original of Amy)\u2019\
+      s illustrations, is the complete series. Set in a small New England town during\
+      \ the Civil War and Reconstruction, Little Women introduces Alcott\u2019s remarkable\
+      \ heroines, the March sisters\u2014above all, her alter ego Jo March, with her\
+      \ literary ambition and independent spirit. The follow-up, Little Men, follows\
+      \ Jo into adulthood and marriage as she finds herself the caretaker of a houseful\
+      \ of rambunctious children at Plumfield School. Jo\u2019s Boys returns to Plumfield\
+      \ a decade later; now grown, Jo\u2019s children recount adventures of their\
+      \ own. At once heartwarming and true to life, Alcott\u2019s novels will continue\
+      \ to win over readers both young and old, as they have for generations. LIBRARY\
+      \ OF AMERICA is an independent nonprofit cultural organization founded in 1979\
+      \ to preserve our nation\u2019s literary heritage by publishing, and keeping\
+      \ permanently in print, America\u2019s best and most significant writing. The\
+      \ Library of America series includes more than 300 volumes to date, authoritative\
+      \ editions that average 1,000 pages in length, feature cloth covers, sewn bindings,\
+      \ and ribbon markers, and are printed on premium acid-free paper that will last\
+      \ for centuries."
+  google_id: q9SmFnhNNfYC
+  id: 958312
+  isbn13: '1931082731'
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 1108
+  pub_date: '2005-02-17'
+  publisher: Library of America
+  series_name: Little Women
+  series_number: 2
+  tags:
+  - fiction
+  title: Little Men
+db_version: 0

@@ -1,0 +1,55 @@
+data:
+- cover_images:
+  - media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Cover.jpg
+  - images/entry_cover_cache/21481_google_books-thumbnail.jpg
+  data_id: 958312
+  date_added: 2022-11-03 18:48:11.723670
+  hashseed: 3438870723
+  id: 21481
+  last_modified: 2022-11-03 18:47:46.092179
+  path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men'
+  table: books
+  type: Book
+- cover_images:
+  - images/entry_cover_cache/104789_google_books-thumbnail.jpg
+  data_id: 799712
+  date_added: 2022-11-03 18:48:11.723959
+  hashseed: 3513516051
+  id: 104789
+  last_modified: 2022-11-03 18:46:42.023660
+  path: !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein'
+  table: books
+  type: Book
+- cover_images:
+  - images/entry_cover_cache/692296_google_books-thumbnail.jpg
+  data_id: 832420
+  date_added: 2022-11-03 18:48:11.724024
+  hashseed: 3040569811
+  id: 692296
+  last_modified: 2022-11-03 18:46:26.536390
+  path: !Path 'audiobooks/Fiction/Bram Stoker - Dracula'
+  table: books
+  type: Book
+- cover_images:
+  - images/entry_cover_cache/712130_google_books-thumbnail.jpg
+  data_id: 643570
+  date_added: 2022-11-03 18:48:11.723802
+  hashseed: 3815070603
+  id: 712130
+  last_modified: 2022-11-03 18:46:07.108972
+  path: !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction'
+  table: books
+  type: Book
+- cover_images:
+  - media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Cover.jpg
+  - images/entry_cover_cache/787031_google_books-thumbnail.jpg
+  data_id: 44367
+  date_added: 2022-11-03 18:48:11.723887
+  hashseed: 69178498
+  id: 787031
+  last_modified: 2022-11-03 18:47:12.934879
+  path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women'
+  table: books
+  type: Book
+db_version: 0

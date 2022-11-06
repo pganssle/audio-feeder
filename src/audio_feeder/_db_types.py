@@ -4,7 +4,6 @@ This exists for compatibility while the old database_handler code still exists.
 """
 import typing
 
-from . import object_handler as oh
 from ._object_types import SchemaObject
 from ._useful_types import PathType
 

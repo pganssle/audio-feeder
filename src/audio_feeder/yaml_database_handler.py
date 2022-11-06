@@ -9,7 +9,6 @@ import typing
 import yaml
 
 from . import object_handler as oh
-from . import schema_handler
 from ._db_types import (
     ID,
     Database,
@@ -26,10 +25,6 @@ DB_VERSION: int = 0
 class YamlDatabaseHandler:
     def __init__(self, db_loc: PathType):
         self._db = pathlib.Path(db_loc)
-
-    @functools.cached_property
-    def schema(self) -> schema_handler.SchemaDict:
-        return schema_handler.load_schema()
 
     def _get_table_loc(self, table_name: TableName) -> pathlib.Path:
         return self._db / f"{table_name}.yml"
@@ -58,7 +53,7 @@ class YamlDatabaseHandler:
         Loads a table from the YAML file ``table_loc``.
         """
 
-        type_name = self.schema["tables"][table_name]
+        type_name = oh.TABLE_MAPPING[table_name]
         table_type = oh.TYPE_MAPPING[type_name]
         table_loc = self._get_table_loc(table_name)
         with open(table_loc, "r") as yf:
@@ -82,7 +77,7 @@ class YamlDatabaseHandler:
         # Try and do this as a pseudo-atomic operation
         tables_saved = []
         try:
-            for table_name, type_name in self.schema["tables"].items():
+            for table_name, type_name in oh.TABLE_MAPPING.items():
                 self.save_table(table_name, database[table_name])
                 tables_saved.append(table_name)
         except Exception as e:
@@ -100,7 +95,7 @@ class YamlDatabaseHandler:
 
         tables: MutableDatabase = {}
 
-        for table_name, type_name in self.schema["tables"].items():
+        for table_name, type_name in oh.TABLE_MAPPING.items():
             table_type = oh.TYPE_MAPPING[type_name]
             table_loc = self._get_table_loc(table_name)
             if not table_loc.exists():

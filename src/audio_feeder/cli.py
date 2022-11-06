@@ -167,18 +167,40 @@ def install(config_dir, config_name):
     Installs the feeder configuration and populates the initial file structures
     with the default package data.
     """
+    import importlib
     import os
     import shutil
     import warnings
-
-    from pkg_resources import cleanup_resources, resource_filename
+    from importlib import resources
 
     from . import config
+
+    def _copy_resource(
+        resource: importlib.abc.Traversable, target_dir: pathlib.Path
+    ) -> None:
+        if resource.is_file():
+            if not target_dir.exists():
+                target_dir.mkdir(parents=True)
+
+            target_loc = target_dir / resource.name
+            target_loc.write_bytes(resource.read_bytes())
+        else:
+            for child in resource.iterdir():
+                if (
+                    child.name.endswith(".py")
+                    or child.name.endswith(".pyc")
+                    or child.name == "__pycache__"
+                ):
+                    continue
+                if child.is_dir():
+                    _copy_resource(child, target_dir / child.name)
+                else:
+                    _copy_resource(child, target_dir)
 
     # Assign a configuration directory
     if config_dir is None:
         for config_dir in config.CONFIG_DIRS:
-            if not os.path.exists(config_dir):
+            if not config_dir.exists():
                 try:
                     os.makedirs(config_dir)
                     break
@@ -222,62 +244,24 @@ def install(config_dir, config_name):
 
     make_dir_directories += static_paths
 
-    for cdir in make_dir_directories:
-        if not os.path.exists(cdir):
-            os.makedirs(cdir)
+    # Copy all package data as appropriate
+    site = resources.files("audio_feeder.data.site")
+    templates = resources.files("audio_feeder.data.templates")
 
-    # Load package data if it doesn't already exist.
-    pkg_name = "audio_feeder"
-
-    css_files = [
-        os.path.join(css_path, fname) for fname in config_obj["main_css_files"]
-    ]
-
-    # CSS files
-    for css_fname, css_file in zip(config_obj["main_css_files"], css_files):
-        if not os.path.exists(css_file):
-            c_fname = resource_filename(
-                pkg_name, os.path.join("data/site/css", css_fname)
-            )
-
-            shutil.copy2(c_fname, css_file)
+    _copy_resource(site, pathlib.Path(config_obj["static_media_path"]) / "site")
 
     # Directories
     pkg_dir_map = {
-        "entry_templates_loc": "data/templates/entry_types",
-        "pages_templates_loc": "data/templates/pages",
-        "rss_templates_loc": "data/templates/rss",
-        "rss_entry_templates_loc": "data/templates/rss/entry_types",
+        "entry_templates_loc": "entry_types",
+        "pages_templates_loc": "pages",
+        "rss_templates_loc": "rss",
+        "rss_entry_templates_loc": "entry_types",
     }
 
     pkg_dir_map = {config_obj[k]: v for k, v in pkg_dir_map.items()}
-    pkg_dir_map.update(
-        {
-            k: v
-            for k, v in zip(
-                static_paths[:-1], ["data/site/site-images", "data/site/css"]
-            )
-        }
-    )
 
-    # This may duplicate some files if entries nested in the original package
-    # are not nested in the installed configuration.
-    src_locs = set(pkg_dir_map.values())
-    for dst_dir, pkgdata_loc in pkg_dir_map.items():
-        pkgdata_fname = resource_filename(pkg_name, pkgdata_loc)
-        for base_dir, dirs, fnames in os.walk(pkgdata_fname):
-            for fname in fnames:
-                src_path = os.path.join(base_dir, fname)
-                rel_path = os.path.relpath(src_path, pkgdata_fname)
-
-                dst_path = os.path.join(dst_dir, rel_path)
-
-                if not os.path.exists(dst_path):
-                    dst_subdir = os.path.split(dst_path)[0]
-                    if not os.path.exists(dst_subdir):
-                        os.makedirs(dst_subdir)
-
-                    shutil.copy2(src_path, dst_path)
+    for target_loc, resource_loc in pkg_dir_map.items():
+        _copy_resource(templates / resource_loc, pathlib.Path(target_loc))
 
 
 @cli.group()

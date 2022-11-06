@@ -1,5 +1,6 @@
 # Python detritus
 __pycache__/
+.hypothesis/
 build/
 dist/
 *.egg-info/

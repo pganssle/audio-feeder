@@ -62,12 +62,16 @@ class Resolver:
 
         qr_fl = FileLocation(rel_save_path, self.static_url, self.static_path)
 
-        if not os.path.exists(qr_fl.path):
-            qr_cache_loc_full = os.path.split(qr_fl.path)[0]
-            if not os.path.exists(qr_cache_loc_full):
-                os.makedirs(qr_cache_loc_full)
+        qr_fl_path = qr_fl.path
 
-            self.qr_generator.generate_qr(url, qr_fl.path)
+        # This should always be true if path_base is specified for FileLocation
+        assert qr_fl_path is not None
+        if not qr_fl_path.exists():
+            qr_cache_loc_full = qr_fl_path.parent
+            if not qr_cache_loc_full.exists():
+                qr_cache_loc_full.mkdir(parents=True)
+
+            self.qr_generator.generate_qr(url, qr_fl_path)
 
         return qr_fl
 

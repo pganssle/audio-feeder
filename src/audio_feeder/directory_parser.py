@@ -7,6 +7,11 @@ import typing
 from ._useful_types import PathType
 
 
+class _SupportsSorting(typing.Protocol):
+    def __lt__(self, other: typing.Any) -> bool:
+        ...
+
+
 class BaseAudioLoader:
     """
     A base class that defines the interface for all audio loader classes.
@@ -33,7 +38,7 @@ class BaseAudioLoader:
         raise NotImplementedError("Function must be implemented in child classes")
 
     @classmethod
-    def natural_sort_key(cls, value: str) -> typing.Sequence[typing.Any]:
+    def natural_sort_key(cls, value: str) -> _SupportsSorting:
         """
         This is a sort key to do a "natural" lexographic sort, the string is
         broken up into segments of strings and numbers, so that, e.g. `'Str 2'`
@@ -193,7 +198,7 @@ class AudiobookLoader(BaseAudioLoader):
         :return:
             Returns a :py:object:`list` of authors.
         """
-        o = creators.split(" & ")
+        o: typing.Iterable[str] = creators.split(" & ")
         o = itertools.chain.from_iterable(x.split(" and ") for x in o)
         o = itertools.chain.from_iterable(x.split(", ") for x in o)
 

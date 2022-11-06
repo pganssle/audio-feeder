@@ -26,7 +26,9 @@ def _path_constructor(
     loader: yaml.SafeLoader, node: yaml.nodes.ScalarNode
 ) -> pathlib.Path:
     """Construct a pathlib.Path"""
-    return pathlib.Path(loader.construct_scalar(node))
+    scalar = loader.construct_scalar(node)
+    assert isinstance(scalar, str)
+    return pathlib.Path(scalar)
 
 
 def _path_representer(
@@ -36,7 +38,7 @@ def _path_representer(
 
 
 @functools.lru_cache(None)
-def _loader() -> yaml.SafeLoader:
+def _loader() -> typing.Type[yaml.SafeLoader]:
     class SafeLoaderWithPath(yaml.SafeLoader):
         pass
 
@@ -46,7 +48,7 @@ def _loader() -> yaml.SafeLoader:
 
 
 @functools.lru_cache(None)
-def _dumper() -> yaml.SafeDumper:
+def _dumper() -> typing.Type[yaml.SafeDumper]:
     class SafeDumperWithPath(yaml.SafeDumper):
         pass
 

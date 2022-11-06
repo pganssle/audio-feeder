@@ -213,9 +213,6 @@ def _update_db() -> None:
 
     book_updater = updater.BookDatabaseUpdater(path)
 
-    _log_update_output("Loading existing database")
-    db = dh.load_database()
-
     ops = [
         (book_updater.update_db_entries, "Updating database entries."),
         (book_updater.assign_books_to_entries, "Assigning books to entries"),
@@ -224,19 +221,23 @@ def _update_db() -> None:
         (book_updater.update_cover_images, "Updating cover images"),
     ]
 
-    for op, log_output in ops:
-        _log_update_output(log_output)
-        op(db)
-        dh.save_database(db)
+    try:
+        _log_update_output("Loading existing database")
+        db = dh.load_database()
 
-    _clear_book_caches()
-    _log_update_output("Reloading database")
-    dh.get_database(refresh=True)
+        for op, log_output in ops:
+            _log_update_output(log_output)
+            op(db)
+            dh.save_database(db)
 
-    _clear_update_output()
+        _clear_book_caches()
+        _log_update_output("Reloading database")
+        dh.get_database(refresh=True)
+    finally:
+        _clear_update_output()
 
-    global UPDATE_IN_PROGRESS
-    UPDATE_IN_PROGRESS = False
+        global UPDATE_IN_PROGRESS
+        UPDATE_IN_PROGRESS = False
 
 
 @root.route("/update_status")

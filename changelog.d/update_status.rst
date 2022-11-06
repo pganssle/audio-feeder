@@ -1,0 +1,1 @@
+- "Updating database" status now cleared if the database update fails.

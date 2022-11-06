@@ -1,0 +1,1 @@
+- Removed ``schema.yml`` in favor of defining the schema types in ``object_handler.py``

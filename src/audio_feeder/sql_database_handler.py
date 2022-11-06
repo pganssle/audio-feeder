@@ -13,7 +13,6 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from . import object_handler as oh
-from . import schema_handler as sh
 from ._db_types import ID, Database, Table, TableName
 from ._useful_types import PathType
 
@@ -94,10 +93,9 @@ def _mapper_registry() -> orm.registry:
 def _map_tables() -> typing.Mapping[TableName, sa.Table]:
     metadata_object = _metadata_object()
     mapper_registry = _mapper_registry()
-    schema = sh.load_schema()
     table_mapping: typing.Dict[TableName, sa.Table] = {}
 
-    for table_name, type_name in schema["tables"].items():
+    for table_name, type_name in oh.TABLE_MAPPING.items():
         base_type = oh.TYPE_MAPPING[type_name]
         columns = [_attr_to_column(attr) for attr in attrs.fields(base_type)]
 
@@ -125,10 +123,6 @@ class SqlDatabaseHandler:
     def session(self) -> orm.Session:
         return orm.Session(self.engine, expire_on_commit=False)
 
-    @functools.cached_property
-    def schema(self) -> sh.SchemaDict:
-        return sh.load_schema()
-
     def _load_table(
         self, session: orm.Session, table_type: typing.Type[oh.BaseObject]
     ) -> Table:
@@ -141,13 +135,13 @@ class SqlDatabaseHandler:
 
     def load_table(self, table_name: TableName) -> Table:
         with self.session() as session:
-            type_name = self.schema["tables"][table_name]
+            type_name = oh.TABLE_MAPPING[table_name]
             return self._load_table(session, oh.TYPE_MAPPING[type_name])
 
     def _save_table(
         self, session: orm.Session, table_name: TableName, table_contents: Table
     ) -> None:
-        table_type = oh.TYPE_MAPPING[self.schema["tables"][table_name]]
+        table_type = oh.TYPE_MAPPING[oh.TABLE_MAPPING[table_name]]
 
         stmt = sa.delete(table_type).where(
             sa.column("id").not_in(table_contents.keys())
@@ -182,7 +176,7 @@ class SqlDatabaseHandler:
         self._initialize_db()
         out: typing.Dict[TableName, Table] = {}
         with self.session() as session:
-            for table_name, type_name in self.schema["tables"].items():
+            for table_name, type_name in oh.TABLE_MAPPING.items():
                 table_type = oh.TYPE_MAPPING[type_name]
                 out[TableName(table_name)] = self._load_table(session, table_type)
         return out

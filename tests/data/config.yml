@@ -13,7 +13,6 @@ qr_cache_path: images/qr_cache
 rss_entry_templates_loc: '{{TEMPLATES}}/rss/entry_types'
 rss_feed_urls: rss/{id}.xml
 rss_templates_loc: '{{TEMPLATES}}/rss'
-schema_loc: '{{CONFIG}}/database/schema.yml'
 site_images_loc: images/site-images
 static_media_path: '{{CONFIG}}/static'
 static_media_url: '{{URL}}/static'

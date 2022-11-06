@@ -1,0 +1,1 @@
+- Updated the ``audio-feeder install`` script to use ``importlib.resources`` and made sure that it can be run a second time to update the install base.

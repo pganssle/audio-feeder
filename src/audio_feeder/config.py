@@ -88,9 +88,12 @@ class Configuration:
 
         base_kwarg = self.PROPERTIES.copy()
 
-        for kwarg in kwargs.keys():
-            if kwarg not in self.PROPERTIES:
-                raise TypeError("Unexpected keyword argument: {}".format(kwarg))
+        extra_kwargs = kwargs.keys() - self.PROPERTIES
+
+        if extra_kwargs:
+            raise TypeError(
+                f"Unexpected keyword arguments: {', '.join(sorted(extra_kwargs))}"
+            )
 
         base_kwarg.update(kwargs)
 
@@ -191,7 +194,7 @@ class Configuration:
 def init_config(
     config_loc: typing.Optional[PathType] = None,
     config_loc_must_exist: bool = False,
-    **kwargs
+    **kwargs,
 ):
     """
     Initializes the configuration from config_loc or from the default

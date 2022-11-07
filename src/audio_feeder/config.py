@@ -289,7 +289,7 @@ def get_configuration() -> Configuration:
     return init_config()
 
 
-def read_from_config(field):
+def read_from_config(field: str) -> typing.Any:
     """
     Convenience method for accessing specific fields from the configuration
     object.

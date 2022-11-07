@@ -2,6 +2,7 @@
 
 import datetime
 import functools
+import json
 import os
 import pathlib
 import sqlite3
@@ -28,6 +29,67 @@ class SQLPath(sa.types.TypeDecorator):
         return pathlib.Path(value)
 
 
+class _PathEncoder(json.JSONEncoder):
+    def default(self, obj: typing.Any) -> str:
+        if isinstance(obj, pathlib.Path):
+            return os.fspath(obj)
+        return super().default(obj)
+
+
+class _PathJsonType(sa.types.TypeDecorator):
+    impl = sa.types.String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect) -> str:
+        return json.dumps(value, cls=_PathEncoder)
+
+
+class _PathSequence(_PathJsonType):
+    def process_result_value(self, value, dialect):
+        json_obj = json.loads(value)
+        if json_obj is None:
+            return None
+
+        return list(map(pathlib.Path, json_obj))
+
+
+class _CoverImages(_PathJsonType):
+    def process_result_value(self, value, dialect):
+        json_obj = json.loads(value)
+
+        if json_obj is None:
+            return None
+
+        # This is Mapping[str, Union[pathlib.Path, Mapping[str, str]]], so each
+        # sub-directory is either a dict or a path
+        out = {}
+        for key, value in json_obj.items():
+            if isinstance(value, typing.Mapping):
+                out[key] = value
+            else:
+                out[key] = pathlib.Path(value)
+        return out
+
+
+def _parse_nested_type(t: type) -> typing.Tuple:
+    container_type = typing.get_origin(t)
+    if container_type is None:
+        return t
+
+    return (container_type, tuple(map(_parse_nested_type, typing.get_args(t))))
+
+
+def _has_path(parsed_type) -> bool:
+    if isinstance(parsed_type, tuple):
+        return any(map(_has_path, parsed_type))
+    else:
+        return parsed_type == pathlib.Path
+
+
+_CanonicalMapType = typing.get_origin(typing.Mapping[None, None])
+_CanonicalSequenceType = typing.get_origin(typing.Sequence[None])
+
+
 def _map_type(t: type) -> sa.sql.type_api.TypeEngine:
     if t == int or t == ID:
         return sa.Integer
@@ -52,12 +114,17 @@ def _map_type(t: type) -> sa.sql.type_api.TypeEngine:
                     f"Unions other than (type | None) not supported, got: {t}"
                 )
             return _map_type(argtypes[0])
-        elif type_container in (
-            abc.Sequence,
-            typing.Sequence,
-            abc.Mapping,
-            typing.Mapping,
-        ):
+        elif type_container in (_CanonicalMapType, _CanonicalSequenceType):
+            if type_container == _CanonicalSequenceType and argtypes[0] == pathlib.Path:
+                return _PathSequence
+            if type_container == _CanonicalMapType and argtypes[0] == str:
+                # This may be the problematic "cover images" type
+                nested_type_def = _parse_nested_type(argtypes[1])
+                if nested_type_def == (
+                    typing.Union,
+                    (pathlib.Path, (_CanonicalMapType, (str, str))),
+                ):
+                    return _CoverImages
             return sa.JSON
 
         raise TypeError(f"Unsupported type: {t}")

@@ -7,7 +7,7 @@ import functools
 import types
 import typing
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence, Union
 
 import attrs
 
@@ -134,7 +134,7 @@ class Book(BaseObject):
     series_name: Optional[Sequence[str]] = None
     series_number: Optional[Sequence[int]] = None
 
-    cover_images: Optional[Mapping[str, Mapping[str, str]]] = None
+    cover_images: Optional[Mapping[str, Union[Path, Mapping[str, str]]]] = None
 
     language: Optional[str] = None
 

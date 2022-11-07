@@ -277,7 +277,7 @@ def init_config(
             logging.info("Creating configuration file at {}".format(config_location))
 
             new_conf.to_file(config_location)
-        return new_conf
+    return new_conf
 
 
 @functools.lru_cache(None)

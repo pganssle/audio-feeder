@@ -29,7 +29,7 @@ class SQLPath(sa.types.TypeDecorator):
 
 
 def _map_type(t: type) -> sa.sql.type_api.TypeEngine:
-    if t == int:
+    if t == int or t == ID:
         return sa.Integer
     elif t == str:
         return sa.String

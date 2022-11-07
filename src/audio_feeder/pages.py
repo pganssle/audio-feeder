@@ -228,8 +228,8 @@ def _update_db() -> None:
         for op, log_output in ops:
             _log_update_output(log_output)
             op(db)
-            dh.save_database(db)
 
+        dh.save_database(db)
         _clear_book_caches()
         _log_update_output("Reloading database")
         dh.get_database(refresh=True)

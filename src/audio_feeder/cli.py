@@ -123,27 +123,20 @@ def update(content_type, reload_metadata, path):
     print("Loading all new entries.")
     updater.update_db_entries(db)
 
-    dh.save_database(db)  # Save as we progress
-
     print("Loading books associated with entries.")
     updater.assign_books_to_entries(db)
-
-    dh.save_database(db)
 
     updater.update_book_metadata(
         db, pbar=pbar("Loading book metadata:"), reload_metadata=reload_metadata
     )
 
-    dh.save_database(db)
-
     print("Updating author database")
     updater.update_author_db(db)
-
-    dh.save_database(db)
 
     print("Updating book covers")
     updater.update_cover_images(db)
 
+    print("Saving database")
     dh.save_database(db)
 
 

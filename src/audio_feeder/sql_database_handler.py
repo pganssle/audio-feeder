@@ -123,9 +123,7 @@ class SqlDatabaseHandler:
     def session(self) -> orm.Session:
         return orm.Session(self.engine, expire_on_commit=False)
 
-    def _load_table(
-        self, session: orm.Session, table_type: typing.Type[oh.BaseObject]
-    ) -> Table:
+    def _load_table(self, session: orm.Session, table_type: oh.SchemaType) -> Table:
         query = session.query(table_type)
         return {ID(result.id): result for result in query.all()}
 

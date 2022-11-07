@@ -7,10 +7,11 @@ import typing
 
 from ._compat import Self
 
+ID = typing.NewType("ID", int)
 
 # TODO: When attrs > 22.1 is released, this should be an AttrsInstance
 class SchemaObject(typing.Protocol):
-    id: int
+    id: ID
 
     def to_dict(self) -> typing.Mapping[str, typing.Any]:
         ...

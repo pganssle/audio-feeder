@@ -73,9 +73,7 @@ class BookDatabaseUpdater:
         entry_table: TableName = TableName("entries"),
         table: typing.Optional[TableName] = None,
         book_loader: typing.Type[dp.BaseAudioLoader] = dp.AudiobookLoader,
-        metadata_loaders: typing.Sequence[mdl.MetaDataLoader] = (
-            mdl.GoogleBooksLoader(),
-        ),
+        metadata_loaders: typing.Sequence[mdl.BookLoader] = (mdl.GoogleBooksLoader(),),
         id_handler: typing.Type[IDHandler] = IDHandler,
     ):
         self.table = table or self.BOOK_TABLE_NAME
@@ -160,7 +158,7 @@ class BookDatabaseUpdater:
         book_table = database[self.table]
         # Set the priority on who gets to set the description.
         description_priority = (mdl.LOCAL_DATA_SOURCE,) + tuple(
-            x.SOURCE_NAME for x in self.metadata_loaders
+            x.source_name for x in self.metadata_loaders
         )
 
         # Go through and try to update metadata.
@@ -172,7 +170,7 @@ class BookDatabaseUpdater:
                 # Skip anything that's already had metadata loaded for it.
                 if not reload_metadata and (
                     book_obj.metadata_sources is not None
-                    and loader.SOURCE_NAME in book_obj.metadata_sources
+                    and loader.source_name in book_obj.metadata_sources
                 ):
                     continue
 
@@ -311,17 +309,17 @@ class BookDatabaseUpdater:
                         new_cover_images.insert(0, local_cover_img)
 
                 for loader in self.metadata_loaders:
-                    if loader.SOURCE_NAME not in data_obj.cover_images:
+                    if loader.source_name not in data_obj.cover_images:
                         continue
 
-                    img_base = "{}_{}".format(entry_obj.id, loader.SOURCE_NAME)
+                    img_base = "{}_{}".format(entry_obj.id, loader.source_name)
                     if any(
                         x.startswith(img_base)
                         for x in (os.path.split(y)[1] for y in new_cover_images)
                     ):
                         continue
 
-                    cover_images = data_obj.cover_images[loader.SOURCE_NAME]
+                    cover_images = data_obj.cover_images[loader.source_name]
                     r, img_url, desc = loader.retrieve_best_image(cover_images)
 
                     if r is None:

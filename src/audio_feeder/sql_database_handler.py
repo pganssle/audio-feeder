@@ -83,13 +83,6 @@ def _parse_nested_type(t: type) -> _NestedType:
     return (container_type, tuple(map(_parse_nested_type, typing.get_args(t))))
 
 
-def _has_path(parsed_type) -> bool:
-    if isinstance(parsed_type, tuple):
-        return any(map(_has_path, parsed_type))
-    else:
-        return parsed_type == pathlib.Path
-
-
 _CanonicalMapType = typing.get_origin(typing.Mapping[None, None])
 _CanonicalSequenceType = typing.get_origin(typing.Sequence[None])
 

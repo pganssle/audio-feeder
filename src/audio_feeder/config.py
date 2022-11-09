@@ -2,6 +2,7 @@
 Configuration manager - handles the application's global configuration.
 """
 import base64
+import functools
 import hashlib
 import logging
 import os
@@ -39,6 +40,16 @@ class _ConfigProperty:
 
 
 class Configuration:
+    base_protocol: str
+    base_host: str
+    base_port: typing.Optional[int]
+    media_path: PathType
+    static_media_path: PathType
+    static_media_url: str
+
+    rss_feed_urls: str
+    qr_cache_path: PathType
+
     PROPERTIES = OrderedDict(
         (
             ("base_truncation_point", 500),
@@ -105,19 +116,15 @@ class Configuration:
             setattr(self, kwarg, value)
             self._base_dict[kwarg] = value
 
-        if self.base_port is None:
-            self.base_url = self.base_host
-        else:
-            self.base_url = "{}:{}".format(self.base_host, self.base_port)
-
-        self.base_url = self.base_protocol + "://" + self.base_url
         self.url_id = self.hash_encode(self.base_url)
 
         for kwarg in self.PROPERTIES.keys():
             setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
 
         self.media_loc = FileLocation(
-            self.media_path, self.static_media_url, self.static_media_path
+            self.media_path,
+            self.static_media_url,
+            self.static_media_path,
         )
 
     @classmethod
@@ -156,6 +163,15 @@ class Configuration:
 
     def items(self):
         return ((k, self.get(k)) for k in self.keys())
+
+    @functools.cached_property
+    def base_url(self) -> str:
+        if self["base_port"] is None:
+            base_url: str = self.base_host
+        else:
+            base_url = f"{self.base_host}:{self.base_port}"
+
+        return f"{self.base_protocol}://{base_url}"
 
     def hash_encode(self, str_data):
         """
@@ -201,7 +217,7 @@ def init_config(
     configuration location.
     """
 
-    found_config = False
+    config_location: typing.Union[pathlib.Path, None] = None
     if config_loc is not None:
         if not os.path.exists(config_loc):
             if config_loc_must_exist:
@@ -211,77 +227,69 @@ def init_config(
             if not os.access(os.path.split(config_loc)[0], os.W_OK):
                 msg = "Cannot write to {}".format(config_loc)
                 raise ConfigWritePermissionsError(msg)
-        config_location = config_loc
-        found_config = True
+        config_location = pathlib.Path(config_loc)
     else:
-        config_location = os.environ.get("AUDIO_FEEDER_CONFIG", None)
+        config_env_var = os.environ.get("AUDIO_FEEDER_CONFIG", None)
         falling_back = False
-        found_config = False
-        if config_location is not None:
-            if not os.path.exists(config_location):
+        if config_env_var is not None:
+            config_location = pathlib.Path(config_env_var)
+            if not config_location.exists():
                 falling_back = True
-            else:
-                found_config = True
 
-        if not found_config:
+        if falling_back or config_location is None:
             config_locs = [config_location] if config_location else []
             for config_location in CONFIG_LOCATIONS:
                 config_locs.append(config_location)
-                if os.path.exists(config_location):
-                    found_config = True
+                if config_location.exists():
                     break
+            else:
+                config_location = None
 
         if falling_back:
             msg = (
                 "Could not find config file from environment variable:"
                 + " {},".format(os.environ["AUDIO_RSS_CONFIG"])
             )
-            if found_config:
-                msg += ", using {} instead.".format(config_location)
+            if config_location is not None:
+                msg += f", using {config_location} instead."
             else:
                 msg += ", using baseline configuration."
 
             warnings.warn(msg, RuntimeWarning)
 
-    if found_config and os.path.exists(config_location):
+    if config_location is not None and config_location.exists():
         new_conf = Configuration.from_file(config_location, **kwargs)
-        get_configuration._configuration = new_conf
     else:
-        if not found_config:
+        if config_location is None:
             for config_location in config_locs:
-                if not os.fspath(config_location).endswith(".yml"):
+                if not config_location.suffix == ".yml":
                     continue
 
-                config_dir = os.path.split(config_location)[0]
+                config_dir = config_location.parent
                 if os.access(config_dir, os.W_OK):
                     break
             else:
                 config_location = None
 
         new_conf = Configuration(config_loc_=config_location, **kwargs)
-        get_configuration._configuration = new_conf
 
         if config_location is not None:
             logging.info("Creating configuration file at {}".format(config_location))
 
-            get_configuration._configuration.to_file(config_location)
+            new_conf.to_file(config_location)
+    return new_conf
 
 
+@functools.lru_cache(None)
 def get_configuration() -> Configuration:
     """
     On first call, this loads the configuration object, on subsequent calls,
     this returns the original configuration object.
     """
-    config_obj = getattr(get_configuration, "_configuration", None)
-    if config_obj is not None:
-        return config_obj
-
-    init_config()
-
-    return get_configuration._configuration
+    return init_config()
 
 
-def read_from_config(field):
+def read_from_config(field: str) -> typing.Any:
     """
     Convenience method for accessing specific fields from the configuration
     object.

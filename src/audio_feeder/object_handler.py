@@ -7,12 +7,12 @@ import functools
 import types
 import typing
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence, Union
 
 import attrs
 
 from ._compat import Self
-from ._db_types import TableName
+from ._db_types import ID, TableName
 from ._object_types import SchemaObject, SchemaType, TypeName
 
 
@@ -45,7 +45,7 @@ def _register_type(table_name: str) -> typing.Callable[[_ST], _ST]:
 
 
 class BaseObject:
-    id: int
+    id: ID
 
     def to_dict(self) -> typing.Mapping[str, typing.Any]:
         return attrs.asdict(self)
@@ -64,15 +64,15 @@ class BaseObject:
 @_register_type("entries")
 @attrs.define(slots=False, repr=True)
 class Entry(BaseObject):
-    id: int = attrs.field(metadata={"required": True, "primary_key": True})
-    path: Optional[Path] = None
+    id: ID = attrs.field(metadata={"required": True, "primary_key": True})
+    path: Path = attrs.field(metadata={"required": True})
     cover_images: Optional[Sequence[Path]] = None
     date_added: Optional[datetime.datetime] = None
     last_modified: Optional[datetime.datetime] = None
 
     type: Optional[str] = None
     table: Optional[str] = None
-    data_id: Optional[int] = None
+    data_id: ID = attrs.field(default=None, metadata={"required": True})
     hashseed: Optional[int] = None
 
 
@@ -81,7 +81,7 @@ class Entry(BaseObject):
 class Book(BaseObject):
     """Represents a book."""
 
-    id: int = attrs.field(metadata={"required": True, "primary_key": True})
+    id: ID = attrs.field(metadata={"required": True, "primary_key": True})
 
     # Book information
     isbn: Optional[str] = None
@@ -106,7 +106,7 @@ class Book(BaseObject):
     subtitle: Optional[str] = None
 
     authors: Optional[Sequence[str]] = None
-    author_ids: Optional[Sequence[str]] = attrs.field(
+    author_ids: Optional[Sequence[ID]] = attrs.field(
         default=None,
         metadata={
             "foreign_key": "authors.id",
@@ -134,7 +134,7 @@ class Book(BaseObject):
     series_name: Optional[Sequence[str]] = None
     series_number: Optional[Sequence[int]] = None
 
-    cover_images: Optional[Mapping[str, Mapping[str, str]]] = None
+    cover_images: Optional[Mapping[str, Union[Path, Mapping[str, str]]]] = None
 
     language: Optional[str] = None
 
@@ -144,7 +144,7 @@ class Book(BaseObject):
 class Author(BaseObject):
     """Represents a book author."""
 
-    id: int = attrs.field(metadata={"required": True, "primary_key": True})
+    id: ID = attrs.field(metadata={"required": True, "primary_key": True})
 
     # Author information
     name: Optional[str] = None
@@ -174,7 +174,7 @@ class Author(BaseObject):
 class Series(BaseObject):
     """Represents a related series of books or other data items."""
 
-    id: int = attrs.field(metadata={"required": True, "primary_key": True})
+    id: ID = attrs.field(metadata={"required": True, "primary_key": True})
 
     # Series information
     name: Optional[str] = attrs.field(

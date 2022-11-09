@@ -4,10 +4,9 @@ This exists for compatibility while the old database_handler code still exists.
 """
 import typing
 
-from ._object_types import SchemaObject
+from ._object_types import ID, SchemaObject
 from ._useful_types import PathType
 
-ID = typing.NewType("ID", int)
 TableName = typing.NewType("TableName", str)
 Table = typing.Mapping[ID, SchemaObject]
 MutableTable = typing.MutableMapping[ID, SchemaObject]

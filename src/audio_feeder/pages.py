@@ -210,10 +210,12 @@ def _update_db() -> None:
 
     _log_update_output("Updating audiobooks from all directories.")
     path = resolver.Resolver().resolve_media(".").path
+    assert path is not None
 
     book_updater = updater.BookDatabaseUpdater(path)
 
-    ops = [
+    OpFunction = typing.Callable[[typing.Any], typing.Any]
+    ops: typing.Sequence[typing.Tuple[OpFunction, str]] = [
         (book_updater.update_db_entries, "Updating database entries."),
         (book_updater.assign_books_to_entries, "Assigning books to entries"),
         (book_updater.update_book_metadata, "Updating book metadata"),
@@ -228,8 +230,8 @@ def _update_db() -> None:
         for op, log_output in ops:
             _log_update_output(log_output)
             op(db)
-            dh.save_database(db)
 
+        dh.save_database(db)
         _clear_book_caches()
         _log_update_output("Reloading database")
         dh.get_database(refresh=True)

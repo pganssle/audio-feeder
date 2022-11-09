@@ -95,7 +95,7 @@ def get_database_table(
 
 def get_data_obj(
     entry_obj, database: typing.Optional[Database] = None
-) -> oh.BaseObject:
+) -> oh.SchemaObject:
     """
     Given an :class:`object_handler.Entry` object, return the corresponding data
     object, loaded from the appropriate table.

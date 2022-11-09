@@ -21,7 +21,7 @@ class Resolver:
     def __init__(
         self,
         config: typing.Optional[Configuration] = None,
-        qr_generator: "QRGenerator" = None,
+        qr_generator: typing.Optional["QRGenerator"] = None,
     ):
         if config is None:
             config = get_configuration()
@@ -62,12 +62,16 @@ class Resolver:
 
         qr_fl = FileLocation(rel_save_path, self.static_url, self.static_path)
 
-        if not os.path.exists(qr_fl.path):
-            qr_cache_loc_full = os.path.split(qr_fl.path)[0]
-            if not os.path.exists(qr_cache_loc_full):
-                os.makedirs(qr_cache_loc_full)
+        qr_fl_path = qr_fl.path
 
-            self.qr_generator.generate_qr(url, qr_fl.path)
+        # This should always be true if path_base is specified for FileLocation
+        assert qr_fl_path is not None
+        if not qr_fl_path.exists():
+            qr_cache_loc_full = qr_fl_path.parent
+            if not qr_cache_loc_full.exists():
+                qr_cache_loc_full.mkdir(parents=True)
+
+            self.qr_generator.generate_qr(url, qr_fl_path)
 
         return qr_fl
 
@@ -84,7 +88,9 @@ class QRGenerator:
     Class for generating QR codes on demand
     """
 
-    def __init__(self, fmt: str = "png", version: int = None, **qr_options):
+    def __init__(
+        self, fmt: str = "png", version: typing.Optional[int] = None, **qr_options
+    ):
         if fmt == "svg":
             image_factory = SvgPathImage
             self.extension: str = ".svg"

@@ -57,7 +57,9 @@ def run(host, port, config, profile):
     app.static_folder = read_from_config("static_media_path")
 
     if profile:
-        from werkzeug.contrib.profiler import ProfilerMiddleware
+        from werkzeug.contrib.profiler import (
+            ProfilerMiddleware,  # type: ignore[import]
+        )
 
         app.config["PROFILE"] = True
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir=".profile")
@@ -123,27 +125,20 @@ def update(content_type, reload_metadata, path):
     print("Loading all new entries.")
     updater.update_db_entries(db)
 
-    dh.save_database(db)  # Save as we progress
-
     print("Loading books associated with entries.")
     updater.assign_books_to_entries(db)
-
-    dh.save_database(db)
 
     updater.update_book_metadata(
         db, pbar=pbar("Loading book metadata:"), reload_metadata=reload_metadata
     )
 
-    dh.save_database(db)
-
     print("Updating author database")
     updater.update_author_db(db)
-
-    dh.save_database(db)
 
     print("Updating book covers")
     updater.update_cover_images(db)
 
+    print("Saving database")
     dh.save_database(db)
 
 
@@ -341,7 +336,7 @@ def load(overwrite, output):
         yaml.dump(books_out, stream=f, default_flow_style=False)
 
 
-@find_missing_books.command()
+@find_missing_books.command("update")
 @click.option(
     "-i",
     "--input",
@@ -349,7 +344,7 @@ def load(overwrite, output):
     default="missing.yml",
     help="Where to load the missing books from.",
 )
-def update(**kwargs):
+def update_missing_books(**kwargs):
     import yaml
 
     from . import database_handler as dh

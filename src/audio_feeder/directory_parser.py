@@ -7,6 +7,11 @@ import typing
 from ._useful_types import PathType
 
 
+class _SupportsSorting(typing.Protocol):
+    def __lt__(self, other: typing.Any) -> bool:
+        ...
+
+
 class BaseAudioLoader:
     """
     A base class that defines the interface for all audio loader classes.
@@ -33,7 +38,7 @@ class BaseAudioLoader:
         raise NotImplementedError("Function must be implemented in child classes")
 
     @classmethod
-    def natural_sort_key(cls, value: str) -> typing.Sequence[typing.Union[str, int]]:
+    def natural_sort_key(cls, value: str) -> _SupportsSorting:
         """
         This is a sort key to do a "natural" lexographic sort, the string is
         broken up into segments of strings and numbers, so that, e.g. `'Str 2'`
@@ -45,8 +50,25 @@ class BaseAudioLoader:
         :return:
             Returns a book name tokenized such that it can be sorted.
         """
-        o = itertools.groupby(value, key=str.isdigit)
+
+        # We prepend each string with \0 to ensure that the parity is always
+        # the same. The final return value has type (str, int, str, int...),
+        # so comparing them always compares strings to strings and ints to
+        # ints, so long as we always start with a string. By prepending \0,
+        # it makes it so that any strings with integers at the beginning sort
+        # before strings with non-integers at the beginning.
+        value = "\0" + value
+
+        # First we break the string up into groups by number and string, so:
+        # "ab12q" ⇒ ((True, ("a", "b")), (False, ("1", "2")), (True, ("q",)))
+        o: typing.Iterable = itertools.groupby(value, key=str.isdecimal)
+
+        # Next we re-stringify the iterables in each group, so:
+        # ((True, "ab"), (False, "12"), (True, "q"))
         o = ((k, "".join(g)) for k, g in o)
+
+        # Finally, we turn all the integer strings into actual integers, so that
+        # the integers will compare by their number, not by the string.
         o = ((int(v) if k else v) for k, v in o)
 
         return tuple(o)
@@ -176,7 +198,7 @@ class AudiobookLoader(BaseAudioLoader):
         :return:
             Returns a :py:object:`list` of authors.
         """
-        o = creators.split(" & ")
+        o: typing.Iterable[str] = creators.split(" & ")
         o = itertools.chain.from_iterable(x.split(" and ") for x in o)
         o = itertools.chain.from_iterable(x.split(", ") for x in o)
 

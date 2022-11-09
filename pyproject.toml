@@ -66,9 +66,25 @@ known_third_party=[
     "PIL",
     "progressbar2",
     "pytest",
-    "pytz",
     "qrcode",
     "requests"
 ]
 multi_line_output=3
 use_parentheses=true
+
+[tool.mypy]
+exclude = ["data/"]
+show_error_codes = true
+enable_recursive_aliases = true
+
+[[tool.mypy.overrides]]
+module = "qrcode.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "progressbar.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "werkzeug.*"
+ignore_missing_imports = true

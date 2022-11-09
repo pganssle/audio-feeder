@@ -47,7 +47,7 @@ class _ConfigProperty:
     def __init__(self, prop_name):
         self.prop_name = prop_name
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: nocover
         return self.__class__.__name__ + "({})".format(self.prop_name)
 
 

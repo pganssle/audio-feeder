@@ -8,7 +8,7 @@ from ._useful_types import PathType
 
 
 class _SupportsSorting(typing.Protocol):
-    def __lt__(self, other: typing.Any) -> bool:
+    def __lt__(self, other: typing.Any) -> bool:  # pragma: nocover
         ...
 
 
@@ -18,23 +18,31 @@ class BaseAudioLoader:
     """
 
     @classmethod
-    def is_audio(cls, dirloc: PathType) -> bool:
+    def is_audio(cls, dirloc: PathType) -> bool:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes")
 
     @classmethod
-    def audio_files(cls, dir_loc: PathType) -> typing.Sequence[pathlib.Path]:
+    def audio_files(
+        cls, dir_loc: PathType
+    ) -> typing.Sequence[pathlib.Path]:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes.")
 
     @classmethod
-    def audio_cover(cls, dir_loc: PathType) -> typing.Optional[pathlib.Path]:
+    def audio_cover(
+        cls, dir_loc: PathType
+    ) -> typing.Optional[pathlib.Path]:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes.")
 
     @classmethod
-    def parse_creator_names(cls, creators: str) -> typing.Sequence[str]:
+    def parse_creator_names(
+        cls, creators: str
+    ) -> typing.Sequence[str]:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes")
 
     @classmethod
-    def parse_audio_info(cls, dir_path: PathType) -> typing.Mapping[str, typing.Any]:
+    def parse_audio_info(
+        cls, dir_path: PathType
+    ) -> typing.Mapping[str, typing.Any]:  # pragma: nocover
         raise NotImplementedError("Function must be implemented in child classes")
 
     @classmethod
@@ -237,7 +245,7 @@ def load_all_audio(
     base_dir: PathType,
     *,
     visited_dirs: typing.Optional[typing.Set[pathlib.Path]] = None,
-    audio_loader_class: typing.Type[BaseAudioLoader] = AudiobookLoader
+    audio_loader_class: typing.Type[BaseAudioLoader] = AudiobookLoader,
 ) -> typing.Sequence[pathlib.Path]:
     """
     Traverse a directory and find all the directories that contain an

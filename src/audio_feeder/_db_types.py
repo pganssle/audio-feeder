@@ -13,7 +13,7 @@ MutableTable = typing.MutableMapping[ID, SchemaObject]
 Database = typing.Mapping[TableName, Table]
 MutableDatabase = typing.MutableMapping[TableName, MutableTable]
 
-
+# pragma: nocover
 class DatabaseHandler(typing.Protocol):
     def __init__(self, db_loc: PathType):
         ...

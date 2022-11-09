@@ -40,5 +40,3 @@ def config_defaults(tmp_path_factory):
     test_config_file = pathlib.Path(__file__).parent / "data/config.yml"
     config_loc = config_dir / "config.yml"
     shutil.copy(test_config_file, config_loc)
-
-    audio_feeder.config.init_config(config_loc=config_loc)

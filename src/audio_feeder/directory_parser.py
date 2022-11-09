@@ -221,8 +221,7 @@ class AudiobookLoader(BaseAudioLoader):
 
         m = cls.DIR_NAME_RE.match(dir_name)
         if m is None:
-            msg = "Directory name does not match the format: {}"
-            msg = msg.format(dir_name)
+            msg = f"Directory name does not match the format: {dir_name}"
 
             raise NoAudiobookInformation(msg)
 

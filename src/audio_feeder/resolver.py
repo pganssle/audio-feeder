@@ -21,7 +21,7 @@ class Resolver:
     def __init__(
         self,
         config: typing.Optional[Configuration] = None,
-        qr_generator: "QRGenerator" = None,
+        qr_generator: typing.Optional["QRGenerator"] = None,
     ):
         if config is None:
             config = get_configuration()
@@ -88,7 +88,9 @@ class QRGenerator:
     Class for generating QR codes on demand
     """
 
-    def __init__(self, fmt: str = "png", version: int = None, **qr_options):
+    def __init__(
+        self, fmt: str = "png", version: typing.Optional[int] = None, **qr_options
+    ):
         if fmt == "svg":
             image_factory = SvgPathImage
             self.extension: str = ".svg"

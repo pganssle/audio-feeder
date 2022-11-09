@@ -16,7 +16,12 @@ class FileLocation:
     #: This is a regular expression used to split the URL base into <protocol://><url>
     PROTOCOL_SPLIT_RE = re.compile("^(?P<protocol>[^:/]+://)(?P<url>.+)$")
 
-    def __init__(self, rel_path: PathType, url_base: str, path_base: PathType = None):
+    def __init__(
+        self,
+        rel_path: PathType,
+        url_base: str,
+        path_base: typing.Optional[PathType] = None,
+    ):
         """
         :param rel_path:
             The path of the file, relative to both the url_base and the

@@ -93,5 +93,9 @@ module = "progressbar.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = "dotenv.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "werkzeug.*"
 ignore_missing_imports = true

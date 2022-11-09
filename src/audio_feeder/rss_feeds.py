@@ -143,13 +143,16 @@ def wrap_field(field: _T) -> _T:
         return field
 
     if html_chars.search(field):
-        return "<![CDATA[" + field + "]]>"
+        out: str = "<![CDATA[" + field + "]]>"
     else:
         # If there's already escaped data like &amp;, I want to unescape it
         # first, so I can re-escape *everything*
-        field = saxutils.unescape(field)
+        unescaped = saxutils.unescape(field)
 
-        return saxutils.escape(field)
+        out = saxutils.escape(unescaped)
+
+    # This is a bug in mypy: https://github.com/python/cpython/issues/99272
+    return typing.cast(_T, out)
 
 
 def _urljoin_dir(dir_, fragment):

@@ -40,7 +40,8 @@ class _PathJsonType(sa.types.TypeDecorator):
     impl = sa.types.String
     cache_ok = True
 
-    def process_bind_param(self, value, dialect) -> str:
+    # Typing bug in sqlalchemy-stubs
+    def process_bind_param(self, value, dialect) -> str:  # type: ignore[override]
         return json.dumps(value, cls=_PathEncoder)
 
 
@@ -71,8 +72,11 @@ class _CoverImages(_PathJsonType):
         return out
 
 
-def _parse_nested_type(t: type) -> typing.Tuple:
-    container_type = typing.get_origin(t)
+_NestedType = typing.Union[type, typing.Tuple["_NestedType", ...]]
+
+
+def _parse_nested_type(t: type) -> _NestedType:
+    container_type: typing.Optional[type] = typing.get_origin(t)
     if container_type is None:
         return t
 
@@ -90,7 +94,7 @@ _CanonicalMapType = typing.get_origin(typing.Mapping[None, None])
 _CanonicalSequenceType = typing.get_origin(typing.Sequence[None])
 
 
-def _map_type(t: type) -> sa.sql.type_api.TypeEngine:
+def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
     if t == int or t == ID:
         return sa.Integer
     elif t == str:
@@ -164,7 +168,8 @@ def _map_tables() -> typing.Mapping[TableName, sa.Table]:
 
     for table_name, type_name in oh.TABLE_MAPPING.items():
         base_type = oh.TYPE_MAPPING[type_name]
-        columns = [_attr_to_column(attr) for attr in attrs.fields(base_type)]
+        # Drop type ignore when attrs >= 22.1 is released
+        columns = [_attr_to_column(attr) for attr in attrs.fields(base_type)]  # type: ignore[arg-type]
 
         table = sa.Table(table_name, metadata_object, *columns)
 

@@ -17,18 +17,30 @@ import yaml
 from ._useful_types import PathType
 from .file_location import FileLocation
 
-CONFIG_DIRS = [pathlib.Path.cwd()] + [
-    pathlib.Path(os.path.expanduser(x))
-    for x in (
-        "/etc/audio_feeder/",
-        "~/.config/audio_feeder/",
-    )
+CONFIG_NAMES: typing.Final[typing.Sequence[str]] = ["config.yml"]
+DEFAULT_CONFIG_LOCS: typing.Final[typing.Sequence[str]] = [
+    "/etc/audio_feeder",
+    "~/.config/audio_feeder",
 ]
 
-CONFIG_NAMES = ["config.yml"]
-CONFIG_LOCATIONS = list(
-    (bdir / cfile) for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
-)
+
+def config_dirs(with_pwd=True) -> typing.Sequence[pathlib.Path]:
+    if (config_env_var := os.environ.get("AF_CONFIG_DIR", None)) is not None:
+        return (pathlib.Path(config_env_var),)
+
+    if with_pwd:
+        out = [pathlib.Path.cwd()]
+    else:
+        out = []
+
+    out.extend(map(pathlib.Path, map(os.path.expanduser, DEFAULT_CONFIG_LOCS)))  # type: ignore[arg-type]
+    return out
+
+
+def config_locations(with_pwd=True) -> typing.Sequence[pathlib.Path]:
+    return [
+        (bdir / cfile) for bdir, cfile in product(config_dirs(with_pwd), CONFIG_NAMES)
+    ]
 
 
 class _ConfigProperty:
@@ -238,7 +250,7 @@ def init_config(
 
         if falling_back or config_location is None:
             config_locs = [config_location] if config_location else []
-            for config_location in CONFIG_LOCATIONS:
+            for config_location in config_locations(with_pwd=True):
                 config_locs.append(config_location)
                 if config_location.exists():
                     break

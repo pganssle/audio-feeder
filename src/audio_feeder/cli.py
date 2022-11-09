@@ -194,7 +194,7 @@ def install(config_dir, config_name):
 
     # Assign a configuration directory
     if config_dir is None:
-        for config_dir in config.CONFIG_DIRS:
+        for config_dir in config.config_dirs(with_pwd=False):
             if not config_dir.exists():
                 try:
                     os.makedirs(config_dir)

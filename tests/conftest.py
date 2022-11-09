@@ -1,4 +1,5 @@
 import importlib.resources
+import os
 import pathlib
 import shutil
 import typing
@@ -31,7 +32,7 @@ def copy_data_structure(dest: pathlib.Path):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def config_defaults(tmp_path_factory):
+def config_defaults(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     config_dir = tmp_path_factory.mktemp("config")
     templates_loc = config_dir / "templates"
     static_loc = config_dir / "static"
@@ -40,3 +41,8 @@ def config_defaults(tmp_path_factory):
     test_config_file = pathlib.Path(__file__).parent / "data/config.yml"
     config_loc = config_dir / "config.yml"
     shutil.copy(test_config_file, config_loc)
+
+    os.environ["AF_CONFIG_DIR"] = os.environ.get(
+        "AF_CONFIG_DIR", os.fspath(config_loc.parent)
+    )
+    yield config_loc

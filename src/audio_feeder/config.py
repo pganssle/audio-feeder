@@ -14,6 +14,7 @@ from itertools import product
 
 import yaml
 
+from ._compat import Self
 from ._useful_types import PathType
 from .file_location import FileLocation
 
@@ -101,12 +102,8 @@ class Configuration:
         "{{URL}}": _ConfigProperty("base_url"),
     }
 
-    def __init__(self, config_loc_: typing.Optional[PathType] = None, **kwargs):
-        if config_loc_ is None:
-            # If configuration location is not specified, we'll use pwd.
-            config_loc_ = pathlib.Path.cwd() / "config.yml"
-
-        self.config_location: pathlib.Path = pathlib.Path(config_loc_)
+    def __init__(self, config_loc_: pathlib.Path, **kwargs):
+        self.config_location: pathlib.Path = config_loc_
         self.config_directory: pathlib.Path = self.config_location.parent
 
         base_kwarg = self.PROPERTIES.copy()
@@ -140,9 +137,9 @@ class Configuration:
         )
 
     @classmethod
-    def from_file(cls, file_loc, **kwargs):
-        if not os.path.exists(file_loc):
-            raise IOError("File not found: {}".format(file_loc))
+    def from_file(cls: typing.Type[Self], file_loc: pathlib.Path, **kwargs) -> Self:
+        if not file_loc.exists():
+            raise IOError(f"File not found: {file_loc}")
 
         with open(file_loc, "r") as yf:
             config = yaml.safe_load(yf)
@@ -151,7 +148,7 @@ class Configuration:
 
         return cls(config_loc_=file_loc, **config)
 
-    def to_file(self, file_loc):
+    def to_file(self, file_loc: pathlib.Path) -> None:
         """
         Dumps the configuration to a YAML file in the specified location.
 
@@ -281,7 +278,7 @@ def init_config(
                 if os.access(config_dir, os.W_OK):
                     break
             else:
-                config_location = None
+                raise ValueError("No valid configuration location found.")
 
         new_conf = Configuration(config_loc_=config_location, **kwargs)
 

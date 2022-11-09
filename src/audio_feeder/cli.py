@@ -57,7 +57,9 @@ def run(host, port, config, profile):
     app.static_folder = read_from_config("static_media_path")
 
     if profile:
-        from werkzeug.contrib.profiler import ProfilerMiddleware
+        from werkzeug.contrib.profiler import (
+            ProfilerMiddleware,  # type: ignore[import]
+        )
 
         app.config["PROFILE"] = True
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir=".profile")
@@ -334,7 +336,7 @@ def load(overwrite, output):
         yaml.dump(books_out, stream=f, default_flow_style=False)
 
 
-@find_missing_books.command()
+@find_missing_books.command("update")
 @click.option(
     "-i",
     "--input",
@@ -342,7 +344,7 @@ def load(overwrite, output):
     default="missing.yml",
     help="Where to load the missing books from.",
 )
-def update(**kwargs):
+def update_missing_books(**kwargs):
     import yaml
 
     from . import database_handler as dh

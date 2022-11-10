@@ -3,7 +3,7 @@ base_protocol: http
 base_truncation_point: 500
 cover_cache_path: images/entry_cover_cache
 css_loc: css
-database_loc: '{{CONFIG}}/database/db'
+database_loc: '{{CONFIG}}/database/db.sqlite'
 entry_templates_loc: '{{TEMPLATES}}/entry_types'
 main_css_files:
 - main.css

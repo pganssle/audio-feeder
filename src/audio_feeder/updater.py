@@ -1,8 +1,11 @@
+import functools
 import itertools
+import logging
 import math
 import os
 import pathlib
 import shutil
+import threading
 import typing
 import warnings
 from datetime import datetime, timezone
@@ -30,6 +33,12 @@ from .resolver import get_resolver
 
 _rand = SystemRandom()
 _T = typing.TypeVar("_T")
+
+# This technically violates PEP 484, but it works. See
+# https://github.com/python/mypy/issues/14023 for more details.
+_PBar = typing.TypeVar(
+    "_PBar", bound=typing.Callable[[typing.Iterable[_T]], typing.Iterable[_T]]
+)
 
 
 class IDHandler:
@@ -72,6 +81,7 @@ class BookDatabaseUpdater:
     def __init__(
         self,
         books_location: PathType,
+        *,
         entry_table: TableName = TableName("entries"),
         table: typing.Optional[TableName] = None,
         book_loader: typing.Type[dp.BaseAudioLoader] = dp.AudiobookLoader,
@@ -159,9 +169,7 @@ class BookDatabaseUpdater:
     def update_book_metadata(
         self,
         database: MutableDatabase,
-        pbar: typing.Optional[
-            typing.Callable[[typing.Iterable[_T]], typing.Iterable[_T]]
-        ] = None,
+        pbar: typing.Optional[_PBar] = None,
         reload_metadata: bool = False,
     ) -> MutableDatabase:
         book_table = typing.cast(
@@ -172,15 +180,15 @@ class BookDatabaseUpdater:
             x.source_name for x in self.metadata_loaders
         )
 
-        # Go through and try to update metadata.
         if pbar is None:
-            pbar = _pbar_stub
+            # No idea why this is necessary, but support for this sort of thing
+            # is super sketchy anyway, so 🤷
+            pbar_resolved: _PBar = typing.cast(_PBar, _pbar_stub)
+        else:
+            pbar_resolved = pbar
 
-        # TODO: This is a workaround for https://github.com/python/mypy/issues/14023
-        # Remove the explicit defintions and type: ignore when that is fixed
-        book_id: ID
-        book_obj: oh.Book
-        for book_id, book_obj in pbar(book_table.items()):  # type: ignore
+        # Go through and try to update metadata.
+        for book_id, book_obj in pbar_resolved(book_table.items()):
             for loader in self.metadata_loaders:
                 # Skip anything that's already had metadata loaded for it.
                 if not reload_metadata and (
@@ -682,6 +690,85 @@ class BookDatabaseUpdater:
     def _book_key(cls, authors: typing.Sequence[str], title: str) -> typing.Hashable:
         """The key should be hashable and reproducible"""
         return (tuple(sorted(authors)), title)
+
+
+###
+# Trigger update action
+UPDATE_OUTPUT: typing.Sequence[str] = []  # TODO: Replace with logging-based solution
+UPDATE_IN_PROGRESS: bool = False
+
+
+def _log_update_output(update: str) -> None:
+    global UPDATE_OUTPUT
+    if UPDATE_OUTPUT is None:
+        UPDATE_OUTPUT = []
+
+    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).append(update)
+    logging.info(update)
+
+
+def _clear_update_output() -> None:
+    global UPDATE_OUTPUT
+    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).clear()
+
+
+def _update_books(
+    update_path: str, progress_bar: typing.Optional[_PBar] = None
+) -> None:
+    """
+    Trigger an update to the database.
+    """
+
+    _log_update_output("Updating audiobooks from all directories.")
+    path = get_resolver().resolve_media(update_path).path
+    assert path is not None
+
+    book_updater = BookDatabaseUpdater(path)
+
+    OpFunction = typing.Callable[[typing.Any], typing.Any]
+    ops: typing.Sequence[typing.Tuple[OpFunction, str]] = [
+        (book_updater.update_db_entries, "Updating database entries."),
+        (book_updater.assign_books_to_entries, "Assigning books to entries"),
+        (
+            functools.partial(book_updater.update_book_metadata, pbar=progress_bar),
+            "Updating book metadata",
+        ),
+        (book_updater.update_author_db, "Updating author db"),
+        (book_updater.update_cover_images, "Updating cover images"),
+    ]
+
+    try:
+        _log_update_output("Loading existing database")
+        db = dh.load_database()
+
+        for op, log_output in ops:
+            _log_update_output(log_output)
+            op(db)
+
+        dh.save_database(db)
+        cache_utils.clear_caches("books")
+        _log_update_output("Reloading database")
+        dh.get_database(refresh=True)
+    finally:
+        _clear_update_output()
+
+        global UPDATE_IN_PROGRESS
+        UPDATE_IN_PROGRESS = False
+
+
+def update(
+    content_type: typing.Optional[str] = None,
+    path: typing.Optional[str] = None,
+    progress_bar: typing.Optional[_PBar] = None,
+) -> None:
+
+    if path is None:
+        path = "."
+
+    if content_type is None or content_type == "books":
+        _update_books(update_path=path, progress_bar=progress_bar)
+    else:
+        raise ValueError(f"Unknown content type: {content_type}")
 
 
 ###

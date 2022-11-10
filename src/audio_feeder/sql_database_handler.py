@@ -83,13 +83,6 @@ def _parse_nested_type(t: type) -> _NestedType:
     return (container_type, tuple(map(_parse_nested_type, typing.get_args(t))))
 
 
-def _has_path(parsed_type) -> bool:
-    if isinstance(parsed_type, tuple):
-        return any(map(_has_path, parsed_type))
-    else:
-        return parsed_type == pathlib.Path
-
-
 _CanonicalMapType = typing.get_origin(typing.Mapping[None, None])
 _CanonicalSequenceType = typing.get_origin(typing.Sequence[None])
 
@@ -131,7 +124,7 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
                     return _CoverImages
             return sa.JSON
 
-        raise TypeError(f"Unsupported type: {t}")
+        raise TypeError(f"Unsupported type: {t}")  # pragma: nocover
 
 
 def _attr_to_column(a: attrs.Attribute) -> sa.Column:

@@ -3,6 +3,7 @@ import os
 import pathlib
 import typing
 
+from . import cache_utils
 from . import object_handler as oh
 from ._db_types import (
     ID,
@@ -16,6 +17,7 @@ from ._useful_types import PathType
 from .config import read_from_config
 
 
+@cache_utils.register_function_cache("misc")
 @functools.lru_cache(None)
 def _get_handler_by_suffix(suffix: str) -> typing.Type[DatabaseHandler]:
     suffix = suffix.lstrip(".")
@@ -31,12 +33,14 @@ def _get_handler_by_suffix(suffix: str) -> typing.Type[DatabaseHandler]:
     raise ValueError(f"Cannot parse suffix: {suffix}")
 
 
+@cache_utils.register_function_cache("misc")
 @functools.lru_cache
 def _get_handler_from_db_loc(db_loc: PathType) -> DatabaseHandler:
     handler_type = _get_handler_by_suffix(pathlib.Path(db_loc).suffix)
     return handler_type(db_loc)
 
 
+@cache_utils.register_function_cache("database")
 @functools.lru_cache
 def _get_handler(db_loc: typing.Optional[PathType]) -> DatabaseHandler:
     db_loc = _get_db_loc(db_loc)
@@ -67,6 +71,7 @@ def save_database(database: Database, db_loc: typing.Optional[PathType] = None) 
     return handler.save_database(database)
 
 
+@cache_utils.register_function_cache("database")
 @functools.lru_cache
 def _get_default_database_cached() -> Database:
     return load_database()

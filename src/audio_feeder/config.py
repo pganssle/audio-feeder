@@ -14,28 +14,42 @@ from itertools import product
 
 import yaml
 
+from . import cache_utils
+from ._compat import Self
 from ._useful_types import PathType
 from .file_location import FileLocation
 
-CONFIG_DIRS = [pathlib.Path.cwd()] + [
-    pathlib.Path(os.path.expanduser(x))
-    for x in (
-        "/etc/audio_feeder/",
-        "~/.config/audio_feeder/",
-    )
+CONFIG_NAMES: typing.Final[typing.Sequence[str]] = ["config.yml"]
+DEFAULT_CONFIG_LOCS: typing.Final[typing.Sequence[str]] = [
+    "/etc/audio_feeder",
+    "~/.config/audio_feeder",
 ]
 
-CONFIG_NAMES = ["config.yml"]
-CONFIG_LOCATIONS = list(
-    (bdir / cfile) for bdir, cfile in product(CONFIG_DIRS, CONFIG_NAMES)
-)
+
+def config_dirs(with_pwd=True) -> typing.Sequence[pathlib.Path]:
+    if (config_env_var := os.environ.get("AF_CONFIG_DIR", None)) is not None:
+        return (pathlib.Path(config_env_var),)
+
+    if with_pwd:
+        out = [pathlib.Path.cwd()]
+    else:
+        out = []
+
+    out.extend(map(pathlib.Path, map(os.path.expanduser, DEFAULT_CONFIG_LOCS)))  # type: ignore[arg-type]
+    return out
+
+
+def config_locations(with_pwd=True) -> typing.Sequence[pathlib.Path]:
+    return [
+        (bdir / cfile) for bdir, cfile in product(config_dirs(with_pwd), CONFIG_NAMES)
+    ]
 
 
 class _ConfigProperty:
     def __init__(self, prop_name):
         self.prop_name = prop_name
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: nocover
         return self.__class__.__name__ + "({})".format(self.prop_name)
 
 
@@ -60,7 +74,7 @@ class Configuration:
             ("rss_entry_templates_loc", "{{TEMPLATES}}/rss/entry_types"),
             # Deprecated — No longer has any effect
             ("schema_loc", "{{CONFIG}}/database/schema.yml"),
-            ("database_loc", "{{CONFIG}}/database/db"),
+            ("database_loc", "{{CONFIG}}/database/db.sqlite"),
             ("static_media_path", "{{CONFIG}}/static"),
             ("static_media_url", "{{URL}}/static"),
             # Relative to static
@@ -89,12 +103,8 @@ class Configuration:
         "{{URL}}": _ConfigProperty("base_url"),
     }
 
-    def __init__(self, config_loc_: typing.Optional[PathType] = None, **kwargs):
-        if config_loc_ is None:
-            # If configuration location is not specified, we'll use pwd.
-            config_loc_ = pathlib.Path.cwd() / "config.yml"
-
-        self.config_location: pathlib.Path = pathlib.Path(config_loc_)
+    def __init__(self, config_loc_: pathlib.Path, **kwargs):
+        self.config_location: pathlib.Path = config_loc_
         self.config_directory: pathlib.Path = self.config_location.parent
 
         base_kwarg = self.PROPERTIES.copy()
@@ -128,9 +138,9 @@ class Configuration:
         )
 
     @classmethod
-    def from_file(cls, file_loc, **kwargs):
-        if not os.path.exists(file_loc):
-            raise IOError("File not found: {}".format(file_loc))
+    def from_file(cls: typing.Type[Self], file_loc: pathlib.Path, **kwargs) -> Self:
+        if not file_loc.exists():
+            raise IOError(f"File not found: {file_loc}")
 
         with open(file_loc, "r") as yf:
             config = yaml.safe_load(yf)
@@ -139,7 +149,7 @@ class Configuration:
 
         return cls(config_loc_=file_loc, **config)
 
-    def to_file(self, file_loc):
+    def to_file(self, file_loc: pathlib.Path) -> None:
         """
         Dumps the configuration to a YAML file in the specified location.
 
@@ -238,7 +248,7 @@ def init_config(
 
         if falling_back or config_location is None:
             config_locs = [config_location] if config_location else []
-            for config_location in CONFIG_LOCATIONS:
+            for config_location in config_locations(with_pwd=True):
                 config_locs.append(config_location)
                 if config_location.exists():
                     break
@@ -269,7 +279,7 @@ def init_config(
                 if os.access(config_dir, os.W_OK):
                     break
             else:
-                config_location = None
+                raise ValueError("No valid configuration location found.")
 
         new_conf = Configuration(config_loc_=config_location, **kwargs)
 
@@ -280,6 +290,7 @@ def init_config(
     return new_conf
 
 
+@cache_utils.register_function_cache("config")
 @functools.lru_cache(None)
 def get_configuration() -> Configuration:
     """

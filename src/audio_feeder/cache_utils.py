@@ -1,6 +1,34 @@
 """
 Functions useful for caching.
 """
+import functools
+import typing
+
+_FUNCTION_CACHES: typing.MutableMapping[str, typing.MutableSequence[typing.Any]] = {}
+
+_T = typing.TypeVar("_T")
+
+
+@functools.lru_cache(None)
+def register_function_cache(cache_type: str) -> typing.Callable[[_T], _T]:
+    def registration_decorator(f: _T) -> _T:
+        _FUNCTION_CACHES.setdefault(cache_type, []).append(f)
+        return f
+
+    return registration_decorator
+
+
+def clear_caches(cache_type: typing.Optional[str] = None) -> None:
+    """Clears all caches of a given type.
+
+    If cache_type is unspecified, all caches are cleared.
+    """
+    if cache_type is None:
+        for ct in _FUNCTION_CACHES.keys():
+            clear_caches(ct)
+    else:
+        for cache_func in _FUNCTION_CACHES.get(cache_type, ()):
+            cache_func.cache_clear()
 
 
 def populate_qr_cache(entry_table=None, resolver=None, pbar=lambda x: x):

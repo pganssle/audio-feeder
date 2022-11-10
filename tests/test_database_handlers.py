@@ -11,14 +11,6 @@ from audio_feeder import sql_database_handler as sdh
 from audio_feeder import yaml_database_handler as ydh
 
 
-@pytest.fixture
-def sql_db(tmp_path) -> typing.Iterator[pathlib.Path]:
-    db_loc = pathlib.Path(__file__).parent / "data/db.sqlite"
-    copy_loc = tmp_path / "db.sqlite"
-
-    yield copy_loc
-
-
 @pytest.fixture(
     params=[
         (pathlib.Path(__file__).parent / "data/db.sqlite", sdh.SqlDatabaseHandler),

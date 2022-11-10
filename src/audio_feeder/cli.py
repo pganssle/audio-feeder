@@ -100,46 +100,22 @@ def update(content_type, reload_metadata, path):
     The path at PATH will be recursively searched for data.
     """
     import os
+    import typing
 
     from progressbar import ETA, Bar, ProgressBar, Timer
 
-    from . import database_handler as dh
-    from .resolver import Resolver
-    from .updater import BookDatabaseUpdater
+    from . import updater as afu
 
-    def pbar(msg):
+    _T = typing.TypeVar("_T", bound=typing.Iterable)
+
+    def pbar(msg: str) -> typing.Callable[[_T], _T]:
         return ProgressBar(widgets=[msg, " ", Bar(), " ", Timer(), " ", ETA()])
 
-    # If this is a relative path, interpret it as relative to the base
-    # media path, not the cwd.
-    path = Resolver().resolve_media(path).path
-
-    if content_type in ("b", "books"):
-        updater = BookDatabaseUpdater(path)
-    else:
-        raise ValueError(f"Unknown type {content_type}")
-
-    print("Loading database")
-    db = dh.load_database()
-
-    print("Loading all new entries.")
-    updater.update_db_entries(db)
-
-    print("Loading books associated with entries.")
-    updater.assign_books_to_entries(db)
-
-    updater.update_book_metadata(
-        db, pbar=pbar("Loading book metadata:"), reload_metadata=reload_metadata
+    afu.update(
+        content_type=content_type,
+        path=path,
+        progress_bar=pbar("Loading book metadata:"),
     )
-
-    print("Updating author database")
-    updater.update_author_db(db)
-
-    print("Updating book covers")
-    updater.update_cover_images(db)
-
-    print("Saving database")
-    dh.save_database(db)
 
 
 @cli.command()
@@ -194,7 +170,7 @@ def install(config_dir, config_name):
 
     # Assign a configuration directory
     if config_dir is None:
-        for config_dir in config.CONFIG_DIRS:
+        for config_dir in config.config_dirs(with_pwd=False):
             if not config_dir.exists():
                 try:
                     os.makedirs(config_dir)

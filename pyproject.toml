@@ -72,6 +72,13 @@ known_third_party=[
 multi_line_output=3
 use_parentheses=true
 
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
 [tool.mypy]
 exclude = ["data/"]
 show_error_codes = true
@@ -83,6 +90,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "progressbar.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "dotenv.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

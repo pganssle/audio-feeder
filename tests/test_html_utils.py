@@ -26,25 +26,28 @@ def test_clean_html(input_, output):
 allowed_tags_data = [
     (
         ["a"],
-        '<a href="https://www.example.org><i>Example</i></a>',
-        '<a href="https://www.example.org>Example</a>',
+        '<a href="https://www.example.org"><i>Example</i></a>',
+        '<a href="https://www.example.org">Example</a>',
     ),
     (
         ["a"],
-        '<a href="https://www.example.org>Example</a>',
-        '<a href="https://www.example.org>Example</a>',
+        '<a href="https://www.example.org">Example</a>',
+        '<a href="https://www.example.org">Example</a>',
     ),
-    (["i"], '<a href="https://www.example.org><i>Example</i></a>', "<i>Example</i>"),
+    (
+        ["i"],
+        '<a href="https://www.example.org"><i>Example</i></a>',
+        "<div><i>Example</i></div>",
+    ),
     (
         ["a", "i"],
-        '<a href="https://www.example.org><i>Example</i></a>',
-        '<a href="https://www.example.org><i>Example</i></a>',
+        '<a href="https://www.example.org"><i>Example</i></a>',
+        '<a href="https://www.example.org"><i>Example</i></a>',
     ),
 ]
 
 
-@pytest.mark.skip(reason="LXML implementation does not drop tags.")
 @pytest.mark.parametrize("tags,input_,output", allowed_tags_data)
 def test_allowed_tags(tags, input_, output):
     actual = afhu.clean_html(input_, tag_whitelist=tags)
-    assert actual == output, actual
+    assert actual == output

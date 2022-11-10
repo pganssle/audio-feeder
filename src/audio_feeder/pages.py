@@ -20,6 +20,8 @@ from audio_feeder import rss_feeds as rf
 from audio_feeder.config import init_config, read_from_config
 from audio_feeder.resolver import get_resolver
 
+from . import cache_utils, updater
+
 root = Blueprint("root", __name__)
 
 ###
@@ -34,11 +36,13 @@ def main_index():
     return flask.redirect(flask.url_for("root.books"))
 
 
+@cache_utils.register_function_cache("books")
 @functools.lru_cache(None)
 def _book_entry_cache():
     return {}
 
 
+@cache_utils.register_function_cache("books")
 @functools.lru_cache
 def _book_nav_generator(nav_len: int, endpoint: str) -> pg.NavGenerator:
     return pg.NavGenerator(nav_len, flask.url_for(endpoint))
@@ -182,77 +186,23 @@ def rss_feed(e_id):
     return t.render(payload)
 
 
+###
+# Database updates
 UPDATE_LOCK = threading.Lock()
-UPDATE_IN_PROGRESS: bool = False
-UPDATE_OUTPUT: typing.Sequence[str] = []
-
-
-def _log_update_output(update: str) -> None:
-    global UPDATE_OUTPUT
-    if UPDATE_OUTPUT is None:
-        UPDATE_OUTPUT = []
-
-    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).append(update)
-    logging.info(update)
-
-
-def _clear_update_output() -> None:
-    global UPDATE_OUTPUT
-    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).clear()
-
-
-def _update_db() -> None:
-    """
-    Trigger an update to the database.
-    """
-
-    from . import resolver, updater
-
-    _log_update_output("Updating audiobooks from all directories.")
-    path = resolver.Resolver().resolve_media(".").path
-    assert path is not None
-
-    book_updater = updater.BookDatabaseUpdater(path)
-
-    OpFunction = typing.Callable[[typing.Any], typing.Any]
-    ops: typing.Sequence[typing.Tuple[OpFunction, str]] = [
-        (book_updater.update_db_entries, "Updating database entries."),
-        (book_updater.assign_books_to_entries, "Assigning books to entries"),
-        (book_updater.update_book_metadata, "Updating book metadata"),
-        (book_updater.update_author_db, "Updating author db"),
-        (book_updater.update_cover_images, "Updating cover images"),
-    ]
-
-    try:
-        _log_update_output("Loading existing database")
-        db = dh.load_database()
-
-        for op, log_output in ops:
-            _log_update_output(log_output)
-            op(db)
-
-        dh.save_database(db)
-        _clear_book_caches()
-        _log_update_output("Reloading database")
-        dh.get_database(refresh=True)
-    finally:
-        _clear_update_output()
-
-        global UPDATE_IN_PROGRESS
-        UPDATE_IN_PROGRESS = False
 
 
 @root.route("/update_status")
 def update_status():
-    if not UPDATE_IN_PROGRESS:
+    if not updater.UPDATE_IN_PROGRESS:
         return flask.redirect(flask.url_for("root.books"))
 
+    refresh_time = 1
     html_template = textwrap.dedent(
         """
     <html>
         <head>
             <title>Updating audiobook database</title>
-            <meta http-equiv="refresh" content="1">
+            <meta http-equiv="refresh" content="{refresh_time}">
         </head>
         <body>
             <b>Audiobook database update in progress, current status:<b><br/>
@@ -262,26 +212,26 @@ def update_status():
             </tt>
             <br/>
             <br/>
-            This page will refresh every 5 seconds until done, at which point
-            you will be redirected back to <a href="{root_url}">the main page.</a>
+            This page will refresh every {refresh_time} seconds until done, at which
+            point you will be redirected back to <a href="{root_url}">the main page.</a>
         </body>
     </html>"""
     )
 
     return html_template.format(
-        logs="<br/>\n".join(UPDATE_OUTPUT), root_url=flask.url_for("root.books")
+        logs="<br/>\n".join(updater.UPDATE_OUTPUT),
+        root_url=flask.url_for("root.books"),
+        refresh_time=refresh_time,
     )
 
 
 @root.route("/update")
 def update():
-    global UPDATE_IN_PROGRESS
     with UPDATE_LOCK:
-        if not UPDATE_IN_PROGRESS:
-            background_thread = threading.Thread(target=_update_db, daemon=True)
-            UPDATE_IN_PROGRESS = True
+        if not updater.UPDATE_IN_PROGRESS:
+            updater.UPDATE_IN_PROGRESS = True
+            background_thread = threading.Thread(target=updater.update, daemon=True)
             background_thread.start()
-
         return flask.redirect(flask.url_for("root.update_status"))
 
 
@@ -367,6 +317,7 @@ def get_entry_objects(entry_list):
             yield (entry_obj, data_obj, author_objs)
 
 
+@cache_utils.register_function_cache("misc")
 @functools.lru_cache(None)
 def get_sort_options() -> typing.Mapping[str, str]:
     return {

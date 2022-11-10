@@ -27,7 +27,7 @@ def clear_caches(cache_type: typing.Optional[str] = None) -> None:
         for ct in _FUNCTION_CACHES.keys():
             clear_caches(ct)
     else:
-        for cache_func in _FUNCTION_CACHES[cache_type]:
+        for cache_func in _FUNCTION_CACHES.get(cache_type, ()):
             cache_func.cache_clear()
 
 

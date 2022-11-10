@@ -14,6 +14,7 @@ from itertools import product
 
 import yaml
 
+from . import cache_utils
 from ._compat import Self
 from ._useful_types import PathType
 from .file_location import FileLocation
@@ -289,6 +290,7 @@ def init_config(
     return new_conf
 
 
+@cache_utils.register_function_cache("config")
 @functools.lru_cache(None)
 def get_configuration() -> Configuration:
     """

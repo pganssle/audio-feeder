@@ -20,6 +20,8 @@ from audio_feeder import rss_feeds as rf
 from audio_feeder.config import init_config, read_from_config
 from audio_feeder.resolver import get_resolver
 
+from . import cache_utils
+
 root = Blueprint("root", __name__)
 
 ###
@@ -34,11 +36,13 @@ def main_index():
     return flask.redirect(flask.url_for("root.books"))
 
 
+@cache_utils.register_function_cache("books")
 @functools.lru_cache(None)
 def _book_entry_cache():
     return {}
 
 
+@cache_utils.register_function_cache("books")
 @functools.lru_cache
 def _book_nav_generator(nav_len: int, endpoint: str) -> pg.NavGenerator:
     return pg.NavGenerator(nav_len, flask.url_for(endpoint))
@@ -367,6 +371,7 @@ def get_entry_objects(entry_list):
             yield (entry_obj, data_obj, author_objs)
 
 
+@cache_utils.register_function_cache("misc")
 @functools.lru_cache(None)
 def get_sort_options() -> typing.Mapping[str, str]:
     return {

@@ -10,6 +10,7 @@ from random import SystemRandom
 
 from PIL import Image
 
+from . import cache_utils
 from . import database_handler as dh
 from . import directory_parser as dp
 from . import metadata_loader as mdl

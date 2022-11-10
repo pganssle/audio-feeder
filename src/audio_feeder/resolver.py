@@ -6,6 +6,7 @@ import typing
 import qrcode
 from qrcode.image.svg import SvgPathImage
 
+from . import cache_utils
 from ._useful_types import PathType
 from .config import Configuration, get_configuration
 from .file_location import FileLocation
@@ -116,6 +117,7 @@ class QRGenerator:
 
 ###
 # Functions
+@cache_utils.register_function_cache("config")
 @functools.lru_cache(None)
 def get_resolver() -> Resolver:
     """

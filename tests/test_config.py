@@ -1,5 +1,3 @@
-import contextlib
-import enum
 import os
 import pathlib
 import typing
@@ -7,20 +5,6 @@ import typing
 import pytest
 
 from audio_feeder import config
-
-
-@pytest.fixture
-def default_config_locs(config_defaults: pathlib.Path) -> None:
-    class SentinelEnum(enum.Enum):
-        Sentinel = enum.auto
-
-    old_config_dir: typing.Union[
-        str, typing.Literal[SentinelEnum.Sentinel]
-    ] = os.environ.get("AF_CONFIG_DIR", SentinelEnum.Sentinel)
-    if old_config_dir is not SentinelEnum.Sentinel:
-        del os.environ["AF_CONFIG_DIR"]
-        yield
-        os.environ["AF_CONFIG_DIR"] = old_config_dir
 
 
 def test_config_dirs_pwd(default_config_locs, tmp_path):

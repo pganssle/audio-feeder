@@ -3,15 +3,19 @@ Configuration manager - handles the application's global configuration.
 """
 import base64
 import functools
+import graphlib
 import hashlib
 import logging
 import os
 import pathlib
+import re
 import typing
 import warnings
 from collections import OrderedDict
 from itertools import product
+from pathlib import Path
 
+import attrs
 import yaml
 
 from . import cache_utils
@@ -45,134 +49,114 @@ def config_locations(with_pwd=True) -> typing.Sequence[pathlib.Path]:
     ]
 
 
-class _ConfigProperty:
-    def __init__(self, prop_name):
-        self.prop_name = prop_name
+if typing.TYPE_CHECKING:
 
-    def __repr__(self):  # pragma: nocover
-        return self.__class__.__name__ + "({})".format(self.prop_name)
+    class TemplatePath(Path):
+        pass
+
+else:
+
+    class TemplatePath(type(Path())):  # type: ignore[misc]
+        pass
 
 
+class TemplateStr(str):
+    pass
+
+
+@typing.overload
+def _path_converter(s: typing.Union[TemplatePath, TemplateStr]) -> TemplatePath:
+    ...
+
+
+@typing.overload
+def _path_converter(s: typing.Union[str, Path]) -> Path:
+    ...
+
+
+def _path_converter(s):
+    if isinstance(s, str):
+        return Path(s)
+    elif isinstance(s, TemplateStr):
+        return TemplatePath(s)
+    elif isinstance(s, (Path, TemplatePath)):
+        return s
+    else:
+        raise TypeError(f"Wrong type for value: {type(s)}")
+
+
+@attrs.define(slots=False)
 class Configuration:
-    base_protocol: str
-    base_host: str
-    base_port: typing.Optional[int]
-    media_path: PathType
-    static_media_path: PathType
-    static_media_url: str
-
-    rss_feed_urls: str
-    qr_cache_path: PathType
-
-    PROPERTIES = OrderedDict(
-        (
-            ("base_truncation_point", 500),
-            ("templates_base_loc", "{{CONFIG}}/templates"),
-            ("entry_templates_loc", "{{TEMPLATES}}/entry_types"),
-            ("pages_templates_loc", "{{TEMPLATES}}/pages"),
-            ("rss_templates_loc", "{{TEMPLATES}}/rss"),
-            ("rss_entry_templates_loc", "{{TEMPLATES}}/rss/entry_types"),
-            # Deprecated — No longer has any effect
-            ("schema_loc", "{{CONFIG}}/database/schema.yml"),
-            ("database_loc", "{{CONFIG}}/database/db.sqlite"),
-            ("static_media_path", "{{CONFIG}}/static"),
-            ("static_media_url", "{{URL}}/static"),
-            # Relative to static
-            ("media_path", "media"),
-            ("site_images_loc", "images/site-images"),
-            ("qr_cache_path", "images/qr_cache"),
-            ("cover_cache_path", "images/entry_cover_cache"),
-            ("css_loc", "css"),
-            # Relative to base
-            ("rss_feed_urls", "rss/{id}.xml"),
-            # Relative to others
-            ("main_css_files", ["main.css", "fontawesome-subset.css"]),  # CSS
-            ("thumb_max", [200, 400]),  # width, height
-            ("base_protocol", "http"),
-            ("base_host", "localhost"),
-            ("base_port", 9090),
-            # API Keys
-            ("google_api_key", None),
-        )
+    config_location: Path
+    base_truncation_point: int = 500
+    templates_base_loc: Path = attrs.field(
+        default=TemplatePath("{{CONFIG}}", "templates"), converter=_path_converter
+    )
+    entry_templates_loc: Path = attrs.field(
+        default=TemplatePath("{{TEMPLATES}}", "entry_types"), converter=_path_converter
     )
 
-    REPLACEMENTS = {
-        "{{CONFIG}}": _ConfigProperty("config_directory"),
-        "{{TEMPLATES}}": _ConfigProperty("templates_base_loc"),
-        "{{STATIC}}": _ConfigProperty("static_media_path"),
-        "{{URL}}": _ConfigProperty("base_url"),
+    pages_templates_loc: Path = attrs.field(
+        default=TemplatePath("{{TEMPLATES}}", "pages"), converter=_path_converter
+    )
+
+    rss_templates_loc: Path = attrs.field(
+        default=TemplatePath("{{TEMPLATES}}", "rss"), converter=_path_converter
+    )
+
+    rss_entry_templates_loc: Path = attrs.field(
+        default=TemplatePath("{{TEMPLATES}}", "rss/entry_types"),
+        converter=_path_converter,
+    )
+
+    schema_loc: Path = Path("")  # Deprecated — this is unused
+    database_loc: Path = attrs.field(
+        default=TemplatePath("{{CONFIG}}", "database/db.sqlite"),
+        converter=_path_converter,
+    )
+
+    static_media_path: Path = attrs.field(
+        default=TemplatePath("{{CONFIG}}", "static"), converter=_path_converter
+    )
+
+    static_media_url: str = TemplateStr("{{URL}}/static")
+
+    # Relative to static
+    media_path: str = "media"
+    site_images_loc: str = "images/site-images"
+    qr_cache_path: str = "images/qr_cache"
+    cover_cache_path: str = "images/entry_cover_cache"
+    css_loc: str = "css"
+
+    # Relative to base
+    rss_feed_urls: str = "rss/{id}.xml"
+
+    # Relative to others
+    main_css_files: typing.Sequence[str] = ("main.css", "fontawesome-subset.css")  # CSS
+    thumb_max: typing.Tuple[int, int] = (200, 400)  # width, height
+    base_protocol: str = "http"
+    base_host: str = "localhost"
+    base_port: int = 9090
+
+    # API Keys
+    google_api_key: typing.Optional[str] = None
+
+    _ReplacementsMapType = typing.Mapping[str, str]
+    REPLACEMENTS: typing.Final[_ReplacementsMapType] = {
+        "{{CONFIG}}": "config_directory",
+        "{{TEMPLATES}}": "templates_base_loc",
+        "{{STATIC}}": "static_media_path",
+        "{{URL}}": "base_url",
     }
 
-    def __init__(self, config_loc_: pathlib.Path, **kwargs):
-        self.config_location: pathlib.Path = config_loc_
-        self.config_directory: pathlib.Path = self.config_location.parent
-
-        base_kwarg = self.PROPERTIES.copy()
-
-        extra_kwargs = kwargs.keys() - self.PROPERTIES
-
-        if extra_kwargs:
-            raise TypeError(
-                f"Unexpected keyword arguments: {', '.join(sorted(extra_kwargs))}"
-            )
-
-        base_kwarg.update(kwargs)
-
-        kwargs = base_kwarg
-
-        self._base_dict = {}
-        for kwarg in self.PROPERTIES.keys():
-            value = kwargs[kwarg]
-            setattr(self, kwarg, value)
-            self._base_dict[kwarg] = value
-
-        self.url_id = self.hash_encode(self.base_url)
-
-        for kwarg in self.PROPERTIES.keys():
-            setattr(self, kwarg, self.make_replacements(getattr(self, kwarg)))
-
-        self.media_loc = FileLocation(
-            self.media_path,
-            self.static_media_url,
-            self.static_media_path,
-        )
-
-    @classmethod
-    def from_file(cls: typing.Type[Self], file_loc: pathlib.Path, **kwargs) -> Self:
-        if not file_loc.exists():
-            raise IOError(f"File not found: {file_loc}")
-
-        with open(file_loc, "r") as yf:
-            config = yaml.safe_load(yf)
-
-        config.update(kwargs)
-
-        return cls(config_loc_=file_loc, **config)
-
-    def to_file(self, file_loc: pathlib.Path) -> None:
-        """
-        Dumps the configuration to a YAML file in the specified location.
-
-        This will not reflect any runtime modifications to the configuration
-        object.
-        """
-        with open(file_loc, "w") as yf:
-            yaml.dump(self._base_dict, stream=yf, default_flow_style=False)
+    def __attrs_post_init__(self) -> None:
+        self._attr_templates: typing.MutableMapping[
+            str, typing.Union[TemplateStr, TemplatePath]
+        ] = {}
+        self._make_replacements()
 
     def __getitem__(self, key):
         return getattr(self, key)
-
-    def get(self, key, *args):
-        return getattr(self, key, *args)
-
-    def keys(self):
-        return self.PROPERTIES.keys()
-
-    def values(self):
-        return (self.get(k) for k in self.keys())
-
-    def items(self):
-        return ((k, self.get(k)) for k in self.keys())
 
     @functools.cached_property
     def base_url(self) -> str:
@@ -183,7 +167,74 @@ class Configuration:
 
         return f"{self.base_protocol}://{base_url}"
 
-    def hash_encode(self, str_data):
+    @functools.cached_property
+    def config_directory(self) -> pathlib.Path:
+        return self.config_location.parent
+
+    @functools.cached_property
+    def media_loc(self) -> FileLocation:
+        return FileLocation(
+            self.media_path, self.static_media_url, self.static_media_path
+        )
+
+    @functools.cached_property
+    def url_id(self) -> str:
+        return self.hash_encode(self.base_url)
+
+    @classmethod
+    def from_file(cls: typing.Type[Self], file_loc: Path, **kwargs) -> Self:
+        if not file_loc.exists():
+            raise IOError(f"File not found: {file_loc}")
+
+        with open(file_loc, "r") as yf:
+            config = yaml.safe_load(yf)
+
+        template_types = {
+            str: TemplateStr,
+            Path: TemplatePath,
+        }
+
+        for field in attrs.fields(cls):
+            if field.name not in config:
+                continue
+
+            if field.type in (str, Path):
+                if re.search("{{[A-Z_]+}}", config[field.name]):
+                    config[field.name] = template_types[field.type](config[field.name])
+
+        config.update(kwargs)
+
+        return cls(config_location=file_loc, **config)
+
+    def to_file(self, file_loc: pathlib.Path) -> None:
+        """
+        Dumps the configuration to a YAML file in the specified location.
+
+        This will not reflect any runtime modifications to the configuration
+        object.
+        """
+        out_dict = {}
+
+        for field in attrs.fields(self.__class__):
+            if field.name in {"config_location", "schema_loc"}:
+                # These ones don't get serialized
+                continue
+            if field.name in self._attr_templates:
+                out_dict[field.name] = str(self._attr_templates[field.name])
+                continue
+
+            value = getattr(self, field.name)
+            if isinstance(value, os.PathLike):
+                value = os.fspath(value)
+            elif isinstance(value, tuple):
+                value = list(value)
+
+            out_dict[field.name] = value
+
+        with open(file_loc, "w") as yf:
+            yaml.safe_dump(out_dict, stream=yf, default_flow_style=False)
+
+    def hash_encode(self, str_data: str) -> str:
         """
         Encode some string data as a base64-encoded hash.
 
@@ -195,26 +246,93 @@ class Configuration:
 
         return base64.b64encode(h.digest())[0:16].decode("utf-8")
 
-    def make_replacements(self, value):
-        if not isinstance(value, str):
+    def to_dict(self):
+        return attrs.to_dict(self)
+
+    # Template replacement logic
+    @functools.cached_property
+    def _replacements(self) -> _ReplacementsMapType:
+        def find_requirements(attr_name: str) -> typing.Sequence[str]:
+            attr_value = getattr(self, attr_name)
+            if isinstance(attr_value, TemplatePath):
+                s = os.fspath(attr_value)
+            elif isinstance(attr_value, TemplateStr):
+                s = attr_value
+            else:
+                return ()
+
+            return re.findall("{{[A-Z_]+}}", s)
+
+        resolution_graph = {
+            replacement: find_requirements(attr_name)
+            for replacement, attr_name in self.REPLACEMENTS.items()
+        }
+
+        sort_order = graphlib.TopologicalSorter(resolution_graph).static_order()
+
+        replacements_mapping: typing.MutableMapping[str, str] = {}
+        for replacement_str in sort_order:
+            attr_value = getattr(self, self.REPLACEMENTS[replacement_str])
+            replaced_str = self._make_single_replacement(
+                attr_value, replacements=replacements_mapping
+            )
+
+            replacements_mapping[replacement_str] = os.fspath(replaced_str)
+
+        return replacements_mapping
+
+    @typing.overload
+    def _make_single_replacement(
+        self, value: typing.Union[str, TemplateStr], replacements: _ReplacementsMapType
+    ) -> str:
+        ...
+
+    @typing.overload
+    def _make_single_replacement(
+        self,
+        value: typing.Union[Path, TemplatePath],
+        replacements: _ReplacementsMapType,
+    ) -> Path:
+        ...
+
+    def _make_single_replacement(self, value, replacements):
+        if isinstance(value, TemplatePath):
+            return Path(
+                *(
+                    self._make_single_replacement(
+                        TemplateStr(component)
+                        if component.startswith("{{")
+                        else component,
+                        replacements=replacements,
+                    )
+                    for component in value.parts
+                )
+            )
+        elif isinstance(value, TemplateStr):
+            out = str(value)
+            for to_replace, replacement_value in replacements.items():
+                out = out.replace(to_replace, replacement_value)
+
+            if (m := re.search("{{([A-Z_]+)}}", out)) is not None:
+                raise ValueError(f"Unknown replacement string: {{f.groups()[0]}}")
+
+            return out
+        else:
             return value
 
-        for k, repl in self.REPLACEMENTS.items():
-            if k not in value:
-                continue
+    def _make_replacements(self) -> None:
 
-            if isinstance(repl, _ConfigProperty):
-                repl = self.get(repl.prop_name)
+        replacements = self._replacements
+        for field in attrs.fields(self.__class__):
+            attrib = getattr(self, field.name)
 
-            if isinstance(repl, os.PathLike):
-                repl = os.fspath(repl)
-
-            return value.replace(k, repl)
-
-        return value
-
-    def to_dict(self):
-        return dict(*self.items())
+            if isinstance(attrib, (TemplateStr, TemplatePath)):
+                self._attr_templates[field.name] = attrib
+                setattr(
+                    self,
+                    field.name,
+                    self._make_single_replacement(attrib, replacements),
+                )
 
 
 def init_config(
@@ -281,7 +399,7 @@ def init_config(
             else:
                 raise ValueError("No valid configuration location found.")
 
-        new_conf = Configuration(config_loc_=config_location, **kwargs)
+        new_conf = Configuration(config_location, **kwargs)
 
         if config_location is not None:
             logging.info("Creating configuration file at {}".format(config_location))

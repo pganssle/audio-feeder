@@ -100,6 +100,7 @@ def testgen_config(
 
     (config_loc / "static/images").mkdir()
     (config_loc / "static/images/entry_cover_cache").mkdir()
+    (config_loc / "static/media_cache").mkdir()
 
     with change_config_loc(config_loc):
         yield config_loc

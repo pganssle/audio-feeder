@@ -136,7 +136,7 @@ class Configuration:
     thumb_max: typing.Tuple[int, int] = (200, 400)  # width, height
     base_protocol: str = "http"
     base_host: str = "localhost"
-    base_port: int = 9090
+    base_port: typing.Optional[int] = 9090
 
     # API Keys
     google_api_key: typing.Optional[str] = None

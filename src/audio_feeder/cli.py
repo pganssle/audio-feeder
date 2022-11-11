@@ -206,7 +206,7 @@ def install(config_dir, config_name):
 
     make_dir_directories = [config_obj[x] for x in make_dir_entries]
     static_paths = [
-        os.path.join(config_obj["static_media_path"], config_obj[x])
+        os.path.join(config_obj.static_media_path, config_obj[x])
         for x in ("site_images_loc", "css_loc", "cover_cache_path", "qr_cache_path")
     ]  # Relative paths
 

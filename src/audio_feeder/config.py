@@ -160,7 +160,7 @@ class Configuration:
 
     @functools.cached_property
     def base_url(self) -> str:
-        if self["base_port"] is None:
+        if self.base_port is None:
             base_url: str = self.base_host
         else:
             base_url = f"{self.base_host}:{self.base_port}"

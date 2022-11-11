@@ -5,7 +5,6 @@ import math
 import os
 import pathlib
 import shutil
-import threading
 import typing
 import warnings
 from datetime import datetime, timezone

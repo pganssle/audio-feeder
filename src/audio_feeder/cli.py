@@ -57,10 +57,10 @@ def run(host, port, config, profile):
     app.static_folder = read_from_config("static_media_path")
 
     if profile:
-        from werkzeug.contrib.profiler import (
-            ProfilerMiddleware,  # type: ignore[import]
-        )
+        from werkzeug.middleware.profiler import ProfilerMiddleware
 
+        profile_dir = pathlib.Path.cwd() / ".profile"
+        profile_dir.mkdir(exist_ok=True)
         app.config["PROFILE"] = True
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir=".profile")
         debug = True

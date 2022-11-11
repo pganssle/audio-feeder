@@ -201,7 +201,6 @@ def install(config_dir, config_name):
         "pages_templates_loc",
         "rss_templates_loc",
         "rss_entry_templates_loc",
-        "database_loc",
         "static_media_path",
     )  # Absolute paths
 
@@ -214,12 +213,35 @@ def install(config_dir, config_name):
     (site_images_path, css_path, cover_cache_path, qr_cache_path) = static_paths
 
     make_dir_directories += static_paths
+    make_dir_directories.append(pathlib.Path(config_obj["database_loc"]).parent)
+
+    mkdir_ordered = sorted(
+        map(pathlib.Path, make_dir_directories), key=pathlib.Path.absolute
+    )
+
+    for i, c_dir in enumerate(mkdir_ordered):
+        try:
+            c_dir.mkdir(exist_ok=True)
+        except FileNotFoundError:
+            # If we have created one of the parents of this directory, but
+            # some parents are missing, we should create the intermediates.
+            #
+            # Because the list is sorted by absolute path, we only have to
+            # search up to the point in the list we've already reached, and
+            # we are more likely to find it towards the *end* of that list
+            # than the beginning, so we'll search in reverse.
+            for possible_parent in mkdir_ordered[max(0, i - 1) :: -1]:
+                if possible_parent in c_dir.parents:
+                    c_dir.mkdir(parents=True)
+                    break
+            else:
+                raise
 
     # Copy all package data as appropriate
     site = resources.files("audio_feeder.data.site")
     templates = resources.files("audio_feeder.data.templates")
 
-    _copy_resource(site, pathlib.Path(config_obj["static_media_path"]) / "site")
+    _copy_resource(site, pathlib.Path(config_obj["static_media_path"]))
 
     # Directories
     pkg_dir_map = {

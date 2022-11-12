@@ -66,7 +66,7 @@ def main(media_dir: pathlib.Path, output: pathlib.Path) -> None:
         tmp_path = pathlib.Path(t_f)
         config_loc = tmp_path / "config.yml"
         conf = config.Configuration(
-            config_loc_=config_loc,
+            config_location=config_loc,
             media_path=media_dir.name,
             static_media_path=os.fspath(media_dir.parent),
         )

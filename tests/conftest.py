@@ -1,15 +1,18 @@
 import contextlib
 import enum
 import importlib.resources
+import logging
 import os
 import pathlib
 import shutil
+import subprocess
+import tempfile
 import typing
 
 import pytest
 
 import audio_feeder.config
-from audio_feeder import cache_utils
+from audio_feeder import cache_utils, file_probe
 
 
 def copy_data_structure(dest: pathlib.Path):
@@ -35,6 +38,11 @@ def copy_data_structure(dest: pathlib.Path):
         for source, destination in to_copy:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(source.read_bytes())
+
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_logging() -> None:
+    logging.basicConfig(level=logging.DEBUG)
 
 
 @pytest.fixture(scope="session", autouse=True)

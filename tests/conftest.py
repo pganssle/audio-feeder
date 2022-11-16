@@ -43,11 +43,6 @@ def copy_data_structure(dest: pathlib.Path):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def configure_logging() -> None:
-    logging.basicConfig(level=logging.DEBUG)
-
-
-@pytest.fixture(scope="session", autouse=True)
 def config_defaults(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     config_dir = tmp_path_factory.mktemp("config")
     templates_loc = config_dir / "templates"

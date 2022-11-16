@@ -11,6 +11,7 @@ from unittest import mock
 import attrs
 import pytest
 
+from audio_feeder import directory_parser as dp
 from audio_feeder import file_probe, m4btools
 
 from . import utils
@@ -95,25 +96,29 @@ def dracula_files(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
         yield out_dir
 
 
+FRANKENSTEIN_METADATA: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent
+    / "data/example_media/audiobooks/Fiction/Mary Shelley - Frankenstein/frankenstein_ffmetadata.txt"
+)
+
+
 @pytest.fixture(scope="session", autouse=False)
 def chaptered_frankenstein(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     out_dir = tmp_path_factory.mktemp("frankenstein")
     filename = "Mary Shelley - Frankenstein.m4b"
-    ffmetadata = (
-        pathlib.Path(__file__).parent
-        / "data/example_media/audiobooks/Fiction/Mary Shelley - Frankenstein/frankenstein_ffmetadata.txt"
-    )
     subprocess.run(
         [
             "ffmpeg",
+            "-loglevel",
+            "error",
             "-i",
-            os.fspath(ffmetadata),
+            os.fspath(FRANKENSTEIN_METADATA),
             "-f",
             "lavfi",
             "-i",
             "anullsrc=r=4410:cl=mono",
             "-t",
-            "2981.8972",
+            "298.18972",
             "-q:a",
             "9",
             "-acodec",
@@ -127,6 +132,71 @@ def chaptered_frankenstein(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     )
 
     yield out_dir / filename
+
+
+@pytest.fixture(scope="session", autouse=False)
+def multifile_chaptered(tmp_path_factory) -> typing.Iterable[pathlib.Path]:
+    file1_chapters = [
+        file_probe.ChapterInfo(
+            num=0,
+            title="Chapter 00",
+            start_time=0.0,
+            end_time=23.5,
+        ),
+        file_probe.ChapterInfo(
+            num=1,
+            title="Chapter 01",
+            start_time=23.5,
+            end_time=40.1,
+        ),
+    ]
+    file2_chapters = [
+        file_probe.ChapterInfo(
+            num=2,
+            title="Chapter 02",
+            start_time=15.3,
+            end_time=30.6,
+        ),
+        file_probe.ChapterInfo(
+            num=3, title="Chapter 03", start_time=30.6, end_time=45.0
+        ),
+    ]
+
+    format_info_base = file_probe.FormatInfo(
+        format_name="mp3",
+        format_long_name="MP2/3 (MPEG audio layer 2/3)",
+        start_time=0.0,
+        tags={
+            "title": "Generic Book",
+            "artist": "Author Q. Authorson",
+        },
+    )
+
+    file_info_1 = file_probe.FileInfo(
+        format_info=attrs.evolve(
+            format_info_base, filename="Book-Part00.mp3", duration=40.1
+        ),
+        chapters=file1_chapters,
+    )
+    file_info_2 = file_probe.FileInfo(
+        format_info=attrs.evolve(
+            format_info_base, filename="Book-Part01.mp3", duration=45.0
+        ),
+        chapters=file2_chapters,
+    )
+
+    in_path = (
+        tmp_path_factory.mktemp("multifile_chaptered")
+        / "Author Q. Authorson - Generic Book"
+    )
+    in_path.mkdir()
+
+    file1 = in_path / file_info_1.format_info.filename
+    file2 = in_path / file_info_2.format_info.filename
+    utils.make_file(file_info_1, file1)
+    utils.make_file(file_info_2, file2)
+
+    yield in_path
 
 
 @pytest.mark.parametrize(
@@ -208,56 +278,9 @@ def test_merge_durations(
         assert format_info.tags["album"] == "Dracula"
 
 
-def test_merge_multifile_chapter(tmp_path: pathlib.Path, subtests) -> None:
-    file1_chapters = [
-        file_probe.ChapterInfo(
-            num=0,
-            title="Chapter 00",
-            start_time=0.0,
-            end_time=23.5,
-        ),
-        file_probe.ChapterInfo(
-            num=1,
-            title="Chapter 01",
-            start_time=23.5,
-            end_time=40.1,
-        ),
-    ]
-    file2_chapters = [
-        file_probe.ChapterInfo(
-            num=2,
-            title="Chapter 02",
-            start_time=15.3,
-            end_time=30.6,
-        ),
-        file_probe.ChapterInfo(
-            num=3, title="Chapter 03", start_time=30.6, end_time=45.0
-        ),
-    ]
-
-    format_info_base = file_probe.FormatInfo(
-        format_name="mp3",
-        format_long_name="MP2/3 (MPEG audio layer 2/3)",
-        start_time=0.0,
-        tags={
-            "title": "Generic Book",
-            "artist": "Author Q. Authorson",
-        },
-    )
-
-    file_info_1 = file_probe.FileInfo(
-        format_info=attrs.evolve(
-            format_info_base, filename="Book-Part00.mp3", duration=40.1
-        ),
-        chapters=file1_chapters,
-    )
-    file_info_2 = file_probe.FileInfo(
-        format_info=attrs.evolve(
-            format_info_base, filename="Book-Part01.mp3", duration=45.0
-        ),
-        chapters=file2_chapters,
-    )
-
+def test_merge_multifile_chaptered(
+    tmp_path: pathlib.Path, multifile_chaptered: pathlib.Path, subtests
+) -> None:
     # Expected outputs
     expected_chapters = [
         file_probe.ChapterInfo(
@@ -283,18 +306,10 @@ def test_merge_multifile_chapter(tmp_path: pathlib.Path, subtests) -> None:
         ),
     ]
 
-    in_path = tmp_path / "in"
     out_path = tmp_path / "out" / "Joined.m4b"
-
-    in_path.mkdir()
     out_path.parent.mkdir()
 
-    file1 = in_path / file_info_1.format_info.filename
-    file2 = in_path / file_info_2.format_info.filename
-    utils.make_file(file_info_1, file1)
-    utils.make_file(file_info_2, file2)
-
-    m4btools.make_single_file_chaptered(in_path, out_path)
+    m4btools.make_single_file_chaptered(multifile_chaptered, out_path)
 
     out_file_info = file_probe.FileInfo.from_file(out_path)
 
@@ -437,3 +452,119 @@ def test_make_single_file_error(tmp_path: pathlib.Path):
     ):
         with pytest.raises(IOError):
             m4btools.make_single_file_chaptered(in_path, tmp_path / "out")
+
+
+def test_split_chapters_onefile(
+    chaptered_frankenstein: pathlib.Path, tmp_path: pathlib.Path
+):
+    out_dir = tmp_path / "Mary Shelley - Frankenstein"
+    expected_chap_data = (
+        (0, 21.93043, "00 - Letters"),
+        (21.93043, 28.24019, "Chapter 1"),
+        (28.24019, 38.52025, "Chapter 2"),
+        (38.52025, 48.41000, "Chapter 3"),
+        (48.41000, 57.63025, "Chapter 4"),
+        (57.63025, 67.92015, "Chapter 5"),
+        (67.92015, 79.66045, "Chapter 6"),
+        (79.66045, 92.71013, "Chapter 7"),
+        (92.71013, 105.07043, "Chapter 8"),
+        (105.07043, 113.32009, "Chapter 9"),
+        (113.32009, 123.18039, "Chapter 10"),
+        (123.18039, 133.83004, "Chapter 11"),
+        (133.83004, 142.09030, "Chapter 12"),
+        (142.09030, 150.12036, "Chapter 13"),
+        (150.12036, 156.10036, "Chapter 14"),
+        (156.10036, 166.41005, "Chapter 15"),
+        (166.41005, 179.74014, "Chapter 16"),
+        (179.74014, 187.87005, "Chapter 17"),
+        (187.87005, 199.79016, "Chapter 18"),
+        (199.79016, 209.88010, "Chapter 19"),
+        (209.88010, 224.87003, "Chapter 20"),
+        (224.87003, 237.51000, "Chapter 21"),
+        (237.51000, 249.38024, "Chapter 22"),
+        (249.38024, 261.04031, "Chapter 23"),
+        (261.04031, 298.18972, "Chapter 24"),
+    )
+
+    expected_chapters = []
+    for i, (start_time, end_time, chapter_title) in enumerate(expected_chap_data):
+        expected_chapters.append(
+            file_probe.ChapterInfo(
+                num=i, start_time=0, end_time=end_time - start_time, title=chapter_title
+            )
+        )
+
+    m4btools.split_chapters(chaptered_frankenstein, out_dir, base_name="Frankenstein")
+
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(out_dir)
+
+    actual_chapters = file_probe.get_multipath_chapter_info(files)
+    assert len(files) == len(expected_chapters)
+
+    for (file_path, actual_chapter), expected_chapter in zip(
+        actual_chapters, expected_chapters
+    ):
+        assert file_path.suffix == ".m4b"
+        assert actual_chapter.num == expected_chapter.num
+        assert actual_chapter.title == expected_chapter.title
+        assert actual_chapter.start_time == pytest.approx(
+            expected_chapter.start_time, abs=0.5
+        )
+        assert actual_chapter.end_time == pytest.approx(
+            expected_chapter.end_time, abs=0.5
+        )
+
+
+def test_split_chapters_multifile(
+    multifile_chaptered: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    out_path = tmp_path
+
+    expected_results = [
+        (
+            "Generic Book - 0.mp3",
+            file_probe.ChapterInfo(
+                title="Chapter 00", num=0, start_time=0.0, end_time=23.5
+            ),
+        ),
+        (
+            "Generic Book - 1.mp3",
+            file_probe.ChapterInfo(
+                title="Chapter 01", num=1, start_time=0.0, end_time=31.9
+            ),
+        ),
+        (
+            "Generic Book - 2.mp3",
+            file_probe.ChapterInfo(
+                title="Chapter 02", num=2, start_time=0.0, end_time=15.3
+            ),
+        ),
+        (
+            "Generic Book - 3.mp3",
+            file_probe.ChapterInfo(
+                title="Chapter 03", num=3, start_time=0.0, end_time=14.4
+            ),
+        ),
+    ]
+
+    m4btools.split_chapters(multifile_chaptered, out_path, base_name="Generic Book")
+
+    loader = dp.AudiobookLoader()
+    actual_results = file_probe.get_multipath_chapter_info(
+        loader.audio_files(out_path), fall_back_to_durations=False
+    )
+    assert len(actual_results) == len(expected_results)
+    for (actual_file, actual_chapter), (expected_file, expected_chapter) in zip(
+        actual_results, expected_results
+    ):
+        assert actual_file.name == expected_file
+
+        assert actual_chapter.title == expected_chapter.title
+        assert actual_chapter.num == expected_chapter.num
+        assert actual_chapter.start_time == pytest.approx(
+            expected_chapter.start_time, abs=0.5
+        )
+        assert actual_chapter.end_time == pytest.approx(
+            expected_chapter.end_time, abs=0.5
+        )

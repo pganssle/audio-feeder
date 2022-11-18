@@ -4,7 +4,7 @@ import attrs
 
 
 class _Floatable(typing.Protocol):
-    def __float__(self) -> float:
+    def __float__(self) -> float:  # pragma: nocover
         ...
 
 

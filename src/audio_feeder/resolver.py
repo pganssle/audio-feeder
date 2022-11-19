@@ -76,6 +76,12 @@ class Resolver:
 
         return qr_fl
 
+    def resolve_chapter(self, entry_obj, guid: str) -> FileLocation:
+        url_tail = f"chapter-data/{entry_obj.id}-{guid}.json"
+
+        # Doesn't represent a location on disk, so base_path is None
+        return FileLocation(url_tail, self.base_url, None)
+
     def resolve_media(self, url_tail: str) -> FileLocation:
         media_rel = os.path.join(self.media_path, url_tail)
         return self.resolve_static(media_rel)

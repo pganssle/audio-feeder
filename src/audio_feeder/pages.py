@@ -15,12 +15,14 @@ from flask import Blueprint, request
 from jinja2 import Template
 
 from audio_feeder import database_handler as dh
+from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
 from audio_feeder import rss_feeds as rf
 from audio_feeder.config import init_config, read_from_config
 from audio_feeder.resolver import get_resolver
 
 from . import cache_utils, updater
+from ._db_types import ID, TableName
 
 root = Blueprint("root", __name__)
 
@@ -124,6 +126,35 @@ def books():
     # Apply the template
     t = get_list_template()
     return t.render(page_data)
+
+
+@root.route("/chapter-data/<int:e_id>-<string:guid>.json")
+def chapter_json(e_id: ID, guid: str):
+    """Generates the chapter data for a given file."""
+    entry_table = dh.get_database_table(TableName("entries"))
+    if e_id not in entry_table:
+        flask.abort(404)
+
+    entry_obj = typing.cast(oh.Entry, entry_table[e_id])
+    if not entry_obj.file_hashes or not entry_obj.file_metadata:
+        flask.abort(404)
+
+    assert entry_obj.file_hashes is not None
+    for file, file_hash in entry_obj.file_hashes.items():
+        if file_hash == guid:
+            break
+    else:
+        flask.abort(404)
+
+    assert entry_obj.file_metadata is not None
+    if file not in entry_obj.file_metadata:
+        flask.abort(404)
+
+    chapters = entry_obj.file_metadata[file].chapters
+    if not chapters:
+        flask.abort(404)
+
+    return rf.generate_chapter_json(chapters)
 
 
 @root.route("/rss/<int:e_id>.xml")

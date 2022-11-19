@@ -216,8 +216,6 @@ def install(config_dir, config_name):
         )
     ]  # Relative paths
 
-    (site_images_path, css_path, cover_cache_path, qr_cache_path) = static_paths
-
     make_dir_directories += static_paths
     make_dir_directories.append(pathlib.Path(config_obj["database_loc"]).parent)
 

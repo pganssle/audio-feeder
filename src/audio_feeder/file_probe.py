@@ -1,10 +1,12 @@
 """Utilities for determining information about the files."""
+import copy
 import datetime
 import functools
 import io
 import itertools
 import json
 import logging
+import operator
 import os
 import pathlib
 import re
@@ -33,7 +35,7 @@ def _parse_time(s: str) -> float:
 
 
 # There are other keys in these results, but we aren't using them yet.
-class JSONChapterType(typing.TypedDict):
+class JSONChapterType(typing.TypedDict, total=False):
     id: int
     start_time: str
     end_time: str
@@ -51,7 +53,7 @@ class JSONFormatType(typing.TypedDict, total=False):
     tags: typing.Mapping[str, str]
 
 
-class FFProbeReturnJSON(typing.TypedDict):
+class FFProbeReturnJSON(typing.TypedDict, total=False):
     chapters: typing.Sequence[JSONChapterType]
     format: JSONFormatType
 
@@ -84,6 +86,15 @@ class OverdriveMediaMarker:
         return out
 
 
+def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
+    return value is not None
+
+
+# TODO: Switch to using attrs.AttrsInstance after attrs > 22.1 is released.
+def _to_dict_sparse(attrs_instance: typing.Any) -> typing.Mapping[str, typing.Any]:
+    return attrs.asdict(attrs_instance, filter=_filter_sparse)
+
+
 @attrs.define
 class ChapterInfo:
     num: int
@@ -95,6 +106,18 @@ class ChapterInfo:
     @property
     def duration(self) -> float:
         return self.end_time - self.start_time
+
+    def to_json(self) -> JSONChapterType:
+        out: JSONChapterType = {
+            "id": self.num,
+            "start_time": f"{self.start_time:0.4f}",
+            "end_time": f"{self.end_time:0.4f}",
+        }
+
+        if self.tags:
+            out["tags"] = copy.deepcopy(self.tags)
+
+        return out
 
     @classmethod
     def from_json(cls, chapter: JSONChapterType) -> Self:
@@ -125,6 +148,9 @@ class FormatInfo:
     size: typing.Optional[int] = attrs.field(default=None)  # Bytes
     bit_rate: typing.Optional[int] = attrs.field(default=None)
     tags: typing.Mapping[str, str] = attrs.field(factory=dict)
+
+    def to_json(self) -> JSONFormatType:
+        return typing.cast(JSONFormatType, _to_dict_sparse(self))
 
     @classmethod
     def from_json(cls, json_dict: JSONFormatType) -> Self:
@@ -188,6 +214,16 @@ class FileInfo:
                     )
 
         return cls(format_info=format_info, chapters=chapters)
+
+    def to_json(self) -> FFProbeReturnJSON:
+        rv: FFProbeReturnJSON = {
+            "format": self.format_info.to_json(),
+        }
+
+        if self.chapters is not None:
+            rv["chapters"] = tuple(map(operator.methodcaller("to_json"), self.chapters))
+
+        return rv
 
     @classmethod
     def from_file(cls, fpath: pathlib.Path) -> Self:

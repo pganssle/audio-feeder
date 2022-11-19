@@ -1,37 +1,38 @@
 data:
 - books:
-  - 44367
-  id: 363409
-  name: Louisa May Alcott
-  sort_name: Alcott, Louisa May
-  tags:
-  - children's stories
-- books:
-  - 643570
-  id: 496925
-  name: Edith Wharton
-  sort_name: Wharton, Edith
-  tags:
-  - fiction
-- books:
-  - 799712
-  id: 509539
-  name: Mary Shelley
-  sort_name: Shelley, Mary
-  tags:
-  - fiction
-- books:
-  - 832420
-  id: 771225
+  - 168036
+  id: 157944
   name: Bram Stoker
   sort_name: Stoker, Bram
-  tags:
-  - fiction
+  tags: []
 - books:
-  - 958312
-  id: 837812
+  - 165867
+  id: 456477
   name: Louisa May Alcott
   sort_name: Alcott, Louisa May
-  tags:
-  - fiction
+  tags: []
+- books:
+  - 428907
+  id: 619031
+  name: Mary Shelley
+  sort_name: Shelley, Mary
+  tags: []
+- books:
+  - 304953
+  id: 742197
+  name: Edith Wharton
+  sort_name: Wharton, Edith
+  tags: []
+- books:
+  - 465165
+  id: 827125
+  name: Louisa May Alcott
+  sort_name: Alcott, Louisa May
+  tags: []
+- books:
+  - 139835
+  id: 965145
+  name: Stephen Hawking
+  sort_name: Hawking, Stephen
+  tags: []
 db_version: 0

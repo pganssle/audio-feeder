@@ -1,54 +1,167 @@
 data:
 - cover_images:
-  - media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
-    Men-Cover.jpg
-  - images/entry_cover_cache/21481_google_books-thumbnail.jpg
-  data_id: 958312
-  date_added: 2022-11-03 18:48:11.723670
-  hashseed: 3438870723
-  id: 21481
-  last_modified: 2022-11-03 18:47:46.092179
+  - !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little
+    Men/Little Men-Cover.jpg'
+  - !Path 'images/entry_cover_cache/106991_google_books-thumbnail.jpg'
+  data_id: 465165
+  date_added: 2022-11-19 17:07:46.041172
+  file_hashes:
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part00.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part01.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part02.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  file_metadata: {}
+  files:
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Part00.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Part01.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Part02.mp3'
+  hashseed: 4058553473
+  id: 106991
+  last_modified: 2022-11-11 14:23:08.305962
   path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men'
   table: books
   type: Book
 - cover_images:
-  - images/entry_cover_cache/104789_google_books-thumbnail.jpg
-  data_id: 799712
-  date_added: 2022-11-03 18:48:11.723959
-  hashseed: 3513516051
-  id: 104789
-  last_modified: 2022-11-03 18:46:42.023660
-  path: !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein'
+  - !Path 'images/entry_cover_cache/263568_google_books-thumbnail.jpg'
+  data_id: 139835
+  date_added: 2022-11-19 17:07:46.035519
+  file_hashes:
+    !Path 'audiobooks/Nonfiction/Stephen Hawking - A Brief History of Time/BriefHistoryofTime.mp3': 70e2943e77690d782dd42fe0ba36d5ae80bc790932667bfc2dea5f92b56e6060
+  file_metadata:
+    !Path 'audiobooks/Nonfiction/Stephen Hawking - A Brief History of Time/BriefHistoryofTime.mp3':
+      chapters:
+      - end_time: 22.144
+        num: 0
+        start_time: 0.0
+        tags:
+          ID: '0'
+      - end_time: 120.317
+        num: 1
+        start_time: 22.144
+        tags:
+          ID: '1'
+      - end_time: 178.931
+        num: 2
+        start_time: 120.317
+        tags:
+          ID: '2'
+      - end_time: 300.214
+        num: 3
+        start_time: 178.931
+        tags:
+          ID: '3'
+      - end_time: 382.21
+        num: 4
+        start_time: 300.214
+        tags:
+          ID: '4'
+      format_info:
+        bit_rate: 31874
+        duration: 382.249796
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Nonfiction/Stephen
+          Hawking - A Brief History of Time/BriefHistoryofTime.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 1523006
+        start_time: 0.025057
+        tags:
+          album: A Brief History of Time
+          artist: Stephen Hawking
+          comment: "A landmark volume in science writing by one of the great minds\
+            \ of our time, Stephen Hawking\u2019s book explores such profound questions\
+            \ as: How did the universe begin\u2014and what made its start possible?\
+            \ Does time always flow forward? Is the universe unending\u2014or are\
+            \ there boundaries? Are there other dimensions in space? What will happen\
+            \ when it all ends?"
+          date: '2011'
+          encoder: Lavf59.27.100
+          title: A Brief History of Time
+  files:
+  - !Path 'audiobooks/Nonfiction/Stephen Hawking - A Brief History of Time/BriefHistoryofTime.mp3'
+  hashseed: 1171466256
+  id: 263568
+  last_modified: 2022-11-19 17:04:35.752244
+  path: !Path 'audiobooks/Nonfiction/Stephen Hawking - A Brief History of Time'
   table: books
   type: Book
 - cover_images:
-  - images/entry_cover_cache/692296_google_books-thumbnail.jpg
-  data_id: 832420
-  date_added: 2022-11-03 18:48:11.724024
-  hashseed: 3040569811
-  id: 692296
-  last_modified: 2022-11-03 18:46:26.536390
+  - !Path 'images/entry_cover_cache/586415_google_books-thumbnail.jpg'
+  data_id: 168036
+  date_added: 2022-11-19 17:07:46.039813
+  file_hashes:
+    !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 01.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 02.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  file_metadata: {}
+  files:
+  - !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 01.mp3'
+  - !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 02.mp3'
+  hashseed: 1959580810
+  id: 586415
+  last_modified: 2022-11-11 14:23:08.299295
   path: !Path 'audiobooks/Fiction/Bram Stoker - Dracula'
   table: books
   type: Book
 - cover_images:
-  - images/entry_cover_cache/712130_google_books-thumbnail.jpg
-  data_id: 643570
-  date_added: 2022-11-03 18:48:11.723802
-  hashseed: 3815070603
-  id: 712130
-  last_modified: 2022-11-03 18:46:07.108972
+  - !Path 'images/entry_cover_cache/782446_google_books-thumbnail.jpg'
+  data_id: 428907
+  date_added: 2022-11-19 17:07:46.039449
+  file_hashes:
+    !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein/Mary Shelley''s Frankenstein.m4b': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  file_metadata: {}
+  files:
+  - !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein/Mary Shelley''s Frankenstein.m4b'
+  hashseed: 3784075444
+  id: 782446
+  last_modified: 2022-11-17 21:22:03.162851
+  path: !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein'
+  table: books
+  type: Book
+- cover_images:
+  - !Path 'images/entry_cover_cache/818379_google_books-thumbnail.jpg'
+  data_id: 304953
+  date_added: 2022-11-19 17:07:46.040563
+  file_hashes:
+    !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction/Chapter 00.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction/Chapter 01.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  file_metadata: {}
+  files:
+  - !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction/Chapter 00.mp3'
+  - !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction/Chapter 01.mp3'
+  hashseed: 1874890455
+  id: 818379
+  last_modified: 2022-11-11 14:23:08.305962
   path: !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction'
   table: books
   type: Book
 - cover_images:
-  - media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Cover.jpg
-  - images/entry_cover_cache/787031_google_books-thumbnail.jpg
-  data_id: 44367
-  date_added: 2022-11-03 18:48:11.723887
-  hashseed: 69178498
-  id: 787031
-  last_modified: 2022-11-03 18:47:12.934879
+  - !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little
+    Women/Cover.jpg'
+  - !Path 'images/entry_cover_cache/964760_google_books-thumbnail.jpg'
+  data_id: 165867
+  date_added: 2022-11-19 17:07:46.036310
+  file_hashes:
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part00.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part01.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part02.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part03.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part04.mp3': e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  file_metadata: {}
+  files:
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part00.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part01.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part02.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part03.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part04.mp3'
+  hashseed: 1561874748
+  id: 964760
+  last_modified: 2022-11-15 21:41:10.634096
   path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women'
   table: books
   type: Book

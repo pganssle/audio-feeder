@@ -1,6 +1,8 @@
+import contextlib
 import os
 import pathlib
 import shutil
+import sqlite3
 import typing
 
 import pytest
@@ -10,11 +12,13 @@ from audio_feeder import object_handler as oh
 from audio_feeder import sql_database_handler as sdh
 from audio_feeder import yaml_database_handler as ydh
 
+DATA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent / "data"
+
 
 @pytest.fixture(
     params=[
-        (pathlib.Path(__file__).parent / "data/db.sqlite", sdh.SqlDatabaseHandler),
-        (pathlib.Path(__file__).parent / "data/yaml_db", ydh.YamlDatabaseHandler),
+        (DATA_PATH / "db.sqlite", sdh.SqlDatabaseHandler),
+        (DATA_PATH / "yaml_db", ydh.YamlDatabaseHandler),
     ]
 )
 def db_handler(
@@ -34,11 +38,11 @@ def db_handler(
 def test_load_db(db_handler: _db_types.DatabaseHandler) -> None:
     db_tables = db_handler.load_database()
 
-    assert len(db_tables["books"]) == 5
+    assert len(db_tables["books"]) == 6
     for book in db_tables["books"].values():
         assert isinstance(book, oh.Book)
 
-    assert len(db_tables["entries"]) == 5
+    assert len(db_tables["entries"]) == 6
     for entry in db_tables["entries"].values():
         assert isinstance(entry, oh.Entry)
 
@@ -46,13 +50,13 @@ def test_load_db(db_handler: _db_types.DatabaseHandler) -> None:
         assert entry.data_id in db_tables["books"]
 
     # Little Women
-    lw_entry = db_tables["entries"][787031]
+    lw_entry = db_tables["entries"][964760]
     assert lw_entry.path == pathlib.Path(
         "audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women"
     )
     assert os.fspath(lw_entry.cover_images[0]).startswith("media/audiobooks/Fiction")
 
-    twof_entry = db_tables["entries"][712130]
+    twof_entry = db_tables["entries"][818379]
     # Edith Wharton - The Writing of Fiction
     assert twof_entry.path == pathlib.Path(
         "audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction"
@@ -96,7 +100,7 @@ def test_load_empty_yaml_database(tmp_path: pathlib.Path) -> None:
 def test_load_table(db_handler: _db_types.DatabaseHandler) -> None:
     books = db_handler.load_table("books")
 
-    assert len(books) == 5
+    assert len(books) == 6
     for book in books.values():
         assert isinstance(book, oh.Book)
 
@@ -108,7 +112,7 @@ def test_save_database(db_handler: _db_types.DatabaseHandler) -> None:
         id=21144,
         title="The House of Mirth",
         authors=["Edith Wharton"],
-        author_ids=[496925],
+        author_ids=[742197],
     )
 
     db_handler.save_database(db_tables)
@@ -161,3 +165,43 @@ def test_save_database_remove(db_handler: _db_types.DatabaseHandler) -> None:
 
     for book_id in book_ids[3:]:
         assert book_id in books_table
+
+
+@pytest.mark.parametrize(
+    "db_relpath, expected_version",
+    (
+        ("db_versions/db_v0.sqlite", 0),
+        ("db.sqlite", sdh.DB_VERSION),
+    ),
+)
+def test_sql_migration(
+    db_relpath: str, expected_version: int, tmp_path: pathlib.Path, subtests
+) -> None:
+    db_in_path = DATA_PATH / db_relpath
+
+    db_out_path = tmp_path / "out" / db_in_path.name
+    db_out_path.parent.mkdir()
+
+    shutil.copyfile(db_in_path, db_out_path)
+
+    def _get_version(db: pathlib.Path) -> int:
+        with contextlib.closing(sqlite3.connect(db)) as con:
+            return con.execute("PRAGMA user_version").fetchone()[0]
+
+    with subtests.test("pre-load version"):
+        assert _get_version(db_out_path) == expected_version
+
+    handler = sdh.SqlDatabaseHandler(db_out_path)
+
+    db = handler.load_database()
+
+    # Maybe not ideal, but the migration is done on-disk as part of the load.
+    with subtests.test("post-load version"):
+        assert _get_version(db_out_path) == sdh.DB_VERSION
+
+    handler.save_database(db)
+
+    # The migration is done now, so whatever version we started with, it should
+    # now be the latest version.
+    with subtests.test("post-save version"):
+        assert _get_version(db_out_path) == sdh.DB_VERSION

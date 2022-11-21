@@ -45,13 +45,61 @@ class SegmentableFiles:
         return self.duration
 
 
+@attrs.frozen
+class FileSubset:
+    path: Path
+    start: Optional[float] = None
+    end: Optional[float] = None
+
+
+@attrs.frozen
+class RenderJob:
+    file_inputs: Sequence[FileSubset]
+    out_file_info: file_probe.FileInfo
+
+    def is_copy_job(self):
+        if len(self.file_inputs) != 1:
+            return False
+
+        file_subset = self.file_inputs[0]
+        return (
+            file_subset.start is None or file_subset.start == 0.0
+        ) and file_subset.end is None
+
+    def to_job(self, out_path: Path) -> Callable[[], Any]:
+        if self.is_copy_job():
+            return functools.partial(
+                shutil.copyfile, self.file_inputs[0].path, out_path
+            )
+        elif all(self.file_inputs[0].path == fs.path for fs in self.file_inputs[1:]):
+            # These are all subsets of a single file, so we can use _extract_subset
+            # This also matches when there is exactly one file subset.
+            if len(self.file_inputs) > 1:
+                merged_subset = attrs.evolve(
+                    self.file_inputs[0], end=self.file_inputs[-1].end
+                )
+            else:
+                merged_subset = self.file_inputs[0]
+            return functools.partial(
+                _extract_subset, merged_subset, out_path, self.out_file_info
+            )
+        else:
+            # Multiple files merging into one, so we use _merge_subsets
+            return functools.partial(
+                _merge_subsets, self.file_inputs, out_path, self.out_file_info
+            )
+
+
+NameFunction = Callable[[int, RenderJob], str]
+
+
 def _merge_file_infos(
     f1: file_probe.FileInfo, f2: file_probe.FileInfo, /
 ) -> file_probe.FileInfo:
     fi1 = f1.format_info
     fi2 = f2.format_info
     if fi1.duration is None or fi2.duration is None:  # pragma: nocover
-        raise ValueError(f"Cannot merge file info without file durations.")
+        raise ValueError("Cannot merge file info without file durations.")
 
     new_format_info: MutableMapping[str, Any] = {
         "start_time": fi1.start_time,
@@ -87,28 +135,18 @@ def _merge_file_infos(
     )
 
 
-@typing.overload
-def _to_file_list_entry(p: Path, s: None, e: None) -> str:  # pragma: nocover
-    ...
-
-
-@typing.overload
-def _to_file_list_entry(p: Path, s: float, e: float) -> str:  # pragma: nocover
-    ...
-
-
-def _to_file_list_entry(p, s=None, e=None):
-    if s is None:
-        pathstr = os.fspath(p)
-        pathstr = pathstr.replace("'", r"\'")
-        return f"file '{pathstr}'"
-    else:
-        return (
-            f"{_to_file_list_entry(p)}\n"
-            + f"inpoint {s:0.3f}\n"
-            + f"outpoint {e:0.3f}\n"
-            + f"duration {e-s:0.3f}\n"
-        )
+def _to_file_list_entry(p: Path, s: Optional[float] = None, e: Optional[float] = None):
+    pathstr = os.fspath(p)
+    pathstr = pathstr.replace("'", r"\'")
+    o = f"file '{pathstr}'\n"
+    if s is not None:
+        o += f"inpoint {s:0.3f}\n"
+    if e is not None:
+        o += f"outpoint {e:0.3f}\n"
+        if s is None:
+            s = 0.0
+        o += f"duration {e-s:0.3f}\n"
+    return o
 
 
 def make_single_file_chaptered(
@@ -211,13 +249,13 @@ def make_single_file_chaptered(
             raise IOError(f"ffmpeg returned non-zero exit status: {proc.returncode}")
 
 
-def _get_chapter_zero_padding(chap_info: Iterable[ChapterInfo]) -> int:
-    max_chap = max(map(operator.attrgetter("num"), chap_info))
-    return int(math.ceil(math.log(max_chap + 1, 10)))
+def _zero_padding_format(max_num: int) -> str:
+    zero_padding = int(math.ceil(math.log(max_num + 1, 10)))
+    return f"0{zero_padding:d}d"
 
 
 def _merge_subsets(
-    in_paths: Sequence[Tuple[Path, float, float]],
+    subsets: Sequence[FileSubset],
     out_path: Path,
     file_info: file_probe.FileInfo,
 ) -> None:
@@ -225,7 +263,7 @@ def _merge_subsets(
         tp = Path(td)
         file_list = tp / "input_files.txt"
         file_list.write_text(
-            "\n".join(_to_file_list_entry(p, s, e) for p, s, e in in_paths)
+            "\n".join(_to_file_list_entry(x.path, x.start, x.end) for x in subsets)
         )
 
         cmd = [
@@ -249,6 +287,9 @@ def _merge_subsets(
             os.fspath(out_path),
         ]
 
+        logging.debug("Running ffmpeg command: %s", cmd)
+        logging.debug("file list:\n%s", file_list.read_text())
+
         proc = subprocess.run(
             cmd,
             input=file_info.to_ffmetadata(),
@@ -268,17 +309,14 @@ def _merge_subsets(
 
 
 def _extract_subset(
-    in_path: Path,
+    subset: FileSubset,
     out_path: Path,
     file_info: file_probe.FileInfo,
 ) -> None:
     assert file_info.chapters
-    if len(file_info.chapters) == 1:
-        chapter = file_info.chapters[0]
-    else:
-        chapter = attrs.evolve(
-            file_info.chapters[0], end_time=file_info.chapters[-1].end_time
-        )
+    chapter = file_info.chapters[0]
+    in_path = subset.path
+
     logging.info("Extracting chapter %s from %s", chapter.num, in_path)
 
     new_tags: typing.MutableMapping[str, str] = typing.cast(
@@ -293,16 +331,12 @@ def _extract_subset(
         file_info, format_info=attrs.evolve(file_info.format_info, tags=new_tags)
     )
 
-    if chapter.start_time >= chapter.end_time:
-        logging.warning(
-            "Skipping malformed chapter with zero or negative length: "
-            + "Chapter %s (%s has start time %s and end time %s",
-            chapter.num,
-            chapter.title,
-            chapter.start_time,
-            chapter.end_time,
-        )
-        return
+    subset_directives: MutableSequence[str] = []
+    if subset.start:
+        subset_directives.extend(("-ss", str(subset.start)))
+
+    if subset.end:
+        subset_directives.extend(("-to", str(subset.end)))
 
     cmd = [
         "ffmpeg",
@@ -310,10 +344,7 @@ def _extract_subset(
         "error",
         "-i",
         "pipe:",
-        "-ss",
-        str(chapter.start_time),
-        "-to",
-        str(chapter.end_time),
+        *subset_directives,
         "-i",
         os.fspath(in_path),
         "-map_metadata",
@@ -345,14 +376,11 @@ def _extract_subset(
         raise IOError(f"ffmpeg failed with exit code: {proc.returncode}")
 
 
-def split_chapters(
+def calculate_chapter_splits(
     in_path: Path,
-    out_dir: Path,
-    base_name: Optional[str] = None,
     *,
     audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
-    executor: Optional[futures.Executor] = None,
-) -> None:
+) -> Sequence[RenderJob]:
     if in_path.is_dir():
         files = audio_loader.audio_files(in_path)
         ext = files[0].suffix
@@ -366,86 +394,110 @@ def split_chapters(
         files, file_infos=file_infos, fall_back_to_durations=False
     )
 
-    if not out_dir.exists():
-        out_dir.mkdir()
-
-    zero_padding = _get_chapter_zero_padding(map(operator.itemgetter(1), chapter_info))
-
-    if base_name is None:
-        base_name = in_path.stem
-
-    chap_num_fmt_str = f"{{:0{zero_padding}d}}"
-
-    JobPoolJob = Tuple[
-        Callable,
-        Union[Path, Sequence[Tuple[Path, float, float]]],
-        Path,
-        file_probe.FileInfo,
-    ]
-    job_pool: MutableSequence[JobPoolJob] = []
+    job_pool: MutableSequence[RenderJob] = []
     last_file: Optional[Path] = None
     for fpath, chapter in chapter_info:
-        chap_num = chap_num_fmt_str.format(chapter.num)
-        fname = f"{base_name} - {chap_num}{ext}"
-        out_path = out_dir / fname
 
         if last_file != fpath and chapter.start_time > 0 and job_pool:
-            old_job = job_pool.pop()
-            (old_chapter,) = old_job[3].chapters  # type: ignore[misc]
+            # We need to append the beginning of the next file into the end
+            # of the last file, because the chapter is split across multiple
+            # files.
+            old_job: RenderJob = job_pool.pop()
+            new_subsets = [
+                *old_job.file_inputs,
+                FileSubset(fpath, start=None, end=chapter.start_time),
+            ]
 
-            new_job: JobPoolJob = (
-                _merge_subsets,
-                [
-                    (old_job[1], old_chapter.start_time, old_chapter.end_time),  # type: ignore[list-item]
-                    (fpath, 0.0, chapter.start_time),
+            old_file_info = old_job.out_file_info
+            assert old_file_info.chapters
+            old_chapter = old_file_info.chapters[0]
+            new_file_info = attrs.evolve(
+                old_file_info,
+                chapters=[
+                    attrs.evolve(
+                        old_chapter, end_time=old_chapter.end_time + chapter.start_time
+                    )
                 ],
-                old_job[2],
-                attrs.evolve(
-                    old_job[3],
-                    chapters=[
-                        attrs.evolve(
-                            old_chapter,
-                            end_time=old_chapter.end_time + chapter.start_time,
-                        )
-                    ],
-                ),
             )
+            new_job = RenderJob(file_inputs=new_subsets, out_file_info=new_file_info)
+
             job_pool.append(new_job)
+
+        if chapter.start_time == 0.0:
+            start_time = None
+        else:
+            start_time = chapter.start_time
+
+        if abs(chapter.end_time - file_infos[fpath].format_info.duration) < 0.25:
+            end_time = None
+        else:
+            end_time = chapter.end_time
+
+        file_subset = FileSubset(
+            path=fpath,
+            start=chapter.start_time,
+            end=end_time,
+        )
 
         # Create a new FileInfo for the new file
         file_info = file_probe.FileInfo(
             format_info=attrs.evolve(
                 file_infos[fpath].format_info,
-                filename=fname,
                 duration=chapter.duration,
                 size=None,
             ),
             chapters=[attrs.evolve(chapter, start_time=0.0, end_time=chapter.duration)],
         )
 
-        job_pool.append((_extract_subset, fpath, out_path, file_info))
+        job_pool.append(RenderJob(file_inputs=[file_subset], out_file_info=file_info))
         last_file = fpath
 
-    if executor is None:
-        executor = futures.ThreadPoolExecutor()
-
-    def execute_job(job: JobPoolJob) -> None:
-        f, *args = job
-        f(*args)
-
-    list(executor.map(execute_job, job_pool))
+    return job_pool
 
 
-def segment_files(
+def split_chapters(
     in_path: Path,
-    out_path: Path,
+    out_dir: Path,
+    base_name: Optional[str] = None,
     *,
-    copy_on_optimal: bool = False,
+    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
+    executor: Optional[futures.Executor] = None,
+) -> None:
+    if not out_dir.exists():
+        out_dir.mkdir()
+
+    jobs = calculate_chapter_splits(in_path, audio_loader=audio_loader)
+
+    max_chapter = len(jobs)
+    for job in jobs:
+        chapters = job.out_file_info.chapters
+        if chapters:
+            max_num = max(map(operator.attrgetter("num"), chapters))
+            if max_num > max_chapter:
+                max_chapter = max_num
+
+    padding_format = _zero_padding_format(max_chapter)
+
+    if base_name is None:
+        base_name = in_path.stem
+
+    def name_func(i: int, job: RenderJob) -> str:
+        assert job.out_file_info.chapters
+        chap_num = job.out_file_info.chapters[0].num
+        ext = job.file_inputs[0].path.suffix
+
+        return f"{base_name} - {format(chap_num, padding_format)}{ext}"
+
+    render_jobs(out_dir, jobs, executor=executor, name_func=name_func)
+
+
+def calculate_segments(
+    in_path: Path,
+    *,
     audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
     cost_func: Optional[segmenter.CostFunc] = None,
     executor: Optional[futures.Executor] = None,
-) -> bool:
-
+) -> typing.Sequence[RenderJob]:
     if in_path.is_dir():
         files = audio_loader.audio_files(in_path)
     else:
@@ -483,68 +535,86 @@ def segment_files(
 
     segmented = segmenter.segment(segmentables, **kwargs)
 
-    optimal = True
-    job_queue: MutableSequence[Callable[[], Any]] = []
-    zero_padding = int(math.ceil(math.log(len(segmented) + 1, 10)))
-    padding_format = f"0{zero_padding:d}d"
-    ext = files[0].suffix[1:]
+    job_queue: MutableSequence[RenderJob] = []
 
-    for i, segment in enumerate(segmented):
-        out_file = out_path / f"Part{format(i, padding_format)}.{ext}"
+    for segment in segmented:
         if len(segment) == 1:
             duration = segment[0].file_info.format_info.duration
             assert duration is not None
-            if duration > segment[0].chapter.duration:
-                optimal = False
-                segment_file_info = segment[0].file_info
-
-                job_queue.append(
-                    functools.partial(
-                        _extract_subset, segment[0].fpath, out_path, segment_file_info
-                    )
+            chapter = segment[0].chapter
+            if duration > chapter.duration:
+                subset = FileSubset(
+                    segment[0].fpath, start=chapter.start_time, end=chapter.end_time
                 )
-
             else:
-                job_queue.append(
-                    functools.partial(shutil.copyfile, segment[0].fpath, out_file)
-                )
+                subset = FileSubset(segment[0].fpath, start=chapter.start_time)
+            job_queue.append(RenderJob([subset], segment[0].file_info))
         else:
-            optimal = False
-            # We have multiple segments merging into one. These could be subsets
-            # of the same file or subsets of different files.
             segment_file_info = functools.reduce(
                 _merge_file_infos, map(operator.attrgetter("file_info"), segment)
             )
 
-            if all(segment[0].fpath == element.fpath for element in segment[1:]):
-                # All from the same file, so we can use _extract_subset
-                job_queue.append(
-                    functools.partial(
-                        _extract_subset, segment[0].fpath, out_file, segment_file_info
-                    )
-                )
-            else:
-                # We need to use _merge_subsets
-                in_paths = [
-                    (
-                        element.fpath,
-                        element.chapter.start_time,
-                        element.chapter.end_time,
-                    )
-                    for element in segment
-                ]
-                job_queue.append(
-                    functools.partial(
-                        _merge_subsets, in_paths, out_file, segment_file_info
+            subsets: MutableSequence[FileSubset] = []
+            for element in segment:
+                duration = element.file_info.format_info.duration
+                assert duration is not None
+                if abs(element.chapter.end_time - duration) < 0.25:
+                    end_time = None
+                else:
+                    end_time = element.chapter.end_time
+
+                subsets.append(
+                    FileSubset(
+                        element.fpath, start=element.chapter.start_time, end=end_time
                     )
                 )
 
-    if optimal and not copy_on_optimal:
-        return False
+            job_queue.append(RenderJob(subsets, segment_file_info))
+
+    return job_queue
+
+
+def segment_files(
+    in_path: Path,
+    out_path: Path,
+    *,
+    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
+    cost_func: Optional[segmenter.CostFunc] = None,
+    executor: Optional[futures.Executor] = None,
+) -> None:
+    segment_jobs = calculate_segments(
+        in_path, audio_loader=audio_loader, cost_func=cost_func, executor=executor
+    )
+
+    render_jobs(out_path, segment_jobs, executor=executor)
+
+
+def _make_default_name_function(num_jobs: int) -> NameFunction:
+    padding_format = _zero_padding_format(num_jobs)
+
+    def make_name(i: int, job: RenderJob) -> str:
+        ext = job.file_inputs[0].path.suffix
+        return f"Part{format(i, padding_format)}{ext}"
+
+    return make_name
+
+
+def render_jobs(
+    out_dir: Path,
+    jobs: Sequence[RenderJob],
+    *,
+    executor: Optional[futures.Executor] = None,
+    name_func: Optional[NameFunction] = None,
+) -> None:
+    if name_func is None:
+        name_func = _make_default_name_function(len(jobs))
+
+    work_queue: MutableSequence[Callable[[], Any]] = []
+    for i, job in enumerate(jobs):
+        out_path = out_dir / name_func(i, job)
+        work_queue.append(job.to_job(out_path))
 
     if executor is None:
         executor = futures.ThreadPoolExecutor()
 
-    list(executor.map(lambda x: x(), job_queue))
-
-    return not optimal
+    list(executor.map(lambda x: x(), work_queue))

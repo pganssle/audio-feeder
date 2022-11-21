@@ -601,10 +601,12 @@ def test_segmenter_already_optimal(tmp_path: pathlib.Path) -> None:
     for fi in (file_info_1, file_info_2):
         utils.make_file(fi, in_path / fi.format_info.filename)
 
-    assert not m4btools.segment_files(
-        in_path, out_path, cost_func=segmenter.asymmetric_cost(60.0)
+    segments = m4btools.calculate_segments(
+        in_path, cost_func=segmenter.asymmetric_cost(60.0)
     )
-    assert sum(1 for _ in out_path.iterdir()) == 0
+
+    copy_only = [job.is_copy_job() for job in segments]
+    assert copy_only == [True, True]
 
 
 def test_segmenter_split_single_file(
@@ -680,9 +682,12 @@ def test_segmenter_split_single_file(
     out_path = tmp_path / "out"
     out_path.mkdir()
 
-    assert m4btools.segment_files(
-        chaptered_frankenstein, out_path, cost_func=segmenter.asymmetric_cost(60.0)
+    jobs = m4btools.calculate_segments(
+        chaptered_frankenstein,
+        cost_func=segmenter.asymmetric_cost(60.0),
     )
+
+    m4btools.render_jobs(out_path, jobs)
 
     loader = dp.AudiobookLoader()
     actual_file_infos = tuple(

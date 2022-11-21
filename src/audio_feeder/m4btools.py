@@ -150,7 +150,7 @@ def single_file_chaptered_jobs(
 ) -> Sequence[RenderJob]:
     if chapter_info is not None:
         if set(files) - chapter_info.keys():
-            logging.warn(
+            logging.warning(
                 "Mismatch between pre-calculated chapter info files "
                 + "and files on disk. Got:\n%s\nExpected:\n%s\n"
                 + "Recalculating based on files on disk.",

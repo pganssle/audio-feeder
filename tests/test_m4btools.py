@@ -548,7 +548,7 @@ def test_split_chapters_multifile(
         ),
     ]
 
-    m4btools.split_chapters(multifile_chaptered, out_path, base_name="Generic Book")
+    m4btools.split_chapters(multifile_chaptered, out_path, base_name="Generic Book - ")
 
     loader = dp.AudiobookLoader()
     actual_results = file_probe.get_multipath_chapter_info(
@@ -602,7 +602,7 @@ def test_segmenter_already_optimal(tmp_path: pathlib.Path) -> None:
         utils.make_file(fi, in_path / fi.format_info.filename)
 
     segments = m4btools.calculate_segments(
-        in_path, cost_func=segmenter.asymmetric_cost(60.0)
+        in_path, out_path, cost_func=segmenter.asymmetric_cost(60.0)
     )
 
     copy_only = [job.is_copy_job() for job in segments]
@@ -684,10 +684,11 @@ def test_segmenter_split_single_file(
 
     jobs = m4btools.calculate_segments(
         chaptered_frankenstein,
+        out_path,
         cost_func=segmenter.asymmetric_cost(60.0),
     )
 
-    m4btools.render_jobs(out_path, jobs)
+    m4btools.render_jobs(jobs)
 
     loader = dp.AudiobookLoader()
     actual_file_infos = tuple(

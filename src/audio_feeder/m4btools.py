@@ -143,7 +143,7 @@ def _to_file_list_entry(p: Path, s: Optional[float] = None, e: Optional[float] =
     return o
 
 
-def calculate_single_file_chaptered(
+def single_file_chaptered_jobs(
     audio_dir: Path,
     out_path: Path,
     *,
@@ -196,23 +196,6 @@ def calculate_single_file_chaptered(
     return (
         RenderJob(subsets=subsets, out_path=out_path, out_file_info=merged_file_info),
     )
-
-
-def make_single_file_chaptered(
-    audio_dir: Path,
-    out_path: Path,
-    *,
-    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
-    chapter_info: Optional[Mapping[Path, Sequence[ChapterInfo]]] = None,
-) -> None:
-    jobs = calculate_single_file_chaptered(
-        audio_dir=audio_dir,
-        out_path=out_path,
-        audio_loader=audio_loader,
-        chapter_info=chapter_info,
-    )
-
-    render_jobs(jobs)
 
 
 def _zero_padding_format(max_num: int) -> str:
@@ -351,7 +334,7 @@ def _extract_subset(
         raise IOError(f"ffmpeg failed with exit code: {proc.returncode}")
 
 
-def calculate_chapter_splits(
+def chapter_split_jobs(
     in_path: Path,
     out_path: Path,
     base_name: Optional[str] = None,
@@ -446,25 +429,7 @@ def calculate_chapter_splits(
     return job_pool
 
 
-def split_chapters(
-    in_path: Path,
-    out_dir: Path,
-    base_name: Optional[str] = None,
-    *,
-    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
-    executor: Optional[futures.Executor] = None,
-) -> None:
-    if not out_dir.exists():
-        out_dir.mkdir()
-
-    jobs = calculate_chapter_splits(
-        in_path, out_dir, base_name=base_name, audio_loader=audio_loader
-    )
-
-    render_jobs(jobs, executor=executor)
-
-
-def calculate_segments(
+def segment_files_jobs(
     in_path: Path,
     out_path: Path,
     *,
@@ -555,25 +520,6 @@ def calculate_segments(
             )
 
     return job_queue
-
-
-def segment_files(
-    in_path: Path,
-    out_path: Path,
-    *,
-    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
-    cost_func: Optional[segmenter.CostFunc] = None,
-    executor: Optional[futures.Executor] = None,
-) -> None:
-    segment_jobs = calculate_segments(
-        in_path,
-        out_path,
-        audio_loader=audio_loader,
-        cost_func=cost_func,
-        executor=executor,
-    )
-
-    render_jobs(segment_jobs, executor=executor)
 
 
 def render_jobs(

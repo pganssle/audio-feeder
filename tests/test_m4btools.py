@@ -410,10 +410,6 @@ def test_overdrive_media_markers(tmp_path: pathlib.Path) -> None:
         assert actual.start_time == pytest.approx(expected.start_time, abs=0.5)
         assert actual.end_time == pytest.approx(expected.end_time, abs=0.5)
 
-        assert "OverDrive MediaMarkers" not in actual.tags
-
-    assert "OverDrive MediaMarkers" not in actual_fi.format_info.tags
-
 
 def test_make_single_file_error(tmp_path: pathlib.Path):
     in_path = tmp_path / "in"

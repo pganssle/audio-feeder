@@ -143,13 +143,13 @@ def _to_file_list_entry(p: Path, s: Optional[float] = None, e: Optional[float] =
     return o
 
 
-def make_single_file_chaptered(
+def calculate_single_file_chaptered(
     audio_dir: Path,
     out_path: Path,
     *,
     audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
     chapter_info: Optional[Mapping[Path, Sequence[ChapterInfo]]] = None,
-) -> None:
+) -> Sequence[RenderJob]:
     files = audio_loader.audio_files(audio_dir)
     if chapter_info is not None:
         if set(files) - chapter_info.keys():
@@ -164,6 +164,7 @@ def make_single_file_chaptered(
             chapter_info = None
 
     file_infos = {fpath: file_probe.FileInfo.from_file(fpath) for fpath in files}
+    subsets = [FileSubset(path=fpath, start=None, end=None) for fpath in files]
 
     # TODO: Refactor this so that we can directly invoke the "fall back to durations"
     # logic if necessary.
@@ -192,55 +193,26 @@ def make_single_file_chaptered(
         _merge_file_infos, file_infos.values()
     )
 
-    # Write the file info metadata to a temporary directory, then do the merge
-    with tempfile.TemporaryDirectory() as td:
-        tp = Path(td)
+    return (
+        RenderJob(subsets=subsets, out_path=out_path, out_file_info=merged_file_info),
+    )
 
-        file_list = tp / "input_files.txt"
-        file_list.write_text("\n".join(map(_to_file_list_entry, files)))  # type: ignore[arg-type]
-        cmd = [
-            "ffmpeg",
-            "-loglevel",
-            "error",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            os.fspath(file_list),
-            "-i",
-            "pipe:",
-            "-map",
-            "0",
-            "-map_metadata",
-            "1",
-            "-c:a",
-            "aac",
-            "-c:v",
-            "copy",
-            "-q:a",
-            "3",
-            "-f",
-            "mp4",
-            os.fspath(out_path),
-        ]
-        logging.debug("Executing merge command:\n%s", cmd)
-        proc = subprocess.run(
-            cmd,
-            check=False,
-            capture_output=True,
-            input=merged_file_info.to_ffmetadata(),
-            encoding="utf-8",
-        )
 
-        if proc.stdout:  # pragma: nocover
-            logging.info(proc.stdout)
+def make_single_file_chaptered(
+    audio_dir: Path,
+    out_path: Path,
+    *,
+    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
+    chapter_info: Optional[Mapping[Path, Sequence[ChapterInfo]]] = None,
+) -> None:
+    jobs = calculate_single_file_chaptered(
+        audio_dir=audio_dir,
+        out_path=out_path,
+        audio_loader=audio_loader,
+        chapter_info=chapter_info,
+    )
 
-        if proc.stderr:
-            logging.error(proc.stderr)
-
-        if proc.returncode:
-            raise IOError(f"ffmpeg returned non-zero exit status: {proc.returncode}")
+    render_jobs(jobs)
 
 
 def _zero_padding_format(max_num: int) -> str:
@@ -253,6 +225,13 @@ def _merge_subsets(
     out_path: Path,
     file_info: file_probe.FileInfo,
 ) -> None:
+    if out_path.suffix.endswith("m4b") and any(
+        not x.path.suffix.endswith("m4b") for x in subsets
+    ):
+        audio_codec = "aac"
+    else:
+        audio_codec = "copy"
+
     with tempfile.TemporaryDirectory() as td:
         tp = Path(td)
         file_list = tp / "input_files.txt"
@@ -276,7 +255,9 @@ def _merge_subsets(
             "1",
             "-map_metadata",
             "0",
-            "-c",
+            "-c:a",
+            audio_codec,
+            "-c:v",
             "copy",
             os.fspath(out_path),
         ]

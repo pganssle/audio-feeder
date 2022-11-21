@@ -54,38 +54,36 @@ class FileSubset:
 
 @attrs.frozen
 class RenderJob:
-    file_inputs: Sequence[FileSubset]
+    subsets: Sequence[FileSubset]
     out_path: Path
     out_file_info: file_probe.FileInfo
 
     def is_copy_job(self):
-        if len(self.file_inputs) != 1:
+        if len(self.subsets) != 1:
             return False
 
-        file_subset = self.file_inputs[0]
+        file_subset = self.subsets[0]
         return (
             file_subset.start is None or file_subset.start == 0.0
         ) and file_subset.end is None
 
     def __call__(self) -> None:
         if self.is_copy_job():
-            shutil.copyfile(self.file_inputs[0].path, self.out_path)
+            shutil.copyfile(self.subsets[0].path, self.out_path)
             return
-        elif all(self.file_inputs[0].path == fs.path for fs in self.file_inputs[1:]):
+        elif all(self.subsets[0].path == fs.path for fs in self.subsets[1:]):
             # These are all subsets of a single file, so we can use _extract_subset
             # This also matches when there is exactly one file subset.
-            if len(self.file_inputs) > 1:
-                merged_subset = attrs.evolve(
-                    self.file_inputs[0], end=self.file_inputs[-1].end
-                )
+            if len(self.subsets) > 1:
+                merged_subset = attrs.evolve(self.subsets[0], end=self.subsets[-1].end)
             else:
-                merged_subset = self.file_inputs[0]
+                merged_subset = self.subsets[0]
 
             _extract_subset(merged_subset, self.out_path, self.out_file_info)
             return
         else:
             # Multiple files merging into one, so we use _merge_subsets
-            _merge_subsets(self.file_inputs, self.out_path, self.out_file_info)
+            _merge_subsets(self.subsets, self.out_path, self.out_file_info)
             return
 
 
@@ -410,7 +408,7 @@ def calculate_chapter_splits(
             # files.
             old_job: RenderJob = job_pool.pop()
             new_subsets = [
-                *old_job.file_inputs,
+                *old_job.subsets,
                 FileSubset(fpath, start=None, end=chapter.start_time),
             ]
 
@@ -426,7 +424,9 @@ def calculate_chapter_splits(
                 ],
             )
             new_job = RenderJob(
-                file_inputs=new_subsets, out_path=old_job.out_path, out_file_info=new_file_info
+                subsets=new_subsets,
+                out_path=old_job.out_path,
+                out_file_info=new_file_info,
             )
 
             job_pool.append(new_job)
@@ -458,9 +458,7 @@ def calculate_chapter_splits(
         )
 
         job_pool.append(
-            RenderJob(
-                file_inputs=[file_subset], out_path=out_file, out_file_info=file_info
-            )
+            RenderJob(subsets=[file_subset], out_path=out_file, out_file_info=file_info)
         )
         last_file = fpath
 

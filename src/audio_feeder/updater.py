@@ -153,12 +153,16 @@ class BookDatabaseUpdater:
             for existing_path in existing_path_set
         )
 
-        updated_entries = self.executor.map(
-            lambda entry: entry.updated_metadata(
-                media_loc_path, executor=self.executor
-            ),
-            existing_entries,
-        )
+        def _update_existing_entries(entry):
+            if not entry.files:
+                entry = attrs.evolve(
+                    entry,
+                    files=self.book_loader.audio_files(media_loc_path / entry.path),
+                )
+
+            return entry.updated_metadata(media_loc_path, executor=self.executor)
+
+        updated_entries = self.executor.map(_update_existing_entries, existing_entries)
 
         for entry_obj in itertools.chain(new_entries, updated_entries):
             entry_table[entry_obj.id] = entry_obj

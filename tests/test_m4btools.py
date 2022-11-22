@@ -234,8 +234,10 @@ def test_merge_durations(
             for filename, chapter in chapter_infos.items()
         }
 
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(dracula_files)
     jobs = m4btools.single_file_chaptered_jobs(
-        dracula_files, out_path, chapter_info=chapter_infos
+        files, out_path, chapter_info=chapter_infos
     )
 
     with caplog.at_level(logging.WARN):
@@ -309,7 +311,9 @@ def test_merge_multifile_chaptered(
     out_path = tmp_path / "out" / "Joined.m4b"
     out_path.parent.mkdir()
 
-    jobs = m4btools.single_file_chaptered_jobs(multifile_chaptered, out_path)
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(multifile_chaptered)
+    jobs = m4btools.single_file_chaptered_jobs(files, out_path)
 
     m4btools.render_jobs(jobs)
 
@@ -399,7 +403,9 @@ def test_overdrive_media_markers(tmp_path: pathlib.Path) -> None:
     for fi in (fi1, fi2):
         utils.make_file(fi, in_path / fi.format_info.filename)
 
-    jobs = m4btools.single_file_chaptered_jobs(in_path, out_path)
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(in_path)
+    jobs = m4btools.single_file_chaptered_jobs(files, out_path)
 
     m4btools.render_jobs(jobs)
 
@@ -447,10 +453,13 @@ def test_make_single_file_error(tmp_path: pathlib.Path):
         p.touch()
         file_infos[p] = fi
 
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(in_path)
+
     with mock.patch.object(
         m4btools.file_probe.FileInfo, "from_file", side_effect=file_infos.get
     ):
-        jobs = m4btools.single_file_chaptered_jobs(in_path, tmp_path / "out")
+        jobs = m4btools.single_file_chaptered_jobs(files, tmp_path / "out")
 
         with pytest.raises(IOError):
             m4btools.render_jobs(jobs)
@@ -497,12 +506,12 @@ def test_split_chapters_onefile(
         )
 
     out_dir.mkdir()
-    jobs = m4btools.chapter_split_jobs(
-        chaptered_frankenstein, out_dir, base_name="Frankenstein"
-    )
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(chaptered_frankenstein.parent)
+
+    jobs = m4btools.chapter_split_jobs(files, out_dir, base_name="Frankenstein")
     m4btools.render_jobs(jobs)
 
-    loader = dp.AudiobookLoader()
     files = loader.audio_files(out_dir)
 
     actual_chapters = file_probe.get_multipath_chapter_info(files)
@@ -554,12 +563,11 @@ def test_split_chapters_multifile(
         ),
     ]
 
-    jobs = m4btools.chapter_split_jobs(
-        multifile_chaptered, out_path, base_name="Generic Book - "
-    )
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(multifile_chaptered)
+    jobs = m4btools.chapter_split_jobs(files, out_path, base_name="Generic Book - ")
     m4btools.render_jobs(jobs)
 
-    loader = dp.AudiobookLoader()
     actual_results = file_probe.get_multipath_chapter_info(
         loader.audio_files(out_path), fall_back_to_durations=False
     )
@@ -610,8 +618,10 @@ def test_segmenter_already_optimal(tmp_path: pathlib.Path) -> None:
     for fi in (file_info_1, file_info_2):
         utils.make_file(fi, in_path / fi.format_info.filename)
 
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(in_path)
     jobs = m4btools.segment_files_jobs(
-        in_path, out_path, cost_func=segmenter.asymmetric_cost(60.0)
+        files, out_path, cost_func=segmenter.asymmetric_cost(60.0)
     )
 
     copy_only = [job.is_copy_job() for job in jobs]
@@ -692,7 +702,7 @@ def test_segmenter_split_single_file(
     out_path.mkdir()
 
     jobs = m4btools.segment_files_jobs(
-        chaptered_frankenstein,
+        [chaptered_frankenstein],
         out_path,
         cost_func=segmenter.asymmetric_cost(60.0),
     )

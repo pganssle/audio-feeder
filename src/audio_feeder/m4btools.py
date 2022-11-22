@@ -29,7 +29,6 @@ from typing import (
 import attrs
 import lxml
 
-from . import directory_parser as dp
 from . import file_probe, segmenter
 from .file_probe import ChapterInfo
 
@@ -144,13 +143,11 @@ def _to_file_list_entry(p: Path, s: Optional[float] = None, e: Optional[float] =
 
 
 def single_file_chaptered_jobs(
-    audio_dir: Path,
+    files: Sequence[Path],
     out_path: Path,
     *,
-    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
     chapter_info: Optional[Mapping[Path, Sequence[ChapterInfo]]] = None,
 ) -> Sequence[RenderJob]:
-    files = audio_loader.audio_files(audio_dir)
     if chapter_info is not None:
         if set(files) - chapter_info.keys():
             logging.warn(
@@ -335,18 +332,11 @@ def _extract_subset(
 
 
 def chapter_split_jobs(
-    in_path: Path,
+    files: Sequence[Path],
     out_path: Path,
     base_name: Optional[str] = None,
-    *,
-    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
 ) -> Sequence[RenderJob]:
-    if in_path.is_dir():
-        files = audio_loader.audio_files(in_path)
-        ext = files[0].suffix
-    else:
-        files = [in_path]
-        ext = in_path.suffix
+    ext = files[0].suffix
 
     if base_name is None:
         base_name = "Chapter"
@@ -430,18 +420,11 @@ def chapter_split_jobs(
 
 
 def segment_files_jobs(
-    in_path: Path,
+    files: Sequence[Path],
     out_path: Path,
     *,
-    audio_loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
     cost_func: Optional[segmenter.CostFunc] = None,
-    executor: Optional[futures.Executor] = None,
 ) -> typing.Sequence[RenderJob]:
-    if in_path.is_dir():
-        files = audio_loader.audio_files(in_path)
-    else:
-        files = [in_path]
-
     file_infos = {fpath: file_probe.FileInfo.from_file(fpath) for fpath in files}
 
     chapter_infos = file_probe.get_multipath_chapter_info(

@@ -51,7 +51,9 @@ class Resolver:
         # Doesn't represent a location on disk, so base_path is None
         return FileLocation(url_tail, self.base_url, None)
 
-    def resolve_qr(self, e_id: int, url: str) -> FileLocation:
+    def resolve_qr(
+        self, e_id: int, url: str, mode: typing.Optional[str] = None
+    ) -> FileLocation:
         # Check the QR cache - for the moment, we're going to assume that once
         # a QR code is generated, it's accurate until it's deleted. Eventually
         # it might be nice to allow multiple caches.
@@ -60,7 +62,11 @@ class Resolver:
         qr_cache_loc = self._config.qr_cache_path
         qr_cache_loc = os.path.join(qr_cache_loc, self._config.url_id)
 
-        rel_save_path = self.qr_generator.get_save_path(qr_cache_loc, "{}".format(e_id))
+        if mode is None:
+            file_name = f"{e_id}"
+        else:
+            file_name = f"{e_id}-{mode}"
+        rel_save_path = self.qr_generator.get_save_path(qr_cache_loc, file_name)
 
         qr_fl = FileLocation(rel_save_path, self.static_url, self.static_path)
 

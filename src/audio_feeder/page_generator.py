@@ -6,11 +6,13 @@ import math
 import os
 import string
 import warnings
+from urllib.parse import urljoin
 
 from jinja2 import Template
 
 from .config import get_configuration, read_from_config
 from .html_utils import TagStripper
+from .media_renderer import RenderModes
 from .object_handler import Book as BaseBook
 from .object_handler import Entry as BaseEntry
 
@@ -72,7 +74,29 @@ class EntryRenderer:
                 pass
 
         out["rss_url"] = self.resolver.resolve_rss(entry_obj).url
+        out["derived_rss_url"] = urljoin(
+            self.resolver.base_url, f"rss/derived/{entry_obj.id}-%s.xml"
+        )
         out["qr_img_url"] = self.resolver.resolve_qr(entry_obj.id, out["rss_url"]).url
+
+        has_chapter_info = False
+        if entry_obj.file_metadata:
+            if any(fi.chapters is not None for fi in entry_obj.file_metadata.values()):
+                has_chapter_info = True
+        out["has_chapter_info"] = has_chapter_info
+        out["rendered_qr_img_urls"] = {
+            str(RenderModes.SINGLE_FILE): self.resolver.resolve_qr(
+                entry_obj.id,
+                (out["derived_rss_url"] % RenderModes.SINGLE_FILE),
+                mode=RenderModes.SINGLE_FILE,
+            ).url,
+        }
+
+        if has_chapter_info:
+            for mode in (RenderModes.CHAPTERS, RenderModes.SEGMENTED):
+                out["rendered_qr_img_urls"][str(mode)] = self.resolver.resolve_qr(
+                    entry_obj.id, (out["derived_rss_url"] % mode), mode=mode
+                ).url
 
         out["truncation_point"] = self.truncation_point(out["description"])
 

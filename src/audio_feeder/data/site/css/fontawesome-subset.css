@@ -45,3 +45,9 @@
 
 .fa-filter:before {
     content: "\f0b0"; }
+
+.fa-qrcode:before {
+    content: "\f029"; }
+
+.fa-square-rss:before {
+    content: "\f143"; }

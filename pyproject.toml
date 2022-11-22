@@ -26,6 +26,7 @@ dependencies = [
     "lxml>=2.0",
     "SQLAlchemy>=1.4",
     "attrs>=22.0",
+    "backports.strenum>=1.1.1;python_version<'3.11'",
     "typing_extensions>=4.0.0;python_version<'3.11'",
 ]
 classifiers = [

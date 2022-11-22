@@ -15,10 +15,12 @@ from flask import Blueprint, request
 from jinja2 import Template
 
 from audio_feeder import database_handler as dh
+from audio_feeder import media_renderer as mr
 from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
 from audio_feeder import rss_feeds as rf
 from audio_feeder.config import init_config, read_from_config
+from audio_feeder.file_location import FileLocation
 from audio_feeder.resolver import get_resolver
 
 from . import cache_utils, updater
@@ -128,33 +130,109 @@ def books():
     return t.render(page_data)
 
 
-@root.route("/chapter-data/<int:e_id>-<string:guid>.json")
-def chapter_json(e_id: ID, guid: str):
-    """Generates the chapter data for a given file."""
+def _render_rss_feed(entry_obj: oh.Entry, data_obj: oh.SchemaObject, feed_items) -> str:
+    # Render the main "feed-wide" portions of this
+    renderer = get_renderer(rss_renderer=True)
+    rendered_page = renderer.render(entry_obj, data_obj)
+
+    channel_title = rendered_page["name"]
+    channel_desc = rendered_page["description"]
+
+    build_date = entry_obj.last_modified
+    pub_date = entry_obj.date_added
+
+    author = rendered_page["author"]
+
+    cover_image = entry_obj.cover_images[0] if entry_obj.cover_images else None
+    if cover_image is not None:
+        cover_image_url = get_resolver().resolve_static(os.fspath(cover_image)).url
+        cover_image_url = cover_image_url.replace("[", "%5B")
+        cover_image_url = cover_image_url.replace("]", "%5D")
+    else:
+        cover_image_url = None
+
+    # This gives me the "items" list
+    payload = {
+        "channel_title": channel_title,
+        "channel_desc": channel_desc,
+        "channel_link": request.path,
+        "build_date": build_date,
+        "pub_date": pub_date,
+        "author": author,
+        "cover_image": cover_image_url,
+        "items": feed_items,
+    }
+
+    payload = {k: rf.wrap_field(v) for k, v in payload.items()}
+
+    t = get_feed_template()
+
+    return t.render(payload)
+
+
+@root.route("/rss/derived/<int:e_id>-<string:mode>.xml")
+def derived_rss_feed(e_id, mode):
+    """
+    Generates RSS feeds for the different derived feed modes.
+
+    Allowed modes are:
+        - singlefile
+        - chapters
+        - segmented
+    """
+
+    try:
+        render_mode = mr.RenderModes(mode.upper())
+    except ValueError:
+        flask.abort(404)
+
     entry_table = dh.get_database_table(TableName("entries"))
+
     if e_id not in entry_table:
         flask.abort(404)
 
-    entry_obj = typing.cast(oh.Entry, entry_table[e_id])
-    if not entry_obj.file_hashes or not entry_obj.file_metadata:
-        flask.abort(404)
+    entry_obj = entry_table[e_id]
 
-    assert entry_obj.file_hashes is not None
-    for file, file_hash in entry_obj.file_hashes.items():
-        if file_hash == guid:
-            break
-    else:
-        flask.abort(404)
+    resolver = get_resolver()
 
-    assert entry_obj.file_metadata is not None
-    if file not in entry_obj.file_metadata:
-        flask.abort(404)
+    media_loc = resolver.resolve_media_cache(f"{e_id}-{render_mode.lower()}")
+    media_path = media_loc.path
 
-    chapters = entry_obj.file_metadata[file].chapters
-    if not chapters:
-        flask.abort(404)
+    rss_renderer = get_renderer(rss_renderer=True)
+    renderer = mr.Renderer(media_path, entry_obj, mode=render_mode)
+    renderer.trigger_rendering()
 
-    return rf.generate_chapter_json(chapters)
+    # If no rendering was necessary, we redirect back to the default feed.
+    if renderer.is_default():
+        return flask.redirect(f"/rss/{e_id}.xml", code=302)
+
+    renderer.update_access_time()
+
+    if not renderer.rss_file.exists():
+        file_metadata = renderer.read_file_metadata()
+        file_metadata_loc = {
+            FileLocation(
+                fpath,
+                url_base=media_loc.url,
+                path_base=renderer.media_path,
+            ): value
+            for fpath, value in file_metadata.items()
+        }
+
+        feed_items = rf.feed_items_from_metadata(
+            entry_obj,
+            renderer.data_obj,
+            audio_dir=renderer.media_path,
+            file_metadata=file_metadata_loc,
+            mode=mode,
+            resolver=resolver,
+        )
+
+        rss_file_contents = _render_rss_feed(entry_obj, renderer.data_obj, feed_items)
+        renderer.rss_file.write_text(rss_file_contents)
+        return rss_file_contents
+
+    return renderer.rss_file.read_text()
 
 
 @root.route("/rss/<int:e_id>.xml")
@@ -179,42 +257,62 @@ def rss_feed(e_id):
     entry_obj = entry_table[e_id]
     data_obj = dh.get_data_obj(entry_obj)
 
-    # Render the main "feed-wide" portions of this
-    renderer = get_renderer(rss_renderer=True)
-    rendered_page = renderer.render(entry_obj, data_obj)
-
-    channel_title = rendered_page["name"]
-    channel_desc = rendered_page["description"]
-
-    build_date = entry_obj.last_modified
-    pub_date = entry_obj.date_added
-
-    author = rendered_page["author"]
-
-    cover_image = entry_obj.cover_images[0] if entry_obj.cover_images else None
-    if cover_image is not None:
-        cover_image = get_resolver().resolve_static(cover_image).url
-        cover_image = cover_image.replace("[", "%5B")
-        cover_image = cover_image.replace("]", "%5D")
-
-    # This gives me the "items" list
     feed_items = rf.load_feed_items(entry_obj)
-    payload = {
-        "channel_title": channel_title,
-        "channel_desc": channel_desc,
-        "channel_link": request.path,
-        "build_date": build_date,
-        "pub_date": pub_date,
-        "author": author,
-        "cover_image": cover_image,
-        "items": feed_items,
-    }
 
-    payload = {k: rf.wrap_field(v) for k, v in payload.items()}
+    return _render_rss_feed(entry_obj, data_obj, feed_items)
 
-    t = get_feed_template()
 
-    return t.render(payload)
+@root.route("/chapter-data/<int:e_id>-<string:guid>.json")
+def chapter_data(e_id: int, guid: str) -> Response:
+    resolver = get_resolver()
+    mode = request.args.get("mode", None)
+
+    entry_table = dh.get_database_table(TableName("entries"))
+
+    if e_id not in entry_table:
+        logging.error("ID not in entry table: %s", e_id)
+        flask.abort(404)
+
+    entry_obj = typing.cast(oh.Entry, entry_table[ID(e_id)])
+    if mode is not None:
+        render_mode = mr.RenderModes(mode.upper())
+        media_loc = resolver.resolve_media_cache(f"{e_id}-{render_mode.lower()}")
+        media_path = media_loc.path
+
+        assert media_path is not None
+        renderer = mr.Renderer(media_path, entry_obj, render_mode)
+
+        if renderer.is_default():
+            flask.redirect(request.path)
+
+        file_metadata = renderer.read_file_metadata()
+        for file, (file_info, file_guid) in renderer.read_file_metadata().items():
+            if guid == file_guid:
+                break
+        else:
+            logging.error(
+                "No file found with guid %s for entry %s in mode %s", guid, e_id, mode
+            )
+            flask.abort(404)
+
+    else:
+        assert entry_obj.file_metadata
+        assert entry_obj.file_hashes
+        for file, file_guid in entry_obj.file_hashes.items():
+            if file_guid == guid:
+                break
+        else:
+            logging.error("No file found with guid %s for entry %s", guid, e_id)
+            flask.abort(404)
+
+        if file not in entry_obj.file_metadata:
+            logging.error("No metadata found for %s-%s", guid, e_id)
+            flask.abort(404)
+
+        file_info = entry_obj.file_metadata[file]
+
+    assert file_info.chapters
+    return rf.generate_chapter_json(file_info.chapters)
 
 
 ###

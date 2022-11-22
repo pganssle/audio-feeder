@@ -34,6 +34,7 @@ class Resolver:
         self.static_path = config.static_media_path
 
         self.media_path = config.media_path
+        self.media_cache_path = config.media_cache_path
 
         self._config = config
 
@@ -81,6 +82,10 @@ class Resolver:
 
         # Doesn't represent a location on disk, so base_path is None
         return FileLocation(url_tail, self.base_url, None)
+
+    def resolve_media_cache(self, url_tail: str) -> FileLocation:
+        media_rel = os.path.join(self.media_cache_path, url_tail)
+        return self.resolve_static(media_rel)
 
     def resolve_media(self, url_tail: str) -> FileLocation:
         media_rel = os.path.join(self.media_path, url_tail)

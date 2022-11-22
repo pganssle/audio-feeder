@@ -1,11 +1,15 @@
 """
 RSS Feed generators
 """
+import datetime
+import functools
 import json
 import os
+import pathlib
 import re
 import typing
 import urllib.parse
+from concurrent import futures
 from datetime import timedelta
 from urllib.parse import urljoin
 from xml.sax import saxutils
@@ -13,7 +17,10 @@ from xml.sax import saxutils
 from . import database_handler as dh
 from . import directory_parser as dp
 from . import file_probe as fp
+from . import object_handler as oh
+from ._db_types import TableName
 from .config import read_from_config
+from .file_location import FileLocation
 from .hash_utils import hash_random
 from .resolver import Resolver
 
@@ -57,7 +64,89 @@ def generate_chapter_json(chapter_infos: typing.Sequence[fp.ChapterInfo]) -> str
     )
 
 
-def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
+def _get_description(data_obj: oh.SchemaObject, metadata: fp.FileInfo):
+    chapter_descs = []
+    if metadata.chapters:
+        for chapter in metadata.chapters:
+            if "description" in chapter.tags:
+                chapter_desc = chapter.tags["description"]
+            elif "comment" in chapter.tags:
+                chapter_desc = chapter.tags["comment"]
+            else:
+                continue
+
+            chapter_descs.append(f"Chapter {chapter.num}\n{chapter_desc}")
+
+    if chapter_descs:
+        return "\n".join(chapter_descs)
+
+    if metadata.format_info.tags:
+        if "description" in metadata.format_info.tags:
+            return metadata.format_info.tags["description"]
+        elif "comment" in metadata.format_info.tags:
+            return metadata.format_info.tags["comment"]
+
+    return getattr(data_obj, "description", None) or ""
+
+
+def feed_items_from_metadata(
+    entry_obj: oh.Entry,
+    data_obj: oh.SchemaObject,
+    audio_dir: FileLocation,
+    file_metadata: typing.Mapping[
+        FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
+    ],
+    mode: typing.Optional[str] = None,
+    resolver=None,
+) -> typing.Sequence[typing.Mapping[str, typing.Any]]:
+    pub_date = entry_obj.date_added or datetime.datetime.now(datetime.timezone.utc)
+
+    feed_items: typing.MutableSequence[typing.Mapping[str, typing.Any]] = []
+    for ii, (file, (file_info, file_hash)) in enumerate(file_metadata.items()):
+        feed_item: typing.MutableMapping[str, typing.Any] = {}
+
+        url = file.url
+        fpath = file.path
+        assert fpath
+        file_size = file_info.format_info.size
+        if not file_size and fpath.exists():
+            file_size = os.path.getsize(fpath)
+
+        if file_size:
+            feed_item["size"] = file_size
+
+        feed_item["fname"] = fpath.name
+        feed_item["url"] = url
+        feed_item["pubdate"] = pub_date + timedelta(minutes=ii)
+        feed_item["desc"] = _get_description(data_obj, file_info)
+
+        if file_hash is None:
+            assert entry_obj.hashseed
+            file_hash = hash_random(fpath, entry_obj.hashseed).hex()
+
+        feed_item["guid"] = file_hash
+
+        if file_info.chapters:
+            chapters_url = resolver.resolve_chapter(
+                entry_obj,
+                file_hash,
+            ).url
+            if mode is not None:
+                chapters_url += f"?mode={mode}"
+            feed_item["chapters_url"] = chapters_url
+        else:
+            feed_item["chapters_url"] = None
+
+        feed_items.append({k: wrap_field(v) for k, v in feed_item.items()})
+
+    return feed_items
+
+
+def load_feed_items(
+    entry_obj: oh.Entry,
+    resolver: typing.Optional[Resolver] = None,
+    loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
+):
     """
     Creates feed items from a directory.
 
@@ -79,50 +168,66 @@ def load_feed_items(entry_obj, resolver=None, loader=dp.AudiobookLoader):
         resolver = Resolver()
 
     media_path = resolver.resolve_media(".").path
-    audio_dir = resolver.resolve_media(entry_obj.path)
-    if not os.path.exists(audio_dir.path):
+    audio_dir = resolver.resolve_media(os.fspath(entry_obj.path))
+    assert audio_dir.path is not None
+    assert media_path is not None
+    if not audio_dir.path.exists():
         raise ItemNotFoundError("Could not find item: {}".format(audio_dir))
 
-    pub_date = entry_obj.date_added
-    data_obj = dh.get_database_table(entry_obj.table)[entry_obj.data_id]
+    table = entry_obj.table
+    assert table is not None
+    data_obj = dh.get_database_table(TableName(table))[entry_obj.data_id]
 
     audio_files = loader.audio_files(audio_dir.path)
 
-    feed_items = []
-    for ii, audio_file in enumerate(sorted(audio_files)):
-        feed_item = {}
+    @functools.cache
+    def _executor() -> futures.Executor:
+        return futures.ThreadPoolExecutor()
 
-        relpath = os.path.relpath(audio_file, audio_dir.path)
-        relpath = urllib.parse.quote(relpath)
+    metadata_futures: typing.MutableSequence[
+        futures.Future[typing.Tuple[FileLocation, fp.FileInfo, typing.Optional[str]]]
+    ] = []
+    file_metadata: typing.MutableMapping[
+        FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
+    ] = {}
+    file_locs: typing.Sequence[FileLocation] = []
+    for file in audio_files:
+        fname = file.relative_to(audio_dir.path)
 
-        url = _urljoin_dir(audio_dir.url, relpath)
+        file_loc = FileLocation(
+            rel_path=fname, url_base=audio_dir.url, path_base=audio_dir.path
+        )
 
-        file_size = os.path.getsize(audio_file)
-        feed_item["fname"] = os.path.split(audio_file)[1]
-        feed_item["size"] = file_size
-        feed_item["url"] = url
-        feed_item["pubdate"] = pub_date + timedelta(minutes=ii)
-        feed_item["desc"] = data_obj.description or ""
-        m_rel_path = audio_file.relative_to(media_path)
+        m_rel_path = file.relative_to(media_path)
         if entry_obj.file_hashes and m_rel_path in entry_obj.file_hashes:
-            file_hash = entry_obj.file_hashes[m_rel_path]
+            file_hash: typing.Optional[str] = entry_obj.file_hashes[m_rel_path]
         else:
-            file_hash = hash_random(audio_file, entry_obj.hashseed).hex()
-        feed_item["guid"] = file_hash
+            file_hash = None
 
-        if (
-            entry_obj.file_metadata is not None
-            and m_rel_path in entry_obj.file_metadata
-        ):
-            feed_item["chapters_url"] = resolver.resolve_chapter(
-                entry_obj, file_hash
-            ).url
+        if entry_obj.file_metadata is None or m_rel_path not in entry_obj.file_metadata:
+            metadata_futures.append(
+                _executor().submit(
+                    lambda fl, fh: (fl, fp.FileInfo.from_file(fl.path), fh),
+                    file_loc,
+                    file_hash,
+                )
+            )
         else:
-            feed_item["chapters_url"] = None
+            file_metadata[file_loc] = (entry_obj.file_metadata[m_rel_path], file_hash)
 
-        feed_items.append({k: wrap_field(v) for k, v in feed_item.items()})
+    for f in futures.as_completed(metadata_futures):
+        file_loc, metadata, file_hash = f.result()
+        file_metadata[file_loc] = (metadata, file_hash)
 
-    return feed_items
+    return feed_items_from_metadata(
+        entry_obj,
+        data_obj,
+        audio_dir,
+        file_metadata={
+            k: v for k, v in sorted(file_metadata.items(), key=lambda x: x[0].path)  # type: ignore
+        },
+        resolver=resolver,
+    )
 
 
 html_chars = re.compile("<[^>]+>")

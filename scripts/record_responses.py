@@ -15,9 +15,10 @@ class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
     SessionKey = typing.Tuple[str, typing.Sequence[typing.Tuple[str, str]]]
     SessionJson = typing.Mapping[str, typing.Any]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self._session_recording: typing.MutableMapping[
-            self.SessionKey, self.SessionJson
+            RecordingGoogleBooksLoader.SessionKey,
+            RecordingGoogleBooksLoader.SessionJson,
         ] = {}
         super().__init__(*args, **kwargs)
 

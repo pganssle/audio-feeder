@@ -12,6 +12,7 @@ from concurrent import futures
 from datetime import datetime, timezone
 
 from . import database_handler as dh
+from . import directory_parser as dp
 from . import file_probe as fp
 from . import hash_utils, m4btools
 from . import object_handler as oh
@@ -42,12 +43,14 @@ class Renderer:
         entry: oh.Entry,
         mode: RenderModes,
         *,
-        executor=None,
+        loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
+        executor: typing.Optional[futures.Executor] = None,
     ):
         self.media_path: typing.Final[pathlib.Path] = media_path
         self.entry: typing.Final[oh.Entry] = entry
         self.mode: typing.Final[RenderModes] = mode
         self.data_obj: typing.Final[oh.SchemaObject] = self._get_data_obj()
+        self._loader = loader
         self._executor = executor
 
     def _get_data_obj(self) -> oh.SchemaObject:
@@ -107,10 +110,6 @@ class Renderer:
                 ACTIVE_JOBS.remove(self.media_path)
 
     def trigger_rendering(self) -> None:
-        assert self.entry.files
-        assert self.entry.file_metadata
-        assert self.entry.file_hashes
-
         if self.media_path in ACTIVE_JOBS or self.is_render_complete():
             return
 
@@ -132,7 +131,14 @@ class Renderer:
 
             file_base = resolver.resolve_media(".").path
             assert file_base is not None
-            files = [file_base / file for file in self.entry.files]
+
+            if self.entry.files:
+                files: typing.Sequence[pathlib.Path] = [
+                    file_base / file for file in self.entry.files
+                ]
+            else:
+                files = self._loader.audio_files(self.entry.path)
+
             if self.mode == RenderModes.SINGLE_FILE:
                 jobs = m4btools.single_file_chaptered_jobs(files, self.media_path)
             elif self.mode == RenderModes.CHAPTERS:

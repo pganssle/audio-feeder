@@ -81,9 +81,13 @@ class EntryRenderer:
 
         has_chapter_info = False
         if entry_obj.file_metadata:
-            if any(fi.chapters is not None for fi in entry_obj.file_metadata.values()):
+            if any(fi.chapters for fi in entry_obj.file_metadata.values()):
                 has_chapter_info = True
         out["has_chapter_info"] = has_chapter_info
+        out["segmentable"] = has_chapter_info or (
+            entry_obj.files and len(entry_obj.files) > 1
+        )
+
         out["rendered_qr_img_urls"] = {
             str(RenderModes.SINGLE_FILE): self.resolver.resolve_qr(
                 entry_obj.id,
@@ -92,10 +96,16 @@ class EntryRenderer:
             ).url,
         }
 
-        if has_chapter_info:
-            for mode in (RenderModes.CHAPTERS, RenderModes.SEGMENTED):
+        for mode, generate in (
+            (RenderModes.SINGLE_FILE, True),
+            (RenderModes.CHAPTERS, has_chapter_info),
+            (RenderModes.SEGMENTED, out["segmentable"]),
+        ):
+            if generate:
                 out["rendered_qr_img_urls"][str(mode)] = self.resolver.resolve_qr(
-                    entry_obj.id, (out["derived_rss_url"] % mode), mode=mode
+                    entry_obj.id,
+                    (out["derived_rss_url"] % mode.lower()),
+                    mode=mode.lower(),
                 ).url
 
         out["truncation_point"] = self.truncation_point(out["description"])

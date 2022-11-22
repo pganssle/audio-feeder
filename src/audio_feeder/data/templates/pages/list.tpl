@@ -53,6 +53,8 @@ const qr_img_urls = new Map([
     [ {{entry.id}} + "SINGLEFILE", "{{ entry.rendered_qr_img_urls['SINGLEFILE'] }}"],
     {% if entry.has_chapter_info %}
         [ {{entry.id}} + "CHAPTERS", "{{ entry.rendered_qr_img_urls['CHAPTERS'] }}"],
+    {% endif %}
+    {% if entry.segmentable %}
         [ {{entry.id}} + "SEGMENTED", "{{ entry.rendered_qr_img_urls['SEGMENTED'] }}"],
     {% endif %}
 {% endfor %}
@@ -185,14 +187,16 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 <h3 class="entry_title"><a class="entry_link" href="{{ entry.rss_url }}">{{ entry.name }}</a></h3>
                 <div class="entry_extra_feeds">
                     <div class="extra_feed">
-                        <a onclick="toggle_modal({{ entry.id }}, 'SINGLEFILE')"><i class="fa fa-qrcode"></i></a><a href="{{ entry.derived_rss_url % "SINGLEFILE" }}"> Single File</a>
+                        <a onclick="toggle_modal({{ entry.id }}, 'SINGLEFILE')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'singlefile' }}"> Single File</a>
                     </div>
                     {% if entry.has_chapter_info %}
                     <div class="extra_feed">
-                    <a onclick="toggle_modal({{ entry.id }}, 'CHAPTERS')"><i class="fa fa-qrcode"></i></a><a href="{{ entry.derived_rss_url % 'CHAPTERS' }}"> Chapters</a>
+                    <a onclick="toggle_modal({{ entry.id }}, 'CHAPTERS')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'chapters' }}"> Chapters</a>
                     </div>
+                    {% endif %}
+                    {% if entry.segmentable %}
                     <div class="extra_feed">
-                    <a onclick="toggle_modal({{ entry.id }}, 'SEGMENTED')"><i class="fa fa-qrcode"></i></a><a href="{{ entry.derived_rss_url % 'SEGMENTED' }}"> Segmented</a>
+                    <a onclick="toggle_modal({{ entry.id }}, 'SEGMENTED')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'segmented' }}"> Segmented</a>
                     </div>
                     {% endif %}
                 </div>

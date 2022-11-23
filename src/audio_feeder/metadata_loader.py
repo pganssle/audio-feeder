@@ -188,8 +188,17 @@ class GoogleBooksLoader(BookLoader):
             k: v for k, v in get_volume_params.items() if v is not None
         }
 
-        md = self._get_volume(**get_volume_params)
-        if md is None:
+        try:
+            md = self._get_volume(**get_volume_params)
+            if md is None:
+                return book_obj
+        except BookNotFound:
+            logging.error(
+                "Could not load metadata for book %d: %s - %s",
+                book_obj.id,
+                " & ".join(book_obj.authors) if book_obj.authors else None,
+                book_obj.title,
+            )
             return book_obj
 
         new_book_keys: typing.MutableMapping[str, typing.Any] = {}
@@ -369,7 +378,7 @@ class GoogleBooksLoader(BookLoader):
         if total_items >= 1:
             return self._parse_volume_metadata(r_json["items"][0])
 
-        raise ValueError("No items found")
+        raise BookNotFound("No items found")
 
     def _parse_volume_metadata(
         self, j_item: _VolumeResponse
@@ -430,6 +439,10 @@ class PollDelayIncomplete(Exception):
     def __init__(self, *args, time_remaining=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.time_remaining = time_remaining
+
+
+class BookNotFound(ValueError):
+    """Raised when a book is not available."""
 
 
 class VolumeInformationMissing(KeyError):

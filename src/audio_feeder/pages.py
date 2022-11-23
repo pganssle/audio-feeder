@@ -138,8 +138,9 @@ def _render_rss_feed(entry_obj: oh.Entry, data_obj: oh.SchemaObject, feed_items)
     channel_title = rendered_page["name"]
     channel_desc = rendered_page["description"]
 
-    build_date = entry_obj.last_modified
-    pub_date = entry_obj.date_added
+    now = datetime.now(timezone.utc)
+    build_date = rf.format_datetime(entry_obj.last_modified or now)
+    pub_date = rf.format_datetime(entry_obj.date_added or now)
 
     author = rendered_page["author"]
 
@@ -155,7 +156,7 @@ def _render_rss_feed(entry_obj: oh.Entry, data_obj: oh.SchemaObject, feed_items)
     payload = {
         "channel_title": channel_title,
         "channel_desc": channel_desc,
-        "channel_link": request.path,
+        "channel_link": request.url,
         "build_date": build_date,
         "pub_date": pub_date,
         "author": author,

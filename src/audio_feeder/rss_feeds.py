@@ -64,6 +64,11 @@ def generate_chapter_json(chapter_infos: typing.Sequence[fp.ChapterInfo]) -> str
     )
 
 
+def format_datetime(dt: datetime.datetime) -> str:
+    # RFC 822 datetime
+    return dt.strftime("%a, %d %b %Y %H:%M:%S %z")
+
+
 def _get_description(data_obj: oh.SchemaObject, metadata: fp.FileInfo):
     chapter_descs = []
     if metadata.chapters:
@@ -117,7 +122,7 @@ def feed_items_from_metadata(
 
         feed_item["fname"] = fpath.name
         feed_item["url"] = url
-        feed_item["pubdate"] = pub_date + timedelta(minutes=ii)
+        feed_item["pubdate"] = format_datetime(pub_date + timedelta(minutes=ii))
         feed_item["desc"] = _get_description(data_obj, file_info)
 
         if file_hash is None:

@@ -91,28 +91,17 @@ class Entry(BaseObject):
         hashseed = self.hashseed
 
         new_hashes: MutableMapping[Path, str] = {}
-        new_hash_map = map(
-            lambda file: (
-                file,
-                hash_utils.hash_random(base_path / file, hashseed).hex()
-                if (base_path / file).exists()
-                else None,
-            ),
-            self.files,
-        )
-
         hash_mismatch = self.file_hashes is None
         file_hashes = self.file_hashes or {}
 
-        for file, new_hash in new_hash_map:
-            if new_hash is None:
+        for file in self.files:
+            abs_path = base_path / file
+            if not abs_path.exists():
                 raise FileNotFoundError(
                     "Some files included in the entry were not found!"
                 )
-
-            new_hashes[file] = new_hash
-
-            if not hash_mismatch and new_hash != file_hashes[file]:
+            new_hashes[file] = hash_utils.hash_random(abs_path, hashseed).hex()
+            if not hash_mismatch and new_hashes[file] != file_hashes[file]:
                 hash_mismatch = True
 
         if hash_mismatch:

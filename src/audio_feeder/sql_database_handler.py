@@ -22,6 +22,19 @@ from ._useful_types import PathType
 DB_VERSION: typing.Final[int] = 2
 
 
+class AbsoluteDateTime(sa.types.TypeDecorator):
+    impl = sa.types.DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value.tzinfo is None:
+            raise TypeError("Cannot bind naïve datetime to AbsoluteDateTime")
+        return value.astimezone(datetime.timezone.utc)
+
+    def process_result_value(self, value, dialect):
+        return value.replace(tzinfo=datetime.timezone.utc)
+
+
 class SQLPath(sa.types.TypeDecorator):
     impl = sa.types.String
     cache_ok = True
@@ -144,7 +157,7 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
     elif t == float:
         return sa.NUMERIC
     elif t == datetime.datetime:
-        return sa.DateTime
+        return AbsoluteDateTime
     elif t == datetime.date:
         return sa.Date
     elif t == pathlib.Path:

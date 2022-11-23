@@ -110,7 +110,9 @@ class BookDatabaseUpdater:
 
         return [ap.relative_to(media_loc.path) for ap in aps]
 
-    def update_db_entries(self, database: MutableDatabase) -> MutableDatabase:
+    def update_db_entries(
+        self, database: MutableDatabase, check_hashes: bool = False
+    ) -> MutableDatabase:
         book_paths = self.load_book_paths()
 
         entry_table = typing.cast(
@@ -141,11 +143,6 @@ class BookDatabaseUpdater:
             else:
                 new_path_set.add(path)
 
-        logging.info(
-            "Updating with %s new entries and %s existing entries",
-            len(new_path_set),
-            len(existing_path_set),
-        )
         entry_id_handler = self.id_handler(invalid_ids=entry_table.keys())
 
         new_entries = map(
@@ -153,9 +150,16 @@ class BookDatabaseUpdater:
             new_path_set,
         )
 
-        existing_entries = (
-            entry_table[id_by_path[existing_path]]
+        existing_entries = [
+            (c_entry := entry_table[id_by_path[existing_path]])
             for existing_path in existing_path_set
+            if check_hashes or not c_entry.file_hashes  # type: ignore[has-type]
+        ]
+
+        logging.info(
+            "Updating with %s new entries and %s existing entries",
+            len(new_path_set),
+            len(existing_path_set),
         )
 
         def _update_entry_files(entry):
@@ -172,7 +176,7 @@ class BookDatabaseUpdater:
         )
 
         log_every = min(
-            100, max(10, int((len(new_path_set) + len(existing_path_set)) * 0.05))
+            100, max(10, int((len(new_path_set) + len(existing_entries)) * 0.05))
         )
         logging.debug("Updating progress every %d entries.", log_every)
         for i, entry_obj in enumerate(

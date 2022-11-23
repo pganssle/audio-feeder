@@ -81,9 +81,7 @@ class Entry(BaseObject):
     file_metadata: Optional[Mapping[Path, FileInfo]] = None
     file_hashes: Optional[Mapping[Path, str]] = None
 
-    def updated_hashes(
-        self, base_path: Path, *, executor: Optional[futures.Executor] = None
-    ) -> Tuple[Mapping[Path, str], bool]:
+    def updated_hashes(self, base_path: Path) -> Tuple[Mapping[Path, str], bool]:
         if self.files is None:
             raise ValueError("entry.files must not be None when calculating hashes")
 
@@ -92,11 +90,8 @@ class Entry(BaseObject):
 
         hashseed = self.hashseed
 
-        if executor is None:
-            executor = futures.ThreadPoolExecutor()
-
         new_hashes: MutableMapping[Path, str] = {}
-        new_hash_map = executor.map(
+        new_hash_map = map(
             lambda file: (
                 file,
                 hash_utils.hash_random(base_path / file, hashseed).hex()
@@ -131,7 +126,7 @@ class Entry(BaseObject):
         if executor is None:
             executor = futures.ThreadPoolExecutor()
 
-        new_hashes, hash_changed = self.updated_hashes(base_path, executor=executor)
+        new_hashes, hash_changed = self.updated_hashes(base_path)
         assert self.files is not None
 
         if hash_changed:

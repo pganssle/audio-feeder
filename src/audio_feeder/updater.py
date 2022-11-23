@@ -160,10 +160,7 @@ class BookDatabaseUpdater:
 
         def _update_entry_files(entry):
             if not entry.files:
-                entry = attrs.evolve(
-                    entry,
-                    files=self.book_loader.audio_files(media_loc_path / entry.path),
-                )
+                entry.files = self.book_loader.audio_files(media_loc_path / entry.path)
 
             return entry
 

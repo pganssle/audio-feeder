@@ -154,9 +154,8 @@ class Entry(BaseObject):
                 else:
                     file_metadata[file] = file_info
 
-            return attrs.evolve(
-                self, file_hashes=new_hashes, file_metadata=file_metadata
-            )
+            self.file_hashes = new_hashes
+            self.file_metadata = file_metadata
 
         return self
 

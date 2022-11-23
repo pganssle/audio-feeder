@@ -160,7 +160,7 @@ class BookDatabaseUpdater:
                     files=self.book_loader.audio_files(media_loc_path / entry.path),
                 )
 
-            return entry.updated_metadata(media_loc_path, executor=self.executor)
+            return entry.updated_metadata(media_loc_path, executor=None)
 
         updated_entries = self.executor.map(_update_existing_entries, existing_entries)
 

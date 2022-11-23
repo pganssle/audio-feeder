@@ -34,17 +34,28 @@ def warm_caches(load_db=True, populate_qr_cache=True, progressbar=False):
 
 def create_app(load_db=True, populate_qr_cache=True, progressbar=False, block=False):
     # Set up logging
-    log_level = os.environ.get("AF_LOGGING_LEVEL", None)
-    if log_level is not None:
+    log_level_env = os.environ.get("AF_LOGGING_LEVEL", None)
+    log_level = None
+    warnings = []
+    if log_level_env is not None:
+        log_level_env = log_level_env.upper()
         log_levels = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
-        if log_level.upper() in log_levels:
-            log_level = getattr(log, log_level)
-
-            log.basicConfig(level=log_level)
+        if log_level_env in log_levels:
+            log_level = getattr(log, log_level_env)
         else:
-            log.warning("Invalid log level: {}".format(log_level.upper()))
-    else:
-        log.warning("No log level set, using default level.")
+            warnings.append(("Invalid log level: %s", log_level_env))
+    if log_level is None:
+        warnings.append(("No log level set, using INFO",))
+        log_level = log.INFO
+
+    log.basicConfig(
+        level=log_level,
+        format="%(levelname)s: [%(asctime)s] %(name)s:"
+        + "%(filename)s:%(lineno)d (%(threadName)s) %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S%z",
+    )
+    for warning in warnings:
+        log.warning(*warning)
 
     log.info("Creating Flask application")
     app = Flask(__name__)

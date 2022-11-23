@@ -11,7 +11,7 @@ import typing
 from datetime import datetime, timezone
 
 import flask
-from flask import Blueprint, request
+from flask import Blueprint, Response, request
 from jinja2 import Template
 
 from audio_feeder import database_handler as dh
@@ -231,9 +231,9 @@ def derived_rss_feed(e_id, mode):
 
         rss_file_contents = _render_rss_feed(entry_obj, renderer.data_obj, feed_items)
         renderer.rss_file.write_text(rss_file_contents)
-        return rss_file_contents
-
-    return renderer.rss_file.read_text()
+    else:
+        rss_file_contents = renderer.rss_file.read_text()
+    return Response(renderer.rss_file.read_text(), mimetype="application/xml")
 
 
 @root.route("/rss/<int:e_id>.xml")
@@ -260,7 +260,10 @@ def rss_feed(e_id):
 
     feed_items = rf.load_feed_items(entry_obj)
 
-    return _render_rss_feed(entry_obj, data_obj, feed_items)
+    return Response(
+        _render_rss_feed(entry_obj, data_obj, feed_items),
+        mimetype="application/xml",
+    )
 
 
 @root.route("/chapter-data/<int:e_id>-<string:guid>.json")
@@ -313,7 +316,9 @@ def chapter_data(e_id: int, guid: str) -> Response:
         file_info = entry_obj.file_metadata[file]
 
     assert file_info.chapters
-    return rf.generate_chapter_json(file_info.chapters)
+    return Response(
+        rf.generate_chapter_json(file_info.chapters), mimetype="application/json"
+    )
 
 
 ###

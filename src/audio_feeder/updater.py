@@ -102,7 +102,7 @@ class BookDatabaseUpdater:
         if executor is not None:
             self.executor = executor
         else:
-            self.executor = futures.ThreadPoolExecutor()
+            self.executor = futures.ThreadPoolExecutor(thread_name_prefix="updater")
 
     def load_book_paths(self) -> typing.Sequence[pathlib.Path]:
         aps = dp.load_all_audio(self.books_location)
@@ -141,9 +141,14 @@ class BookDatabaseUpdater:
             else:
                 new_path_set.add(path)
 
+        logging.info(
+            "Updating with %s new entries and %s existing entries",
+            len(new_path_set),
+            len(existing_path_set),
+        )
         entry_id_handler = self.id_handler(invalid_ids=entry_table.keys())
 
-        new_entries = self.executor.map(
+        new_entries = map(
             functools.partial(self.make_new_entry, id_handler=entry_id_handler),
             new_path_set,
         )
@@ -153,19 +158,32 @@ class BookDatabaseUpdater:
             for existing_path in existing_path_set
         )
 
-        def _update_existing_entries(entry):
+        def _update_entry_files(entry):
             if not entry.files:
                 entry = attrs.evolve(
                     entry,
                     files=self.book_loader.audio_files(media_loc_path / entry.path),
                 )
 
-            return entry.updated_metadata(media_loc_path, executor=None)
+            return entry
 
-        updated_entries = self.executor.map(_update_existing_entries, existing_entries)
+        entries_with_files = self.executor.map(_update_entry_files, existing_entries)
 
-        for entry_obj in itertools.chain(new_entries, updated_entries):
+        updated_entries = (
+            entry_obj.updated_metadata(media_loc_path, executor=self.executor)
+            for entry_obj in entries_with_files
+        )
+
+        log_every = min(
+            100, max(10, int((len(new_path_set) + len(existing_path_set)) * 0.05))
+        )
+        logging.debug("Updating progress every %d entries.", log_every)
+        for i, entry_obj in enumerate(
+            itertools.chain(new_entries, updated_entries), start=1
+        ):
             entry_table[entry_obj.id] = entry_obj
+            if i % log_every == 0:
+                logging.debug("Updated %s entries.", i)
 
         return database
 
@@ -223,6 +241,12 @@ class BookDatabaseUpdater:
 
         # Go through and try to update metadata.
         for book_id, book_obj in pbar_resolved(book_table.items()):
+            logging.debug(
+                "Updating book info for book_obj %d: %s - %s",
+                book_id,
+                " & ".join(book_obj.authors) if book_obj.authors else None,
+                book_obj.title,
+            )
             for loader in self.metadata_loaders:
                 # Skip anything that's already had metadata loaded for it.
                 if not reload_metadata and (

@@ -164,7 +164,12 @@ class BookDatabaseUpdater:
 
         def _update_entry_files(entry):
             if not entry.files:
-                entry.files = self.book_loader.audio_files(media_loc_path / entry.path)
+                entry.files = [
+                    file.relative_to(media_loc_path)
+                    for file in self.book_loader.audio_files(
+                        media_loc_path / entry.path
+                    )
+                ]
 
             return entry
 

@@ -1,5 +1,7 @@
+import lzma
 import os
 import pathlib
+import shutil
 import subprocess
 import typing
 
@@ -43,3 +45,17 @@ def make_file(
         input=file_info.to_ffmetadata(),
         encoding="utf-8",
     )
+
+
+def copy_with_unzip(src: pathlib.Path, dest: pathlib.Path):
+    dest.mkdir(parents=True, exist_ok=True)
+    for f in src.rglob("*"):
+        rel_path = f.relative_to(src)
+        dest_path = dest / rel_path
+        if f.is_dir():
+            dest_path.mkdir()
+        elif f.suffix != ".xz":
+            shutil.copy(f, dest_path)
+        else:
+            with lzma.open(f, "rb") as file_contents:
+                dest_path.with_suffix("").write_bytes(file_contents.read())

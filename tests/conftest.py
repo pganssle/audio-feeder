@@ -14,6 +14,8 @@ import pytest
 import audio_feeder.config
 from audio_feeder import cache_utils, file_probe
 
+from . import utils
+
 
 def copy_data_structure(dest: pathlib.Path):
     to_copy: typing.List[
@@ -101,7 +103,7 @@ def testgen_config(
     cache_utils.clear_caches()
     config_loc = tmp_path / "config"
     shutil.copytree(config_defaults.parent, config_loc)
-    shutil.copytree(
+    utils.copy_with_unzip(
         pathlib.Path(__file__).parent / "data/example_media",
         config_loc / "static/media",
     )

@@ -1,1 +1,0 @@
-- Changed config directory specification. You can now set the environment variable ``AF_CONFIG_DIR`` to specify exactly where your configuration comes from. Whether or not the current working directory is in the search path is also now context dependent.

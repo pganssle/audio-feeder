@@ -1,4 +1,7 @@
 include LICENSE *.rst *.toml *.yml *.yaml *.ini
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
 recursive-include licenses *
 graft .github
 
@@ -9,9 +12,12 @@ recursive-include src *.pyi
 # Tests
 include tox.ini
 recursive-include tests *.py
+recursive-include tests/data *.*
 
 # Documentation
 recursive-include docs *.png
+recursive-include docs *.jpg
+recursive-include docs *.jpeg
 recursive-include docs *.svg
 recursive-include docs *.py
 recursive-include docs *.rst

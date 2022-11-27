@@ -7,6 +7,8 @@ from flask import Flask
 
 from . import cache_utils
 from . import database_handler as dh
+from . import resources
+from .config import read_from_config
 from .pages import root
 
 
@@ -56,6 +58,12 @@ def create_app(load_db=True, populate_qr_cache=True, progressbar=False, block=Fa
     )
     for warning in warnings:
         log.warning(*warning)
+
+    log.info("Refreshing fonts on disk")
+    static_media_path = read_from_config("static_media_path")
+    resources.update_resource(
+        "audio_feeder.data.site.fonts", static_media_path / "fonts"
+    )
 
     log.info("Creating Flask application")
     app = Flask(__name__)

@@ -5,8 +5,6 @@ cover_cache_path: images/entry_cover_cache
 css_loc: css
 database_loc: '{{CONFIG}}/database/db.sqlite'
 entry_templates_loc: '{{TEMPLATES}}/entry_types'
-main_css_files:
-- main.css
 media_path: media
 pages_templates_loc: '{{TEMPLATES}}/pages'
 qr_cache_path: images/qr_cache

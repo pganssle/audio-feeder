@@ -18,6 +18,7 @@ from audio_feeder import database_handler as dh
 from audio_feeder import media_renderer as mr
 from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
+from audio_feeder import resources
 from audio_feeder import rss_feeds as rf
 from audio_feeder.config import read_from_config
 from audio_feeder.file_location import FileLocation
@@ -511,32 +512,37 @@ def get_sortable_args(args):
     return args
 
 
-def get_list_template():
-    template = getattr(get_list_template, "_template", None)
-    if template is None:
-        template = _get_template("pages_templates_loc", "list.tpl")
-        get_list_template._template = template
+@functools.cache
+def get_list_template() -> Template:
+    template = _get_template(
+        "pages_templates_loc",
+        "list.tpl",
+        resource_default="audio_feeder.data.templates.pages",
+    )
 
     return template
 
 
-def get_feed_template():
-    template = getattr(get_feed_template, "_template", None)
-    if template is None:
-        template = _get_template("rss_templates_loc", "rss_feed.tpl")
-        get_feed_template._template = template
+@functools.cache
+def get_feed_template() -> Template:
+    return _get_template(
+        "rss_templates_loc",
+        "rss_feed.tpl",
+        resource_default="audio_feeder.data.templates.rss",
+    )
 
-    return get_feed_template._template
 
+def _get_template(
+    loc_entry: str, template_name: str, resource_default: typing.Optional[str] = None
+) -> Template:
+    template_loc = read_from_config(loc_entry) / template_name
 
-def _get_template(loc_entry, template_name):
-    template_loc = read_from_config(loc_entry)
-    template_loc = os.path.join(template_loc, template_name)
-
-    with open(template_loc, "r") as f:
-        template = Template(f.read())
-
-    return template
+    if template_loc.exists():
+        return Template(template_loc.read_text())
+    elif resource_default is not None:
+        return Template(resources.get_text_resource(resource_default, template_name))
+    else:
+        raise FileNotFoundError(f"Could not find template: {template_loc}")
 
 
 def get_renderer(rss_renderer=False):
@@ -555,13 +561,28 @@ def get_renderer(rss_renderer=False):
     return renderer[rss_renderer]
 
 
-def get_css_links():
+@functools.cache
+def get_css_links() -> typing.Sequence[str]:
     resolver = get_resolver()
     css_loc = read_from_config("css_loc")
-    css_locs = [
-        os.path.join(css_loc, css_file)
-        for css_file in read_from_config("main_css_files")
-    ]
+    css_locs: typing.MutableSequence[str] = []
+    if not read_from_config("disable_default_css"):
+        static_path = read_from_config("static_media_path")
+        default_loc = resolver.resolve_static(css_loc)
+        default_path = default_loc.path
+        assert default_path is not None
+        resources.update_resource("audio_feeder.data.css", default_path)
+        css_locs.extend(
+            os.fspath(fpath.relative_to(static_path))
+            for fpath in default_path.rglob("*.css")
+        )
+
+    css_locs.extend(
+        (
+            os.path.join(css_loc, css_file)
+            for css_file in read_from_config("extra_css_files")
+        )
+    )
 
     css_paths = [resolver.resolve_static(css_relpath).url for css_relpath in css_locs]
 

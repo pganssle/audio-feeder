@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 
 from jinja2 import Template
 
+from . import resources
 from .config import read_from_config
 from .html_utils import TagStripper
 from .media_renderer import RenderModes
@@ -132,27 +133,36 @@ class EntryRenderer:
 
         return orig_pos
 
+    def _get_template(self, loc, name, resource_default):
+        template_loc = os.path.join(loc, name)
+
+        if not os.path.exists(template_loc):
+            # Load from resource
+            return Template(resources.get_text_resource(resource_default, name))
+        else:
+            with open(template_loc, "rt") as f:
+                return Template(f.read())
+
     def load_type(self, type_name):
         type_cache = getattr(self, "_load_type_cache", {})
         if type_name not in type_cache:
-            et_loc = self.entry_templates_loc
-            if not os.path.exists(et_loc):
-                raise IOError("Entry templates directory does not exist.")
-
-            type_dir = os.path.join(et_loc, type_name)
-            if not os.path.exists(type_dir):
-                raise IOError(f"Type directory templates do not exist: {type_dir}")
-
+            type_dir = self.entry_templates_loc / type_name
             type_dict = {}
-            for fname in os.listdir(type_dir):
-                fpath = os.path.join(type_dir, fname)
-                if not (os.path.isfile(fpath) and fpath.endswith(".tpl")):
-                    continue
+            if type_dir.exists():
+                for fpath in type_dir.glob("*.tpl"):
+                    type_dict[fpath.stem] = Template(fpath.read_text())
+            else:
+                resource = f"audio_feeder.data.templates.entry_types.{type_name}"
+                for child in resources.get_children(resource):
+                    if child.is_dir() or not child.name.endswith(".tpl"):
+                        continue
+                    fname = os.path.splitext(child.name)[0]
+                    type_dict[fname] = Template(child.read_text())
 
-                tname = os.path.splitext(fname)[0]
-
-                with open(fpath, "r") as f:
-                    type_dict[tname] = Template(f.read())
+            if not type_dict:
+                raise FileNotFounderror(
+                    f"No entry templates found for type {type_name}"
+                )
 
             type_cache[type_name] = type_dict
 

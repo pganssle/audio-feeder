@@ -1,6 +1,5 @@
 import contextlib
 import enum
-import importlib.resources
 import os
 import pathlib
 import shutil
@@ -8,34 +7,9 @@ import typing
 
 import pytest
 
-from audio_feeder import cache_utils
+from audio_feeder import cache_utils, resources
 
 from . import utils
-
-
-def copy_data_structure(dest: pathlib.Path):
-    to_copy: typing.List[
-        typing.Tuple[importlib.resources.abc.Traversable, pathlib.Path]
-    ] = []
-    nodes = []
-    nodes.append((dest, importlib.resources.files("audio_feeder.data"), True))
-    while nodes:
-        parent, node, is_root = nodes.pop()
-        if is_root:
-            parent_dir = parent
-        else:
-            parent_dir = parent / node.name
-        for child in node.iterdir():
-            if child.is_dir():
-                nodes.append((parent_dir, child, False))
-            elif child.is_file():
-                child_dest = parent_dir / child.name
-                if child_dest.suffix not in (".py", ".pyc", ".pyo", ".pyi"):
-                    to_copy.append((child, child_dest))
-
-        for source, destination in to_copy:
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(source.read_bytes())
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -43,7 +17,7 @@ def config_defaults(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     config_dir = tmp_path_factory.mktemp("config")
     (config_dir / "database").mkdir()
 
-    copy_data_structure(config_dir)
+    resources.copy_resource("audio_feeder.data", config_dir)
     test_config_file = pathlib.Path(__file__).parent / "data/config.yml"
     config_loc = config_dir / "config.yml"
     shutil.copy(test_config_file, config_loc)

@@ -120,6 +120,9 @@ class Configuration:
 
     static_media_url: str = TemplateStr("{{URL}}/static")
 
+    # If true, this will not inject the default CSS files.
+    disable_default_css: bool = False
+
     # Relative to static
     media_path: str = "media"
     site_images_loc: str = "images/site-images"
@@ -132,7 +135,8 @@ class Configuration:
     rss_feed_urls: str = "rss/{id}.xml"
 
     # Relative to others
-    main_css_files: typing.Sequence[str] = ("main.css", "fontawesome-subset.css")  # CSS
+    main_css_files: typing.Sequence[str] = ()  # Deprecated, no longer used
+    extra_css_files: typing.Sequence[str] = ()
     thumb_max: typing.Tuple[int, int] = (200, 400)  # width, height
     base_protocol: str = "http"
     base_host: str = "localhost"

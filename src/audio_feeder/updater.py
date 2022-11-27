@@ -839,7 +839,8 @@ def _pbar_stub(iterator_: typing.Iterable[_T]) -> typing.Iterable[_T]:
 def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
     img = Image.open(img_loc)
     w, h = img.size
-    w_m, h_m = read_from_config("thumb_max")
+    # Not sure why pylint thinks this is not a sequence
+    w_m, h_m = read_from_config("thumb_max")  # pylint: disable=unpacking-non-sequence
 
     # Unspecified widths and heights are unlimited
     w_m = w_m or w

@@ -1,38 +1,44 @@
 data:
 - books:
-  - 168036
-  id: 157944
+  - 610670
+  id: 28374
   name: Bram Stoker
   sort_name: Stoker, Bram
   tags: []
 - books:
-  - 165867
-  id: 456477
+  - 989352
+  id: 352375
   name: Louisa May Alcott
   sort_name: Alcott, Louisa May
   tags: []
 - books:
-  - 428907
-  id: 619031
+  - 296217
+  id: 401412
+  name: Thomas de Quincey
+  sort_name: Quincey, Thomas de
+  tags: []
+- books:
+  - 635705
+  id: 520775
+  name: Louisa May Alcott
+  sort_name: Alcott, Louisa May
+  tags: []
+- books:
+  - 569645
+  id: 716757
   name: Mary Shelley
   sort_name: Shelley, Mary
   tags: []
 - books:
-  - 304953
-  id: 742197
+  - 648614
+  id: 882047
   name: Edith Wharton
   sort_name: Wharton, Edith
   tags: []
 - books:
-  - 465165
-  id: 827125
-  name: Louisa May Alcott
-  sort_name: Alcott, Louisa May
-  tags: []
-- books:
-  - 139835
-  id: 965145
-  name: Stephen Hawking
-  sort_name: Hawking, Stephen
+  - 753272
+  id: 942026
+  name: H G Wells
+  sort_name: Wells, H G
   tags: []
 db_version: 0

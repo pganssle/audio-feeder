@@ -1,147 +1,36 @@
 data:
 - author_ids:
-  - 965145
+  - 401412
   author_roles:
   - 0
   authors:
-  - Stephen Hawking
+  - Thomas de Quincey
   cover_images:
     google_books:
-      smallThumbnail: http://books.google.com/books/content?id=oZhagX6UWOMC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
-      thumbnail: http://books.google.com/books/content?id=oZhagX6UWOMC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
-  description: "<p>#1 NEW YORK TIMES BESTSELLER A landmark volume in science writing\
-    \ by one of the great minds of our time, Stephen Hawking\u2019s book explores\
-    \ such profound questions as: How did the universe begin\u2014and what made its\
-    \ start possible? Does time always flow forward? Is the universe unending\u2014\
-    or are there boundaries? Are there other dimensions in space? What will happen\
-    \ when it all ends? Told in language we all can understand, A Brief History of\
-    \ Time plunges into the exotic realms of black holes and quarks, of antimatter\
-    \ and \u201Carrows of time,\u201D of the big bang and a bigger God\u2014where\
-    \ the possibilities are wondrous and unexpected. With exciting images and profound\
-    \ imagination, Stephen Hawking brings us closer to the ultimate secrets at the\
-    \ very heart of creation.</p>"
+      smallThumbnail: http://books.google.com/books/content?id=wZksAr1cyVYC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=wZksAr1cyVYC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: <p>Confessions of an English Opium-Eater, Suspiria de Profundis, and
+    'The English Mail-Coach' are De Quincey's finest essays in autobiography, published
+    here with three appendices containing a wealth of related manuscript material
+    and a comprehensive introduction and notes.</p>
   descriptions:
-    google_books: "#1 NEW YORK TIMES BESTSELLER A landmark volume in science writing\
-      \ by one of the great minds of our time, Stephen Hawking\u2019s book explores\
-      \ such profound questions as: How did the universe begin\u2014and what made\
-      \ its start possible? Does time always flow forward? Is the universe unending\u2014\
-      or are there boundaries? Are there other dimensions in space? What will happen\
-      \ when it all ends? Told in language we all can understand, A Brief History\
-      \ of Time plunges into the exotic realms of black holes and quarks, of antimatter\
-      \ and \u201Carrows of time,\u201D of the big bang and a bigger God\u2014where\
-      \ the possibilities are wondrous and unexpected. With exciting images and profound\
-      \ imagination, Stephen Hawking brings us closer to the ultimate secrets at the\
-      \ very heart of creation."
-  google_id: oZhagX6UWOMC
-  id: 139835
-  isbn13: 055389692X
+    google_books: Confessions of an English Opium-Eater, Suspiria de Profundis, and
+      'The English Mail-Coach' are De Quincey's finest essays in autobiography, published
+      here with three appendices containing a wealth of related manuscript material
+      and a comprehensive introduction and notes.
+  google_id: wZksAr1cyVYC
+  id: 296217
+  isbn13: 0199600619
   language: en
   metadata_sources:
   - google_books
-  pages: 224
-  pub_date: '2011-05-04'
-  publisher: Bantam
+  pages: 385
+  pub_date: '2013-02-14'
+  publisher: Oxford University Press
   tags: []
-  title: A Brief History of Time
+  title: Confessions of an English Opium Eater
 - author_ids:
-  - 456477
-  author_roles:
-  - 0
-  authors:
-  - Louisa May Alcott
-  cover_images:
-    google_books:
-      smallThumbnail: http://books.google.com/books/content?id=cXrrAj1cP3QC&printsec=frontcover&img=1&zoom=5&source=gbs_api
-      thumbnail: http://books.google.com/books/content?id=cXrrAj1cP3QC&printsec=frontcover&img=1&zoom=1&source=gbs_api
-    local: !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] -
-      Little Women/Cover.jpg'
-  description: <p>Chronicles the joys and sorrows of the four March sisters as they
-    grow into young women in nineteenth-century New England.</p>
-  descriptions:
-    google_books: Chronicles the joys and sorrows of the four March sisters as they
-      grow into young women in nineteenth-century New England.
-  google_id: cXrrAj1cP3QC
-  id: 165867
-  isbn13: 0099572966
-  language: en
-  metadata_sources:
-  - google_books
-  pages: 436
-  pub_date: '2012'
-  publisher: Random House
-  series_name: Little Women
-  series_number: 1
-  tags: []
-  title: Little Women
-- author_ids:
-  - 157944
-  author_roles:
-  - 0
-  authors:
-  - Bram Stoker
-  cover_images:
-    google_books:
-      smallThumbnail: http://books.google.com/books/content?id=39lCAQAAMAAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
-      thumbnail: http://books.google.com/books/content?id=39lCAQAAMAAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
-  description: "<p>Jonathan Harker, a young English lawyer, travels to Castle Dracula\
-    \ in the Eastern European country of Transylvania to conclude a real estate transaction\
-    \ with a nobleman named Count Dracula. As Harker wends his way through the picturesque\
-    \ countryside, the local peasants warn him about his destination, giving him crucifixes\
-    \ and other charms against evil and uttering strange words that Harker later translates\
-    \ into \u201Cvampire.\u201DFrightened but no less determined, Harker meets the\
-    \ count's carriage as planned. The journey to the castle is harrowing, and the\
-    \ carriage is nearly attacked by angry wolves along the way. Upon arriving at\
-    \ the crumbling old castle, Harker finds that the elderly Dracula is a well educated\
-    \ and hospitable gentleman. After only a few days, however, Harker realizes that\
-    \ he is effectively a prisoner in the castle.</p>"
-  descriptions:
-    google_books: "Jonathan Harker, a young English lawyer, travels to Castle Dracula\
-      \ in the Eastern European country of Transylvania to conclude a real estate\
-      \ transaction with a nobleman named Count Dracula. As Harker wends his way through\
-      \ the picturesque countryside, the local peasants warn him about his destination,\
-      \ giving him crucifixes and other charms against evil and uttering strange words\
-      \ that Harker later translates into \u201Cvampire.\u201DFrightened but no less\
-      \ determined, Harker meets the count's carriage as planned. The journey to the\
-      \ castle is harrowing, and the carriage is nearly attacked by angry wolves along\
-      \ the way. Upon arriving at the crumbling old castle, Harker finds that the\
-      \ elderly Dracula is a well educated and hospitable gentleman. After only a\
-      \ few days, however, Harker realizes that he is effectively a prisoner in the\
-      \ castle."
-  google_id: 39lCAQAAMAAJ
-  id: 168036
-  language: en
-  metadata_sources:
-  - google_books
-  pages: 440
-  pub_date: '1897'
-  publisher: Createspace Independent Pub
-  tags: []
-  title: Dracula
-- author_ids:
-  - 742197
-  author_roles:
-  - 0
-  authors:
-  - Edith Wharton
-  cover_images:
-    google_books:
-      smallThumbnail: http://books.google.com/books/content?id=bNhZAAAAMAAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
-      thumbnail: http://books.google.com/books/content?id=bNhZAAAAMAAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
-  description: ''
-  descriptions:
-    google_books: null
-  google_id: bNhZAAAAMAAJ
-  id: 304953
-  language: en
-  metadata_sources:
-  - google_books
-  pages: 176
-  pub_date: '1925'
-  publisher: 'New York ; London : C. Scribner''s Sons'
-  tags: []
-  title: The Writing of Fiction
-- author_ids:
-  - 619031
+  - 716757
   author_roles:
   - 0
   authors:
@@ -176,7 +65,7 @@ data:
       \ as we read it today. In these two versions of Frankenstein we have an exciting\
       \ new view of one of literature\u2019 s greatest works."
   google_id: KGSODQAAQBAJ
-  id: 428907
+  id: 569645
   isbn13: 0307474429
   language: en
   metadata_sources:
@@ -187,7 +76,29 @@ data:
   tags: []
   title: Frankenstein
 - author_ids:
-  - 827125
+  - 28374
+  author_roles:
+  - 0
+  authors:
+  - Bram Stoker
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=C1bepwAACAAJ&printsec=frontcover&img=1&zoom=5&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=C1bepwAACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api
+  description: ''
+  descriptions:
+    google_books: null
+  google_id: C1bepwAACAAJ
+  id: 610670
+  isbn13: '9783458362159'
+  language: de
+  metadata_sources:
+  - google_books
+  pages: 540
+  pub_date: '2011'
+  title: Dracula
+- author_ids:
+  - 520775
   author_roles:
   - 0
   authors:
@@ -208,7 +119,7 @@ data:
       little mischief-makers in an effort to teach them "how to help themselves and
       be useful men." A heartwarming classic.
   google_id: ykswhj_TPEIC
-  id: 465165
+  id: 635705
   language: en
   metadata_sources:
   - google_books
@@ -218,4 +129,106 @@ data:
   series_number: 2
   tags: []
   title: Little Men
+- author_ids:
+  - 882047
+  author_roles:
+  - 0
+  authors:
+  - Edith Wharton
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=bNhZAAAAMAAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=bNhZAAAAMAAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: ''
+  descriptions:
+    google_books: null
+  google_id: bNhZAAAAMAAJ
+  id: 648614
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 176
+  pub_date: '1925'
+  publisher: 'New York ; London : C. Scribner''s Sons'
+  tags: []
+  title: The Writing of Fiction
+- author_ids:
+  - 942026
+  author_roles:
+  - 0
+  authors:
+  - H G Wells
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=O3JcNritSSoC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=O3JcNritSSoC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+    local: !Path 'media/audiobooks/Fiction/H G Wells - The Invisible Man/Cover.jpg'
+  description: '<p>It''s one of the most famous novels of the 19th century, and probably
+    the one that''s least actually read. *The Invisible Man,* first published in 1897,
+    became the basis for the classic 1933 film starring Claude Rains-as well as its
+    many spinoffs-but the novel is quite different: it''s an early example of science
+    fantasy that was as much about character as it was about concept. One of the most
+    enduringly popular writers of modern literature, Wells here assured his position
+    as one of the fathers of imaginative literature with his psychologically complex
+    tale of a scientist who renders himself invisible and eventually goes mad because
+    of it. And because it focuses more on people than on technology, it remains a
+    compelling tale even more than a century after it was written. British author
+    HERBERT GEORGE WELLS (1866-1946) is best known for his groundbreaking science
+    fiction novels *The Time Machine* (1895), *The Invisible Man* (1897), and *The
+    War of the Worlds* (1898).</p>'
+  descriptions:
+    google_books: 'It''s one of the most famous novels of the 19th century, and probably
+      the one that''s least actually read. *The Invisible Man,* first published in
+      1897, became the basis for the classic 1933 film starring Claude Rains-as well
+      as its many spinoffs-but the novel is quite different: it''s an early example
+      of science fantasy that was as much about character as it was about concept.
+      One of the most enduringly popular writers of modern literature, Wells here
+      assured his position as one of the fathers of imaginative literature with his
+      psychologically complex tale of a scientist who renders himself invisible and
+      eventually goes mad because of it. And because it focuses more on people than
+      on technology, it remains a compelling tale even more than a century after it
+      was written. British author HERBERT GEORGE WELLS (1866-1946) is best known for
+      his groundbreaking science fiction novels *The Time Machine* (1895), *The Invisible
+      Man* (1897), and *The War of the Worlds* (1898).'
+  google_id: O3JcNritSSoC
+  id: 753272
+  isbn13: '1605206288'
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 118
+  pub_date: '2009-01-01'
+  publisher: Cosimo, Inc.
+  tags: []
+  title: The Invisible Man
+- author_ids:
+  - 352375
+  author_roles:
+  - 0
+  authors:
+  - Louisa May Alcott
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=cXrrAj1cP3QC&printsec=frontcover&img=1&zoom=5&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=cXrrAj1cP3QC&printsec=frontcover&img=1&zoom=1&source=gbs_api
+    local: !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] -
+      Little Women/Cover.jpg'
+  description: <p>Chronicles the joys and sorrows of the four March sisters as they
+    grow into young women in nineteenth-century New England.</p>
+  descriptions:
+    google_books: Chronicles the joys and sorrows of the four March sisters as they
+      grow into young women in nineteenth-century New England.
+  google_id: cXrrAj1cP3QC
+  id: 989352
+  isbn13: 0099572966
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 436
+  pub_date: '2012'
+  publisher: Random House
+  series_name: Little Women
+  series_number: 1
+  tags: []
+  title: Little Women
 db_version: 0

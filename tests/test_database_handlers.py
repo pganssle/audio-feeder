@@ -38,11 +38,11 @@ def db_handler(
 def test_load_db(db_handler: _db_types.DatabaseHandler) -> None:
     db_tables = db_handler.load_database()
 
-    assert len(db_tables["books"]) == 6
+    assert len(db_tables["books"]) == 7
     for book in db_tables["books"].values():
         assert isinstance(book, oh.Book)
 
-    assert len(db_tables["entries"]) == 6
+    assert len(db_tables["entries"]) == 7
     for entry in db_tables["entries"].values():
         assert isinstance(entry, oh.Entry)
 
@@ -50,13 +50,13 @@ def test_load_db(db_handler: _db_types.DatabaseHandler) -> None:
         assert entry.data_id in db_tables["books"]
 
     # Little Women
-    lw_entry = db_tables["entries"][964760]
+    lw_entry = db_tables["entries"][401299]
     assert lw_entry.path == pathlib.Path(
         "audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women"
     )
     assert os.fspath(lw_entry.cover_images[0]).startswith("media/audiobooks/Fiction")
 
-    twof_entry = db_tables["entries"][818379]
+    twof_entry = db_tables["entries"][928146]
     # Edith Wharton - The Writing of Fiction
     assert twof_entry.path == pathlib.Path(
         "audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction"
@@ -100,7 +100,7 @@ def test_load_empty_yaml_database(tmp_path: pathlib.Path) -> None:
 def test_load_table(db_handler: _db_types.DatabaseHandler) -> None:
     books = db_handler.load_table("books")
 
-    assert len(books) == 6
+    assert len(books) == 7
     for book in books.values():
         assert isinstance(book, oh.Book)
 
@@ -112,7 +112,7 @@ def test_save_database(db_handler: _db_types.DatabaseHandler) -> None:
         id=21144,
         title="The House of Mirth",
         authors=["Edith Wharton"],
-        author_ids=[742197],
+        author_ids=[882047],
     )
 
     db_handler.save_database(db_tables)

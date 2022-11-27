@@ -314,7 +314,7 @@ class Configuration:
                 out = out.replace(to_replace, replacement_value)
 
             if (m := re.search("{{([A-Z_]+)}}", out)) is not None:
-                raise ValueError(f"Unknown replacement string: {{f.groups()[0]}}")
+                raise ValueError(f"Unknown replacement string: {m.groups()[0]}")
 
             return out
         else:

@@ -57,3 +57,12 @@ def test_config_url_no_port(tmp_path: pathlib.Path) -> None:
 
     assert conf.base_url == "https://mydomain.pizza"
     assert conf.static_media_url == "https://mydomain.pizza/static"
+
+
+def test_config_bad_replacement(tmp_path: pathlib.Path) -> None:
+    config_loc = tmp_path / "config.yml"
+    with pytest.raises(ValueError, match="BADLOC"):
+        config.Configuration(
+            config_loc,
+            database_loc=config.TemplatePath("{{BADLOC}}", "database/db.sqlite"),
+        )

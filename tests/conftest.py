@@ -1,15 +1,20 @@
 import contextlib
 import enum
 import importlib.resources
+import logging
 import os
 import pathlib
 import shutil
+import subprocess
+import tempfile
 import typing
 
 import pytest
 
 import audio_feeder.config
-from audio_feeder import cache_utils
+from audio_feeder import cache_utils, file_probe
+
+from . import utils
 
 
 def copy_data_structure(dest: pathlib.Path):
@@ -93,13 +98,14 @@ def testgen_config(
     cache_utils.clear_caches()
     config_loc = tmp_path / "config"
     shutil.copytree(config_defaults.parent, config_loc)
-    shutil.copytree(
+    utils.copy_with_unzip(
         pathlib.Path(__file__).parent / "data/example_media",
         config_loc / "static/media",
     )
 
     (config_loc / "static/images").mkdir()
     (config_loc / "static/images/entry_cover_cache").mkdir()
+    (config_loc / "static/media_cache").mkdir()
 
     with change_config_loc(config_loc):
         yield config_loc

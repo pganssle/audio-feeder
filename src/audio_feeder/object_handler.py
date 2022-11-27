@@ -6,14 +6,17 @@ import datetime
 import functools
 import types
 import typing
+from concurrent import futures
 from pathlib import Path
-from typing import Mapping, Optional, Sequence, Union
+from typing import Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 import attrs
 
+from . import hash_utils
 from ._compat import Self
 from ._db_types import ID, TableName
 from ._object_types import SchemaObject, SchemaType, TypeName
+from .file_probe import FileInfo
 
 
 def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
@@ -74,6 +77,71 @@ class Entry(BaseObject):
     table: Optional[str] = None
     data_id: ID = attrs.field(default=None, metadata={"required": True})
     hashseed: Optional[int] = None
+    files: Optional[Sequence[Path]] = None
+    file_metadata: Optional[Mapping[Path, FileInfo]] = None
+    file_hashes: Optional[Mapping[Path, str]] = None
+
+    def updated_hashes(self, base_path: Path) -> Tuple[Mapping[Path, str], bool]:
+        if self.files is None:
+            raise ValueError("entry.files must not be None when calculating hashes")
+
+        if self.hashseed is None:
+            raise ValueError("Entry must have a hash seed to calculate hashes.")
+
+        hashseed = self.hashseed
+
+        new_hashes: MutableMapping[Path, str] = {}
+        hash_mismatch = self.file_hashes is None
+        file_hashes = self.file_hashes or {}
+
+        for file in self.files:
+            abs_path = base_path / file
+            if not abs_path.exists():
+                raise FileNotFoundError(
+                    "Some files included in the entry were not found!"
+                )
+            new_hashes[file] = hash_utils.hash_random(abs_path, hashseed).hex()
+            if not hash_mismatch and new_hashes[file] != file_hashes[file]:
+                hash_mismatch = True
+
+        if hash_mismatch:
+            return (new_hashes, True)
+        else:
+            return (file_hashes, False)
+
+    def updated_metadata(
+        self, base_path: Path, *, executor: Optional[futures.Executor] = None
+    ) -> Self:
+        if executor is None:
+            executor = futures.ThreadPoolExecutor()
+
+        new_hashes, hash_changed = self.updated_hashes(base_path)
+        assert self.files is not None
+
+        if hash_changed:
+            file_metadata = {}
+            file_metadata_futures = iter(
+                executor.map(
+                    lambda file: (file, FileInfo.from_file(base_path / file)),
+                    self.files,
+                )
+            )
+            while True:
+                try:
+                    file, file_info = next(file_metadata_futures)
+                except StopIteration:
+                    break
+                # TODO: Update the file_probe metadata probes to raise errors
+                # from a module-specific hierarchy, and catch those.
+                except Exception:
+                    continue
+                else:
+                    file_metadata[file] = file_info
+
+            self.file_hashes = new_hashes
+            self.file_metadata = file_metadata
+
+        return self
 
 
 @_register_type("books")

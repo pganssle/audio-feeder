@@ -28,6 +28,8 @@ DESIRED_ICONS: typing.Sequence[str] = [
     "user",
     "arrow-down-wide-short",
     "filter",
+    "qrcode",
+    "square-rss",
 ]
 
 FONT_FAMILY: typing.Final[str] = "FontAwesomeSubset"

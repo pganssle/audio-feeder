@@ -49,7 +49,14 @@ function toggle_hidden(entry_id) {
 // Modal opening function
 const qr_img_urls = new Map([
 {% for entry in entries %}
-    [ {{entry.id}}, "{{ entry.qr_img_url }}" ],
+    [ {{entry.id}} + null, "{{ entry.qr_img_url }}" ],
+    [ {{entry.id}} + "SINGLEFILE", "{{ entry.rendered_qr_img_urls['SINGLEFILE'] }}"],
+    {% if entry.has_chapter_info %}
+        [ {{entry.id}} + "CHAPTERS", "{{ entry.rendered_qr_img_urls['CHAPTERS'] }}"],
+    {% endif %}
+    {% if entry.segmentable %}
+        [ {{entry.id}} + "SEGMENTED", "{{ entry.rendered_qr_img_urls['SEGMENTED'] }}"],
+    {% endif %}
 {% endfor %}
 ]);
 let modal_divs = new Map();
@@ -64,13 +71,19 @@ function get_overlay() {
     return overlay;
 }
 
-function make_qr_modal(entry_id) {
+function make_qr_modal(entry_id, mode=null) {
     const modal_div = document.createElement("div");
-    modal_div.setAttribute("id", "qr-" + entry_id);
+    let attribute_id = "qr-" + entry_id;
+    if (mode !== null) {
+        attribute_id = attribute_id + "-" + mode;
+    }
+    modal_div.setAttribute("id", attribute_id);
     modal_div.setAttribute("class", "modal-window");
 
     const qr_img = document.createElement("img");
-    qr_img.setAttribute("src", qr_img_urls.get(entry_id));
+    const img_key = entry_id + mode;
+
+    qr_img.setAttribute("src", qr_img_urls.get(img_key));
     qr_img.setAttribute("class", "qr_img");
 
     modal_div.appendChild(qr_img);
@@ -78,26 +91,28 @@ function make_qr_modal(entry_id) {
     return modal_div;
 }
 
-function toggle_modal(entry_id) {
+function toggle_modal(entry_id, mode=null) {
     if (active_modal === null) {
-        active_modal = entry_id;
+        active_modal = [entry_id, mode];
     } else {
         active_modal = null;
     }
 
+    const entry_key = entry_id + mode;
     let modal_div;
-    if (!modal_divs.has(entry_id)) {
-        modal_div = make_qr_modal(entry_id);
-        modal_divs.set(entry_id, modal_div);
+    if (!modal_divs.has(entry_key)) {
+        modal_div = make_qr_modal(entry_id, mode);
+        modal_divs.set(entry_key, modal_div);
     } else {
-        modal_div = modal_divs.get(entry_id);
+        modal_div = modal_divs.get(entry_key);
     }
 
     get_overlay().classList.toggle("overlay-active");
     modal_div.classList.toggle("show-modal");
 }
 
-window.addEventListener("click", (event) => { if (event.target === get_overlay() && active_modal !== null) {toggle_modal(active_modal);}});
+
+window.addEventListener("click", (event) => { if (event.target === get_overlay() && active_modal !== null) {toggle_modal(...active_modal);}});
 </script>
 
 {% block topnav %}
@@ -166,10 +181,25 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
         <div class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
             <div class="cover_col" id="{{ entry.id }}">
                 <img src="{{ entry.cover_url if not entry.cover_url is sameas none else default_cover }}" class="cover_img" />
-            <a class="qr_link" onclick="toggle_modal({{entry.id}})">QR</a>
+            <a class="qr_link" onclick="toggle_modal({{entry.id}})"><i class="fa fa-qrcode"></i></a>
             </div>
             <div class="entry_body" id="{{ entry.id }}">
                 <h3 class="entry_title"><a class="entry_link" href="{{ entry.rss_url }}">{{ entry.name }}</a></h3>
+                <div class="entry_extra_feeds">
+                    <div class="extra_feed">
+                        <a onclick="toggle_modal({{ entry.id }}, 'SINGLEFILE')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'singlefile' }}"> Single File</a>
+                    </div>
+                    {% if entry.has_chapter_info %}
+                    <div class="extra_feed">
+                    <a onclick="toggle_modal({{ entry.id }}, 'CHAPTERS')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'chapters' }}"> Chapters</a>
+                    </div>
+                    {% endif %}
+                    {% if entry.segmentable %}
+                    <div class="extra_feed">
+                    <a onclick="toggle_modal({{ entry.id }}, 'SEGMENTED')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'segmented' }}"> Segmented</a>
+                    </div>
+                    {% endif %}
+                </div>
                 {% if entry.truncation_point <= 0 %}{{ entry.description }}{% else %}
                 {{ entry.description[0:entry.truncation_point] }}{% if entry.description|length > entry.truncation_point %}<span class="hidden_description_section" id="e{{ entry.id }}">{{ entry.description[entry.truncation_point:] }}</span><span class="hidden_expander_span" id="e{{ entry.id }}"><span class="expander_ellipsis" id="e{{entry.id}}">... </span><a href="javascript:void(0);" class='read_more_link' id="e{{ entry.id }}" onclick="toggle_hidden({{ entry.id }})">(Read More)</a></span>{%endif%}
                 {% endif %}

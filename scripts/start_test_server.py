@@ -1,20 +1,20 @@
 import contextlib
+import importlib.util
 import os
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import typing
 
 import click
 
+from . import utils
+
 TEMP_DIR_NAME: typing.Final[str] = "audio_feeder_test_server"
 TEMP_LOC: typing.Final[pathlib.Path] = (
     pathlib.Path(tempfile.gettempdir()) / TEMP_DIR_NAME
-)
-
-TEST_DATA_LOC: typing.Final[pathlib.Path] = (
-    pathlib.Path(__file__).parent / "../tests/data"
 )
 
 
@@ -40,7 +40,9 @@ def initialize(init_dir: pathlib.Path) -> None:
         check=True,
     )
 
-    shutil.copytree(TEST_DATA_LOC / "example_media", init_dir / "static/media")
+    utils.copy_with_unzip(
+        utils.TEST_DATA_LOC / "example_media", init_dir / "static/media"
+    )
 
 
 def start_server(config_dir: pathlib.Path, profile: bool = False) -> None:

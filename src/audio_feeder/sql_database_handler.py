@@ -3,6 +3,7 @@
 import datetime
 import functools
 import json
+import logging
 import os
 import pathlib
 import sqlite3
@@ -13,9 +14,25 @@ import attrs
 import sqlalchemy as sa
 from sqlalchemy import orm
 
+from . import file_probe as fp
 from . import object_handler as oh
 from ._db_types import ID, Database, Table, TableName
 from ._useful_types import PathType
+
+DB_VERSION: typing.Final[int] = 2
+
+
+class AbsoluteDateTime(sa.types.TypeDecorator):
+    impl = sa.types.DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value.tzinfo is None:
+            raise TypeError("Cannot bind naïve datetime to AbsoluteDateTime")
+        return value.astimezone(datetime.timezone.utc)
+
+    def process_result_value(self, value, dialect):
+        return value.replace(tzinfo=datetime.timezone.utc)
 
 
 class SQLPath(sa.types.TypeDecorator):
@@ -29,47 +46,92 @@ class SQLPath(sa.types.TypeDecorator):
         return pathlib.Path(value)
 
 
-class _PathEncoder(json.JSONEncoder):
-    def default(self, obj: typing.Any) -> str:
-        if isinstance(obj, pathlib.Path):
+class _CustomEncoder(json.JSONEncoder):
+    def _is_custom_type(self, obj: typing.Any) -> bool:
+        return isinstance(obj, (os.PathLike, fp.FileInfo))
+
+    def default(self, obj: typing.Any) -> typing.Any:
+        if isinstance(obj, os.PathLike):
             return os.fspath(obj)
+        if isinstance(obj, fp.FileInfo):
+            return obj.to_json()
         return super().default(obj)
 
+    def encode(self, obj: typing.Any) -> str:
+        if isinstance(obj, abc.Mapping):
+            # Apparently implementing `default()` doesn't work when the object
+            # is a dictionary key, but calling `default()` on an already-supported
+            # type *also* doesn't work, so we need to check if it's one of the
+            # types we've added support for and if so get the serializable
+            # version of it.
+            return super().encode(
+                {
+                    self.default(key) if self._is_custom_type(key) else key: value
+                    for key, value in obj.items()
+                }
+            )
+        return super().encode(obj)
 
-class _PathJsonType(sa.types.TypeDecorator):
+
+class _CustomJsonType(sa.types.TypeDecorator):
     impl = sa.types.String
     cache_ok = True
 
+    def _load_json(self, value: str) -> typing.Any:
+        if value is None:
+            return None
+
+        return json.loads(value)
+
     # Typing bug in sqlalchemy-stubs
     def process_bind_param(self, value, dialect) -> str:  # type: ignore[override]
-        return json.dumps(value, cls=_PathEncoder)
+        return json.dumps(value, cls=_CustomEncoder)
 
 
-class _PathSequence(_PathJsonType):
-    def process_result_value(self, value, dialect):
-        json_obj = json.loads(value)
+class _PathCollection(_CustomJsonType):
+    def process_result_value(self, value: str, dialect):
+        json_obj = self._load_json(value)
         if json_obj is None:
             return None
 
-        return list(map(pathlib.Path, json_obj))
+        if isinstance(json_obj, typing.Sequence):
+            return list(map(pathlib.Path, json_obj))
+        elif isinstance(json_obj, typing.Mapping):
+            return {pathlib.Path(key): value for key, value in json_obj.items()}
+        else:
+            return json_obj
 
 
-class _CoverImages(_PathJsonType):
-    def process_result_value(self, value, dialect):
-        json_obj = json.loads(value)
+class _CoverImages(_CustomJsonType):
+    def process_result_value(self, value: str, dialect):
+
+        json_obj = self._load_json(value)
 
         if json_obj is None:
             return None
 
         # This is Mapping[str, Union[pathlib.Path, Mapping[str, str]]], so each
         # sub-directory is either a dict or a path
-        out = {}
+        out: typing.Dict[typing.Any, typing.Any] = {}
         for key, value in json_obj.items():
             if isinstance(value, typing.Mapping):
                 out[key] = value
             else:
                 out[key] = pathlib.Path(value)
         return out
+
+
+class _FileMetadata(_CustomJsonType):
+    def process_result_value(self, value: str, dialect):
+
+        json_obj = self._load_json(value)
+        if json_obj is None:
+            return None
+
+        return {
+            pathlib.Path(key): fp.FileInfo.from_json(value)
+            for key, value in json_obj.items()
+        }
 
 
 _NestedType = typing.Union[type, typing.Tuple["_NestedType", ...]]
@@ -95,7 +157,7 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
     elif t == float:
         return sa.NUMERIC
     elif t == datetime.datetime:
-        return sa.DateTime
+        return AbsoluteDateTime
     elif t == datetime.date:
         return sa.Date
     elif t == pathlib.Path:
@@ -113,15 +175,20 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
             return _map_type(argtypes[0])
         elif type_container in (_CanonicalMapType, _CanonicalSequenceType):
             if type_container == _CanonicalSequenceType and argtypes[0] == pathlib.Path:
-                return _PathSequence
-            if type_container == _CanonicalMapType and argtypes[0] == str:
-                # This may be the problematic "cover images" type
-                nested_type_def = _parse_nested_type(argtypes[1])
-                if nested_type_def == (
-                    typing.Union,
-                    (pathlib.Path, (_CanonicalMapType, (str, str))),
-                ):
-                    return _CoverImages
+                return _PathCollection
+            if type_container == _CanonicalMapType:
+                if argtypes[1] == fp.FileInfo:
+                    return _FileMetadata
+                if argtypes[0] == pathlib.Path:
+                    return _PathCollection
+                if argtypes[0] == str:
+                    # This may be the problematic "cover images" type
+                    nested_type_def = _parse_nested_type(argtypes[1])
+                    if nested_type_def == (
+                        typing.Union,
+                        (pathlib.Path, (_CanonicalMapType, (str, str))),
+                    ):
+                        return _CoverImages
             return sa.JSON
 
         raise TypeError(f"Unsupported type: {t}")  # pragma: nocover
@@ -192,9 +259,36 @@ class SqlDatabaseHandler:
         query = session.query(table_type)
         return {ID(result.id): result for result in query.all()}
 
+    def _upgrade_version(self, session: orm.Session, old: int) -> None:
+        if old < 2:
+            logging.info(
+                "Database version < 2, adding the files, file_metadata "
+                "and file_hashes columns to the entries table."
+            )
+            session.execute("ALTER TABLE entries ADD COLUMN files JSON")
+            session.execute("ALTER TABLE entries ADD COLUMN file_metadata JSON")
+            session.execute("ALTER TABLE entries ADD COLUMN file_hashes JSON")
+
+        session.execute(f"PRAGMA user_version={DB_VERSION}")
+
     def _initialize_db(self) -> None:
         if not self._db.exists():
             _metadata_object().create_all(self.engine)
+            with self.session() as session:
+                session.execute(f"PRAGMA user_version={DB_VERSION}")
+        else:
+            with self.session() as session:
+                db_version: int = session.execute("PRAGMA user_version").first()[0]  # type: ignore[index]
+                if db_version < DB_VERSION:
+                    logging.info(
+                        "Upgrading database from %s to %s", db_version, DB_VERSION
+                    )
+                    self._upgrade_version(session, db_version)
+                elif db_version > DB_VERSION:
+                    raise ValueError(
+                        f"Database version {db_version} is greater than the "
+                        + f"highest version supported by this application ({DB_VERSION})"
+                    )
 
     def load_table(self, table_name: TableName) -> Table:
         with self.session() as session:

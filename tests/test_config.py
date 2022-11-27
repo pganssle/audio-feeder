@@ -48,3 +48,13 @@ def test_config_to_file(tmp_path: pathlib.Path) -> None:
     conf_rt = config.Configuration.from_file(config_loc)
 
     assert conf_rt.base_host == conf.base_host
+
+
+def test_config_url_no_port(tmp_path: pathlib.Path) -> None:
+    config_loc = tmp_path / "config.yml"
+    conf = config.Configuration(
+        config_loc, base_protocol="https", base_host="mydomain.pizza", base_port=None
+    )
+
+    assert conf.base_url == "https://mydomain.pizza"
+    assert conf.static_media_url == "https://mydomain.pizza/static"

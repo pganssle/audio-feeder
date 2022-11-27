@@ -1,6 +1,8 @@
+import importlib.util
 import json
 import os
 import pathlib
+import sys
 import tempfile
 import typing
 
@@ -10,14 +12,17 @@ from audio_feeder import _db_types, config
 from audio_feeder import metadata_loader as mdl
 from audio_feeder import updater
 
+from . import utils
+
 
 class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
     SessionKey = typing.Tuple[str, typing.Sequence[typing.Tuple[str, str]]]
     SessionJson = typing.Mapping[str, typing.Any]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self._session_recording: typing.MutableMapping[
-            self.SessionKey, self.SessionJson
+            RecordingGoogleBooksLoader.SessionKey,
+            RecordingGoogleBooksLoader.SessionJson,
         ] = {}
         super().__init__(*args, **kwargs)
 
@@ -64,32 +69,35 @@ class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
 def main(media_dir: pathlib.Path, output: pathlib.Path) -> None:
     with tempfile.TemporaryDirectory() as t_f:
         tmp_path = pathlib.Path(t_f)
+        media_path_copy = tmp_path / "static/media"
+        utils.copy_with_unzip(media_dir, media_path_copy)
+
         config_loc = tmp_path / "config.yml"
         conf = config.Configuration(
             config_location=config_loc,
-            media_path=media_dir.name,
-            static_media_path=os.fspath(media_dir.parent),
+            media_path=media_path_copy.name,
+            static_media_path=os.fspath(media_path_copy.parent),
         )
         conf.to_file(config_loc)
         os.environ["AF_CONFIG_DIR"] = t_f
         config.get_configuration.cache_clear()
         config.get_configuration()
 
-    db: _db_types.MutableDatabase = {
-        "entries": {},  # type: ignore[dict-item]
-        "books": {},  # type: ignore[dict-item]
-        "authors": {},  # type: ignore[dict-item]
-        "series": {},  # type: ignore[dict-item]
-    }
-    book_loader = RecordingGoogleBooksLoader()
-    book_updater = updater.BookDatabaseUpdater(
-        media_dir, metadata_loaders=(book_loader,)
-    )
-    book_updater.update_db_entries(db)
-    book_updater.assign_books_to_entries(db)
-    book_updater.update_book_metadata(db)
+        db: _db_types.MutableDatabase = {
+            "entries": {},  # type: ignore[dict-item]
+            "books": {},  # type: ignore[dict-item]
+            "authors": {},  # type: ignore[dict-item]
+            "series": {},  # type: ignore[dict-item]
+        }
+        book_loader = RecordingGoogleBooksLoader()
+        book_updater = updater.BookDatabaseUpdater(
+            media_path_copy, metadata_loaders=(book_loader,)
+        )
+        book_updater.update_db_entries(db)
+        book_updater.assign_books_to_entries(db)
+        book_updater.update_book_metadata(db)
 
-    book_loader.write_session_recording(output)
+        book_loader.write_session_recording(output)
 
 
 if __name__ == "__main__":

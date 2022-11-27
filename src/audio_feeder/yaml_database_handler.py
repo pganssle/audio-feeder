@@ -8,6 +8,7 @@ import typing
 
 import yaml
 
+from . import file_probe as fp
 from . import object_handler as oh
 from ._db_types import (
     ID,
@@ -37,24 +38,40 @@ def _path_representer(
     return dumper.represent_scalar("!Path", os.fspath(path))
 
 
+def _file_info_constructor(
+    loader: yaml.SafeLoader, node: yaml.nodes.MappingNode
+) -> fp.FileInfo:
+    mapping = loader.construct_mapping(node)
+    return fp.FileInfo.from_json(typing.cast(fp.FFProbeReturnJSON, mapping))
+
+
+def _file_info_representer(
+    dumper: yaml.SafeDumper, file_info: fp.FileInfo
+) -> yaml.nodes.MappingNode:
+    return dumper.represent_mapping("!FileInfo", file_info.to_json())
+
+
 @functools.lru_cache(None)
 def _loader() -> typing.Type[yaml.SafeLoader]:
-    class SafeLoaderWithPath(yaml.SafeLoader):
+    class CustomSafeLoader(yaml.SafeLoader):
         pass
 
-    SafeLoaderWithPath.add_constructor("!Path", _path_constructor)
+    CustomSafeLoader.add_constructor("!Path", _path_constructor)
+    CustomSafeLoader.add_constructor("!FileInfo", _file_info_constructor)
 
-    return SafeLoaderWithPath
+    return CustomSafeLoader
 
 
 @functools.lru_cache(None)
 def _dumper() -> typing.Type[yaml.SafeDumper]:
-    class SafeDumperWithPath(yaml.SafeDumper):
+    class CustomSafeDumper(yaml.SafeDumper):
         pass
 
     for path_type in [pathlib.Path, pathlib.PosixPath, pathlib.WindowsPath]:
-        SafeDumperWithPath.add_representer(path_type, _path_representer)
-    return SafeDumperWithPath
+        CustomSafeDumper.add_representer(path_type, _path_representer)
+
+    CustomSafeDumper.add_representer(fp.FileInfo, _file_info_representer)
+    return CustomSafeDumper
 
 
 class YamlDatabaseHandler:

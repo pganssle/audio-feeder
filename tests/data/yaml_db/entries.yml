@@ -1,55 +1,808 @@
 data:
 - cover_images:
-  - media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
-    Men-Cover.jpg
-  - images/entry_cover_cache/21481_google_books-thumbnail.jpg
-  data_id: 958312
-  date_added: 2022-11-03 18:48:11.723670
-  hashseed: 3438870723
-  id: 21481
-  last_modified: 2022-11-03 18:47:46.092179
-  path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men'
+  - !Path 'images/entry_cover_cache/23731_google_books-thumbnail.jpg'
+  data_id: 296217
+  date_added: 2022-11-26 14:48:24.101786+00:00
+  hashseed: 3132876451
+  id: 23731
+  last_modified: 2022-11-26 14:48:18.129621+00:00
+  path: !Path 'audiobooks/Nonfiction/Thomas de Quincey - Confessions of an English
+    Opium Eater'
   table: books
   type: Book
 - cover_images:
-  - images/entry_cover_cache/104789_google_books-thumbnail.jpg
-  data_id: 799712
-  date_added: 2022-11-03 18:48:11.723959
-  hashseed: 3513516051
-  id: 104789
-  last_modified: 2022-11-03 18:46:42.023660
+  - !Path 'media/audiobooks/Fiction/H G Wells - The Invisible Man/Cover.jpg'
+  - !Path 'images/entry_cover_cache/262161_google_books-thumbnail.jpg'
+  data_id: 753272
+  date_added: 2022-11-26 14:48:23.914640+00:00
+  file_hashes:
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_01_wells_64kb.mp3': f5ee94330263bbffb8b975eac3d640fdab59445a620cc9ff33b1d3a5a2d6cafe
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_02_wells_64kb.mp3': 6a401f805ca6f9eef572328c83855eb4d6325b676652059d6fc02489ea1609f1
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_03_wells_64kb.mp3': 6b05e11d2097100f8d75b03377769a5058ec86776b673005c95dc814ff435585
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_04_wells_64kb.mp3': 7c8eb6f5f291fa9e47dfea9ae2f41bb79f8897a2d82f6cfa30c686fed610cc64
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_05_wells_64kb.mp3': aab27937e54aaa9de25140b01a47b7881421db79d2ce171e20bb16a9641e6218
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_06_wells_64kb.mp3': d37a0f126cdf46c1889bd0821dd8a7b4de48a8bf2d82a378d97dd833f8d2457c
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_07_wells_64kb.mp3': dcc09e7bab3d820f79556bf1964c9056a544d10f83266a68ffcd3f117b9f8ec1
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_08_wells_64kb.mp3': 5437036e1c9af0d1624c22f075f90b889b728510c45bad22f12c0fbbf57cffa0
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_09_wells_64kb.mp3': 3e010f4917c0d8d672a21e1781c915175dbc70124c38b8b73d4fdbd0a57c66cb
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_10_wells_64kb.mp3': 946c8550c1f743c7916a9acfdc964714a198fbff86437739a34b8c0e0f54ea46
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_11_wells_64kb.mp3': 4108e1a7cd81718d090754dc0656c39fd1dbfcc003d6d22ca00d380416eb1ad9
+  file_metadata:
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_01_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1362.181224
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_01_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 5423626
+        start_time: 0.025057
+        tags:
+          TLEN: '1362.13'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 01 - Chapters I and II
+          track: '1'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_02_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1481.534694
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_02_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 5898804
+        start_time: 0.025057
+        tags:
+          TLEN: '1481.48'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 02 - Chapters III and IV
+          track: '2'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_03_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31851
+        duration: 1810.729796
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_03_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 7209415
+        start_time: 0.025057
+        tags:
+          TLEN: '1810.68'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 03 - Chapters V, VI and VII
+          track: '3'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_04_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1550.576327
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_04_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 6173684
+        start_time: 0.025057
+        tags:
+          TLEN: '1550.52'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 04 - Chapters VIII, IX, X and XI
+          track: '4'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_05_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1634.925714
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_05_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 6509499
+        start_time: 0.025057
+        tags:
+          TLEN: '1634.87'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 05 - Chapters XII, XIII and XVI
+          track: '5'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_06_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1672.333061
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_06_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 6658426
+        start_time: 0.025057
+        tags:
+          TLEN: '1672.28'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 06 - Chapters XV, XVI and XVII
+          track: '6'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_07_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1201.893878
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_07_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 4785487
+        start_time: 0.025057
+        tags:
+          TLEN: '1201.84'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 07 - Chapters XVIII and XIX
+          track: '7'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_08_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31851
+        duration: 1909.159184
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_08_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 7601284
+        start_time: 0.025057
+        tags:
+          TLEN: '1909.11'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 08 - Chapters XX and XXI
+          track: '8'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_09_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31851
+        duration: 2038.230204
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_09_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 8115152
+        start_time: 0.025057
+        tags:
+          TLEN: '2038.18'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 09 - Chapters XXII and XXIII
+          track: '9'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_10_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31852
+        duration: 1336.032653
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_10_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 5319533
+        start_time: 0.025057
+        tags:
+          TLEN: '1335.98'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 10 - Chapters XXIV, XXV and XXVI
+          track: '10'
+    !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_11_wells_64kb.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 31851
+        duration: 2081.123265
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/H
+          G Wells - The Invisible Man/invisibleman_11_wells_64kb.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 8285932
+        start_time: 0.025057
+        tags:
+          TLEN: '2081.07'
+          album: The Invisible Man
+          artist: H. G. Wells
+          comment: https://archive.org/details/the_invisible_man_2102_librivox
+          encoder: Lavf59.27.100
+          genre: speech
+          title: 11 - Chapters XXVII, XVIII and Epilogue
+          track: '11'
+  files:
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_01_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_02_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_03_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_04_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_05_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_06_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_07_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_08_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_09_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_10_wells_64kb.mp3'
+  - !Path 'audiobooks/Fiction/H G Wells - The Invisible Man/invisibleman_11_wells_64kb.mp3'
+  hashseed: 1701227742
+  id: 262161
+  last_modified: 2022-11-26 14:48:18.092955+00:00
+  path: !Path 'audiobooks/Fiction/H G Wells - The Invisible Man'
+  table: books
+  type: Book
+- cover_images:
+  - !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little
+    Women/Cover.jpg'
+  - !Path 'images/entry_cover_cache/401299_google_books-thumbnail.jpg'
+  data_id: 989352
+  date_added: 2022-11-26 14:48:24.249469+00:00
+  file_hashes:
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part00.mp3': 909db22818709fc39663dd8699ad02aa2726336d8b04ac40cba66e5a46c6fb46
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part01.mp3': 11f724150e40ad9e4083283661815b9571547aa9f12eddf9f04fb3bfa8e646d5
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part02.mp3': ffa7e6639c012d3ee1a35a3e15c45673392d59ad9fb684601e2e4c9171421e36
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part03.mp3': 67227b4a3f52e638b3405de42947d85552c1f63b47d81e905080ae662b8f6d43
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part04.mp3': 22869cc35c0d53ac782537e3bb0f872a841ac6a57c2a325804e0f475b7ed7c30
+  file_metadata:
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part00.mp3':
+      chapters:
+      - end_time: 20.25
+        num: 1
+        start_time: 0.0
+        tags: {}
+      - end_time: 41.45
+        num: 2
+        start_time: 20.25
+        tags: {}
+      - end_time: 60.8131
+        num: 3
+        start_time: 41.45
+        tags: {}
+      format_info:
+        bit_rate: 31992
+        duration: 60.813061
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 01] - Little Women/Little Women-Part00.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 243199
+        start_time: 0.025057
+        tags:
+          OverDrive MediaMarkers: <Markers><Marker><Name>Playing Pilgrims</Name><Time>00:0.000</Time></Marker><Marker><Name>A
+            Merry Christmas</Name><Time>00:20.250</Time></Marker><Marker><Name>The
+            Laurence Boy</Name><Time>00:41.450</Time></Marker></Markers>
+          album: Little Women
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '0'
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part01.mp3':
+      chapters:
+      - end_time: 9.0
+        num: 1
+        start_time: 0.0
+        tags: {}
+      - end_time: 19.2
+        num: 2
+        start_time: 9.0
+        tags: {}
+      - end_time: 39.2359
+        num: 3
+        start_time: 19.2
+        tags: {}
+      format_info:
+        bit_rate: 32083
+        duration: 39.235918
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 01] - Little Women/Little Women-Part01.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 157351
+        start_time: 0.025057
+        tags:
+          OverDrive MediaMarkers: <Markers><Marker><Name>Burdens</Name><Time>00:0.000</Time></Marker><Marker><Name>Being
+            Neighborly</Name><Time>00:19.200</Time></Marker><Marker><Name>Beth Finds
+            the Palace Beautiful</Name><Time>00:9.000</Time></Marker></Markers>
+          album: Little Women
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '1'
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part02.mp3':
+      chapters:
+      - end_time: 14.5
+        num: 1
+        start_time: 0.0
+        tags: {}
+      - end_time: 22.4392
+        num: 2
+        start_time: 14.5
+        tags: {}
+      format_info:
+        bit_rate: 32217
+        duration: 22.439184
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 01] - Little Women/Little Women-Part02.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 90366
+        start_time: 0.025057
+        tags:
+          OverDrive MediaMarkers: <Markers><Marker><Name>Amy's Valley of Humiliation</Name><Time>00:0.000</Time></Marker><Marker><Name>Jo
+            Meets Apollyon</Name><Time>00:14.500</Time></Marker></Markers>
+          album: Little Women
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '2'
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part03.mp3':
+      chapters:
+      - end_time: 30.2
+        num: 1
+        start_time: 0.0
+        tags: {}
+      - end_time: 41.6
+        num: 2
+        start_time: 30.2
+        tags: {}
+      - end_time: 51.0171
+        num: 3
+        start_time: 41.6
+        tags: {}
+      format_info:
+        bit_rate: 32028
+        duration: 51.017143
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 01] - Little Women/Little Women-Part03.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 204253
+        start_time: 0.025057
+        tags:
+          OverDrive MediaMarkers: <Markers><Marker><Name>Meg Goes to Vanity Fair</Name><Time>00:0.000</Time></Marker><Marker><Name>The
+            P.C. and P.O.</Name><Time>00:30.200</Time></Marker><Marker><Name>Experiments</Name><Time>00:41.600</Time></Marker></Markers>
+          album: Little Women
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '3'
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little Women-Part04.mp3':
+      chapters:
+      - end_time: 44.2514
+        num: 1
+        start_time: 0.0
+        tags: {}
+      format_info:
+        bit_rate: 32021
+        duration: 44.251429
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 01] - Little Women/Little Women-Part04.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 177123
+        start_time: 0.025057
+        tags:
+          OverDrive MediaMarkers: <Markers><Marker><Name>Camp Laurence</Name><Time>00:0.000</Time></Marker></Markers>
+          album: Little Women
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '4'
+  files:
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part00.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part01.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part02.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part03.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Little
+    Women-Part04.mp3'
+  hashseed: 3482681735
+  id: 401299
+  last_modified: 2022-11-26 14:48:18.112954+00:00
+  path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women'
+  table: books
+  type: Book
+- cover_images:
+  - !Path 'images/entry_cover_cache/488232_google_books-thumbnail.jpg'
+  data_id: 569645
+  date_added: 2022-11-26 14:48:23.774486+00:00
+  file_hashes:
+    !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein/Mary Shelley''s Frankenstein.m4b': 01123e20732bf5bbde6f1ef8579c3e270c4e37d40e8b110de06444aa393de7b9
+  file_metadata:
+    !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein/Mary Shelley''s Frankenstein.m4b':
+      chapters:
+      - end_time: 2.193
+        num: 0
+        start_time: 0.0
+        tags: {}
+      - end_time: 2.824
+        num: 1
+        start_time: 2.193
+        tags: {}
+      - end_time: 3.852
+        num: 2
+        start_time: 2.824
+        tags: {}
+      - end_time: 4.841
+        num: 3
+        start_time: 3.852
+        tags: {}
+      - end_time: 5.763
+        num: 4
+        start_time: 4.841
+        tags: {}
+      - end_time: 6.792
+        num: 5
+        start_time: 5.763
+        tags: {}
+      - end_time: 7.966
+        num: 6
+        start_time: 6.792
+        tags: {}
+      - end_time: 9.271
+        num: 7
+        start_time: 7.966
+        tags: {}
+      - end_time: 10.507
+        num: 8
+        start_time: 9.271
+        tags: {}
+      - end_time: 11.332
+        num: 9
+        start_time: 10.507
+        tags: {}
+      - end_time: 12.318
+        num: 10
+        start_time: 11.332
+        tags: {}
+      - end_time: 13.383
+        num: 11
+        start_time: 12.318
+        tags: {}
+      - end_time: 14.209
+        num: 12
+        start_time: 13.383
+        tags: {}
+      - end_time: 15.012
+        num: 13
+        start_time: 14.209
+        tags: {}
+      - end_time: 15.61
+        num: 14
+        start_time: 15.012
+        tags: {}
+      - end_time: 16.641
+        num: 15
+        start_time: 15.61
+        tags: {}
+      - end_time: 17.974
+        num: 16
+        start_time: 16.641
+        tags: {}
+      - end_time: 18.787
+        num: 17
+        start_time: 17.974
+        tags: {}
+      - end_time: 19.979
+        num: 18
+        start_time: 18.787
+        tags: {}
+      - end_time: 20.988
+        num: 19
+        start_time: 19.979
+        tags: {}
+      - end_time: 22.487
+        num: 20
+        start_time: 20.988
+        tags: {}
+      - end_time: 23.751
+        num: 21
+        start_time: 22.487
+        tags: {}
+      - end_time: 24.938
+        num: 22
+        start_time: 23.751
+        tags: {}
+      - end_time: 26.104
+        num: 23
+        start_time: 24.938
+        tags: {}
+      - end_time: 29.819
+        num: 24
+        start_time: 26.104
+        tags: {}
+      format_info:
+        bit_rate: 542
+        duration: 298.19
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Mary
+          Shelley - Frankenstein/Mary Shelley's Frankenstein.m4b
+        format_long_name: QuickTime / MOV
+        format_name: mov,mp4,m4a,3gp,3g2,mj2
+        size: 20203
+        start_time: 0.0
+        tags:
+          album: Frankenstein
+          artist: Mary W. Shelley
+          compatible_brands: M4A isomiso2
+          creation_time: '2012-04-12T22:00:52.000000Z'
+          encoder: Lavf59.27.100
+          genre: Speech
+          major_brand: 'M4A '
+          media_type: '2'
+          minor_version: '512'
+          title: Frankenstein
+          track: 1/1
+  files:
+  - !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein/Mary Shelley''s Frankenstein.m4b'
+  hashseed: 2913221698
+  id: 488232
+  last_modified: 2022-11-26 14:48:18.112954+00:00
   path: !Path 'audiobooks/Fiction/Mary Shelley - Frankenstein'
   table: books
   type: Book
 - cover_images:
-  - images/entry_cover_cache/692296_google_books-thumbnail.jpg
-  data_id: 832420
-  date_added: 2022-11-03 18:48:11.724024
-  hashseed: 3040569811
-  id: 692296
-  last_modified: 2022-11-03 18:46:26.536390
+  - !Path 'images/entry_cover_cache/731259_google_books-thumbnail.jpg'
+  data_id: 610670
+  date_added: 2022-11-26 14:48:24.323940+00:00
+  file_hashes:
+    !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 01.mp3': 8a18b04b5bd8890025eafc8b6a0e33bd0a8bf30c1dd41fa6b6be467fc80b7cb4
+    !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 02.mp3': c99103c214e9db88279b508faea2f839848ae71f39775502ff1ca1cb1cbe463b
+  file_metadata:
+    !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 01.mp3':
+      chapters:
+      - end_time: 21.589
+        num: 0
+        start_time: 0.0
+        tags: {}
+      format_info:
+        bit_rate: 32268
+        duration: 21.707755
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Bram
+          Stoker - Dracula/Chapter 01.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 87559
+        start_time: 0.025057
+        tags:
+          album: Dracula
+          artist: Bram Stoker
+          comment: 'Dracula is an Gothic horror novel by Irish author Bram Stoker.
+            Famous for
+
+            introducing the character of the vampire Count Dracula, the novel tells
+            the
+
+            story of Dracula''s attempt to move from Transylvania to England, and
+            the battle
+
+            between Dracula and a small group of men and women led by Professor Abraham
+            Van
+
+            Helsing.
+
+            '
+          description: 'Dracula is an Gothic horror novel by Irish author Bram Stoker.
+            Famous for
+
+            introducing the character of the vampire Count Dracula, the novel tells
+            the
+
+            story of Dracula''s attempt to move from Transylvania to England, and
+            the battle
+
+            between Dracula and a small group of men and women led by Professor Abraham
+            Van
+
+            Helsing.
+
+            '
+          encoder: Lavf59.27.100
+          genre: Horror
+          language: English
+          title: 01 - Jonathan Harker's Journal
+          track: '0'
+    !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 02.mp3':
+      chapters:
+      - end_time: 39.535
+        num: 0
+        start_time: 21.575
+        tags: {}
+      format_info:
+        bit_rate: 32353
+        duration: 18.050612
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Bram
+          Stoker - Dracula/Chapter 02.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 72999
+        start_time: 0.025057
+        tags:
+          album: Dracula
+          artist: Bram Stoker
+          comment: 'Dracula is an Gothic horror novel by Irish author Bram Stoker.
+            Famous for
+
+            introducing the character of the vampire Count Dracula, the novel tells
+            the
+
+            story of Dracula''s attempt to move from Transylvania to England, and
+            the battle
+
+            between Dracula and a small group of men and women led by Professor Abraham
+            Van
+
+            Helsing.
+
+            '
+          description: 'Dracula is an Gothic horror novel by Irish author Bram Stoker.
+            Famous for
+
+            introducing the character of the vampire Count Dracula, the novel tells
+            the
+
+            story of Dracula''s attempt to move from Transylvania to England, and
+            the battle
+
+            between Dracula and a small group of men and women led by Professor Abraham
+            Van
+
+            Helsing.
+
+            '
+          encoder: Lavf59.27.100
+          genre: Horror
+          language: English
+          title: 02 - Jonathan Harker's Journal
+          track: '1'
+  files:
+  - !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 01.mp3'
+  - !Path 'audiobooks/Fiction/Bram Stoker - Dracula/Chapter 02.mp3'
+  hashseed: 3976472394
+  id: 731259
+  last_modified: 2022-11-26 14:48:18.099621+00:00
   path: !Path 'audiobooks/Fiction/Bram Stoker - Dracula'
   table: books
   type: Book
 - cover_images:
-  - images/entry_cover_cache/712130_google_books-thumbnail.jpg
-  data_id: 643570
-  date_added: 2022-11-03 18:48:11.723802
-  hashseed: 3815070603
-  id: 712130
-  last_modified: 2022-11-03 18:46:07.108972
+  - !Path 'images/entry_cover_cache/928146_google_books-thumbnail.jpg'
+  data_id: 648614
+  date_added: 2022-11-26 14:48:24.205389+00:00
+  files:
+  - !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction/The Writing
+    of Fiction.mp3'
+  hashseed: 643949711
+  id: 928146
+  last_modified: 2022-11-26 14:48:18.112954+00:00
   path: !Path 'audiobooks/Nonfiction/Edith Wharton - The Writing of Fiction'
   table: books
   type: Book
 - cover_images:
-  - media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women/Cover.jpg
-  - images/entry_cover_cache/787031_google_books-thumbnail.jpg
-  data_id: 44367
-  date_added: 2022-11-03 18:48:11.723887
-  hashseed: 69178498
-  id: 787031
-  last_modified: 2022-11-03 18:47:12.934879
-  path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little Women'
+  - !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little
+    Men/Little Men-Cover.jpg'
+  - !Path 'images/entry_cover_cache/992689_google_books-thumbnail.jpg'
+  data_id: 635705
+  date_added: 2022-11-26 14:48:23.838537+00:00
+  file_hashes:
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part00.mp3': ad699870bead62047469049a50c01e55e6039557680298a5dc684fef415756dd
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part01.mp3': f441a22a89c4808faed05cb4221f629061a86d016fb37a2a1008c8bab21d5e7d
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part02.mp3': 35d4bcd875d318872ee5b8eb169a351ffeae9a2bafd0d18c8a165ea2fa7f88eb
+  file_metadata:
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part00.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 32454
+        duration: 10.945306
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 02] - Little Men/Little Men-Part00.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 44403
+        start_time: 0.025057
+        tags:
+          album: Little Men
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '0'
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part01.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 33786
+        duration: 3.63102
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 02] - Little Men/Little Men-Part01.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 15335
+        start_time: 0.025057
+        tags:
+          album: Little Men
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '1'
+    !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little Men-Part02.mp3':
+      chapters: []
+      format_info:
+        bit_rate: 32152
+        duration: 21.838367
+        filename: /tmp/audio_feeder_test_server/static/media/audiobooks/Fiction/Louisa
+          May Alcott - [Little Women 02] - Little Men/Little Men-Part02.mp3
+        format_long_name: MP2/3 (MPEG audio layer 2/3)
+        format_name: mp3
+        size: 87771
+        start_time: 0.025057
+        tags:
+          album: Little Men
+          artist: Louisa May Alcott
+          encoded_by: OverDrive, Inc.
+          encoder: Lavf59.27.100
+          language: English
+          publisher: LibriVox
+          track: '2'
+  files:
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Part00.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Part01.mp3'
+  - !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men/Little
+    Men-Part02.mp3'
+  hashseed: 3130749732
+  id: 992689
+  last_modified: 2022-11-26 14:48:18.112954+00:00
+  path: !Path 'audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little Men'
   table: books
   type: Book
 db_version: 0

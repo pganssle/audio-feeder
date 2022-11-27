@@ -1,32 +1,138 @@
 data:
 - author_ids:
-  - 363409
+  - 401412
+  author_roles:
+  - 0
   authors:
-  - Louisa May Alcott
+  - Thomas de Quincey
   cover_images:
-    local: media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] - Little
-      Women/Cover.jpg
-  description: <p>Chronicles the joys and sorrows of the four March sisters as they
-    grow into young women in nineteenth-century New England.</p>
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=wZksAr1cyVYC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=wZksAr1cyVYC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: <p>Confessions of an English Opium-Eater, Suspiria de Profundis, and
+    'The English Mail-Coach' are De Quincey's finest essays in autobiography, published
+    here with three appendices containing a wealth of related manuscript material
+    and a comprehensive introduction and notes.</p>
   descriptions:
-    google_books: Chronicles the joys and sorrows of the four March sisters as they
-      grow into young women in nineteenth-century New England.
-  google_id: cXrrAj1cP3QC
-  id: 44367
-  isbn13: 0099572966
+    google_books: Confessions of an English Opium-Eater, Suspiria de Profundis, and
+      'The English Mail-Coach' are De Quincey's finest essays in autobiography, published
+      here with three appendices containing a wealth of related manuscript material
+      and a comprehensive introduction and notes.
+  google_id: wZksAr1cyVYC
+  id: 296217
+  isbn13: 0199600619
   language: en
   metadata_sources:
   - google_books
-  pages: 436
-  pub_date: '2012'
-  publisher: Random House
-  series_name: Little Women
-  series_number: 1
-  tags:
-  - children's stories
-  title: Little Women
+  pages: 385
+  pub_date: '2013-02-14'
+  publisher: Oxford University Press
+  tags: []
+  title: Confessions of an English Opium Eater
 - author_ids:
-  - 496925
+  - 716757
+  author_roles:
+  - 0
+  authors:
+  - Mary Shelley
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=KGSODQAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=KGSODQAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+  description: "<p>Working from the earliest surviving draft of Frankenstein, Charles\
+    \ E. Robinson presents two versions of the classic novel\u2014as Mary Shelley\
+    \ originally wrote it and a subsequent version clearly indicating Percy Shelley\u2019\
+    s amendments and contributions. For the first time we can hear Mary\u2019s sole\
+    \ voice, which is colloquial, fast-paced, and sounds more modern to a contemporary\
+    \ reader. We can also see for the first time the extent of Percy Shelley\u2019\
+    s contribution\u2014some 5,000 words out of 72,000\u2014and his stylistic and\
+    \ thematic changes. His occasionally florid prose is in marked contrast to the\
+    \ directness of Mary\u2019s writing. Interesting, too, are Percy\u2019s suggestions,\
+    \ which humanize the monster, thus shaping many of the major themes of the novel\
+    \ as we read it today. In these two versions of Frankenstein we have an exciting\
+    \ new view of one of literature\u2019 s greatest works.</p>"
+  descriptions:
+    google_books: "Working from the earliest surviving draft of Frankenstein, Charles\
+      \ E. Robinson presents two versions of the classic novel\u2014as Mary Shelley\
+      \ originally wrote it and a subsequent version clearly indicating Percy Shelley\u2019\
+      s amendments and contributions. For the first time we can hear Mary\u2019s sole\
+      \ voice, which is colloquial, fast-paced, and sounds more modern to a contemporary\
+      \ reader. We can also see for the first time the extent of Percy Shelley\u2019\
+      s contribution\u2014some 5,000 words out of 72,000\u2014and his stylistic and\
+      \ thematic changes. His occasionally florid prose is in marked contrast to the\
+      \ directness of Mary\u2019s writing. Interesting, too, are Percy\u2019s suggestions,\
+      \ which humanize the monster, thus shaping many of the major themes of the novel\
+      \ as we read it today. In these two versions of Frankenstein we have an exciting\
+      \ new view of one of literature\u2019 s greatest works."
+  google_id: KGSODQAAQBAJ
+  id: 569645
+  isbn13: 0307474429
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 466
+  pub_date: '2009-09-08'
+  publisher: Vintage
+  tags: []
+  title: Frankenstein
+- author_ids:
+  - 28374
+  author_roles:
+  - 0
+  authors:
+  - Bram Stoker
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=C1bepwAACAAJ&printsec=frontcover&img=1&zoom=5&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=C1bepwAACAAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api
+  description: ''
+  descriptions:
+    google_books: null
+  google_id: C1bepwAACAAJ
+  id: 610670
+  isbn13: '9783458362159'
+  language: de
+  metadata_sources:
+  - google_books
+  pages: 540
+  pub_date: '2011'
+  title: Dracula
+- author_ids:
+  - 520775
+  author_roles:
+  - 0
+  authors:
+  - Louisa May Alcott
+  cover_images:
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=ykswhj_TPEIC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=ykswhj_TPEIC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+    local: !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] -
+      Little Men/Little Men-Cover.jpg'
+  description: <p>Jo March, the heroine of "Little Women," is back in a charming sequel
+    to that beloved book. She and her husband open their hearts to a host of endearing
+    little mischief-makers in an effort to teach them "how to help themselves and
+    be useful men." A heartwarming classic.</p>
+  descriptions:
+    google_books: Jo March, the heroine of "Little Women," is back in a charming sequel
+      to that beloved book. She and her husband open their hearts to a host of endearing
+      little mischief-makers in an effort to teach them "how to help themselves and
+      be useful men." A heartwarming classic.
+  google_id: ykswhj_TPEIC
+  id: 635705
+  language: en
+  metadata_sources:
+  - google_books
+  pages: 412
+  pub_date: '1899'
+  series_name: Little Women
+  series_number: 2
+  tags: []
+  title: Little Men
+- author_ids:
+  - 882047
+  author_roles:
+  - 0
   authors:
   - Edith Wharton
   cover_images:
@@ -37,191 +143,92 @@ data:
   descriptions:
     google_books: null
   google_id: bNhZAAAAMAAJ
-  id: 643570
+  id: 648614
   language: en
   metadata_sources:
   - google_books
   pages: 176
   pub_date: '1925'
   publisher: 'New York ; London : C. Scribner''s Sons'
-  tags:
-  - fiction
+  tags: []
   title: The Writing of Fiction
 - author_ids:
-  - 509539
+  - 942026
+  author_roles:
+  - 0
   authors:
-  - Mary Shelley
+  - H G Wells
   cover_images:
     google_books:
-      smallThumbnail: http://books.google.com/books/content?id=WbNDDwAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
-      thumbnail: http://books.google.com/books/content?id=WbNDDwAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
-  description: "<p>For the bicentennial of its first publication, Mary Shelley\u2019\
-    s original 1818 text, introduced by National Book Critics Circle award-winner\
-    \ Charlotte Gordon. Nominated as one of America\u2019s best-loved novels by PBS\u2019\
-    s The Great American Read 2018 marks the bicentennial of Mary Shelley\u2019s seminal\
-    \ novel. For the first time, Penguin Classics will publish the original 1818 text,\
-    \ which preserves the hard-hitting and politically-charged aspects of Shelley\u2019\
-    s original writing, as well as her unflinching wit and strong female voice. This\
-    \ edition also emphasizes Shelley\u2019s relationship with her mother\u2014trailblazing\
-    \ feminist Mary Wollstonecraft, who penned A Vindication of the Rights of Woman\u2014\
-    and demonstrates her commitment to carrying forward her mother\u2019s ideals,\
-    \ placing her in the context of a feminist legacy rather than the sole female\
-    \ in the company of male poets, including Percy Shelley and Lord Byron. This edition\
-    \ includes a new introduction and suggestions for further reading by National\
-    \ Book Critics Circle award-winner and Shelley expert Charlotte Gordon, literary\
-    \ excerpts and reviews selected by Gordon, and a chronology and essay by preeminent\
-    \ Shelley scholar Charles E. Robinson. For more than seventy years, Penguin has\
-    \ been the leading publisher of classic literature in the English-speaking world.\
-    \ With more than 1,800 titles, Penguin Classics represents a global bookshelf\
-    \ of the best works throughout history and across genres and disciplines. Readers\
-    \ trust the series to provide authoritative texts enhanced by introductions and\
-    \ notes by distinguished scholars and contemporary authors, as well as up-to-date\
-    \ translations by award-winning translators.</p>"
+      smallThumbnail: http://books.google.com/books/content?id=O3JcNritSSoC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=O3JcNritSSoC&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
+    local: !Path 'media/audiobooks/Fiction/H G Wells - The Invisible Man/Cover.jpg'
+  description: '<p>It''s one of the most famous novels of the 19th century, and probably
+    the one that''s least actually read. *The Invisible Man,* first published in 1897,
+    became the basis for the classic 1933 film starring Claude Rains-as well as its
+    many spinoffs-but the novel is quite different: it''s an early example of science
+    fantasy that was as much about character as it was about concept. One of the most
+    enduringly popular writers of modern literature, Wells here assured his position
+    as one of the fathers of imaginative literature with his psychologically complex
+    tale of a scientist who renders himself invisible and eventually goes mad because
+    of it. And because it focuses more on people than on technology, it remains a
+    compelling tale even more than a century after it was written. British author
+    HERBERT GEORGE WELLS (1866-1946) is best known for his groundbreaking science
+    fiction novels *The Time Machine* (1895), *The Invisible Man* (1897), and *The
+    War of the Worlds* (1898).</p>'
   descriptions:
-    google_books: "For the bicentennial of its first publication, Mary Shelley\u2019\
-      s original 1818 text, introduced by National Book Critics Circle award-winner\
-      \ Charlotte Gordon. Nominated as one of America\u2019s best-loved novels by\
-      \ PBS\u2019s The Great American Read 2018 marks the bicentennial of Mary Shelley\u2019\
-      s seminal novel. For the first time, Penguin Classics will publish the original\
-      \ 1818 text, which preserves the hard-hitting and politically-charged aspects\
-      \ of Shelley\u2019s original writing, as well as her unflinching wit and strong\
-      \ female voice. This edition also emphasizes Shelley\u2019s relationship with\
-      \ her mother\u2014trailblazing feminist Mary Wollstonecraft, who penned A Vindication\
-      \ of the Rights of Woman\u2014and demonstrates her commitment to carrying forward\
-      \ her mother\u2019s ideals, placing her in the context of a feminist legacy\
-      \ rather than the sole female in the company of male poets, including Percy\
-      \ Shelley and Lord Byron. This edition includes a new introduction and suggestions\
-      \ for further reading by National Book Critics Circle award-winner and Shelley\
-      \ expert Charlotte Gordon, literary excerpts and reviews selected by Gordon,\
-      \ and a chronology and essay by preeminent Shelley scholar Charles E. Robinson.\
-      \ For more than seventy years, Penguin has been the leading publisher of classic\
-      \ literature in the English-speaking world. With more than 1,800 titles, Penguin\
-      \ Classics represents a global bookshelf of the best works throughout history\
-      \ and across genres and disciplines. Readers trust the series to provide authoritative\
-      \ texts enhanced by introductions and notes by distinguished scholars and contemporary\
-      \ authors, as well as up-to-date translations by award-winning translators."
-  google_id: WbNDDwAAQBAJ
-  id: 799712
-  isbn13: 0143131842
+    google_books: 'It''s one of the most famous novels of the 19th century, and probably
+      the one that''s least actually read. *The Invisible Man,* first published in
+      1897, became the basis for the classic 1933 film starring Claude Rains-as well
+      as its many spinoffs-but the novel is quite different: it''s an early example
+      of science fantasy that was as much about character as it was about concept.
+      One of the most enduringly popular writers of modern literature, Wells here
+      assured his position as one of the fathers of imaginative literature with his
+      psychologically complex tale of a scientist who renders himself invisible and
+      eventually goes mad because of it. And because it focuses more on people than
+      on technology, it remains a compelling tale even more than a century after it
+      was written. British author HERBERT GEORGE WELLS (1866-1946) is best known for
+      his groundbreaking science fiction novels *The Time Machine* (1895), *The Invisible
+      Man* (1897), and *The War of the Worlds* (1898).'
+  google_id: O3JcNritSSoC
+  id: 753272
+  isbn13: '1605206288'
   language: en
   metadata_sources:
   - google_books
-  pages: 290
-  pub_date: '2018-01-16'
-  publisher: Penguin
-  tags:
-  - fiction
-  title: Frankenstein
+  pages: 118
+  pub_date: '2009-01-01'
+  publisher: Cosimo, Inc.
+  tags: []
+  title: The Invisible Man
 - author_ids:
-  - 771225
-  authors:
-  - Bram Stoker
-  cover_images:
-    google_books:
-      smallThumbnail: http://books.google.com/books/content?id=sCY6EAAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api
-      thumbnail: http://books.google.com/books/content?id=sCY6EAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api
-  description: "<p>Bram Stoker\u2019s gothic horror masterpiece pits good against\
-    \ evil and life against death, all under the thrall of the original vampire....\
-    \ \u201CListen to them\u2014the children of the night. What music they make!\u201D\
-    \ He is a creature of darkness. His face deathly pale, his eyes ablaze with the\
-    \ fires of hell. He has been dead for centuries, yet he may never die. He waits\
-    \ in his crumbling castle in the mountains of Transylvania, as his prey draws\
-    \ closer and closer to destruction.... Here begins one of the most celebrated\
-    \ horror stories in history, the tale of an undead monster who craves the blood\
-    \ of his victims and relishes his dominance over mankind. With its delicious mix\
-    \ of action, suspense, and looming dread, Bram Stoker\u2019s Dracula has terrified\
-    \ and inspired readers for more than a hundred years. With an Introduction by\
-    \ Leonard Wolf and an Afterword by Jeffrey Meyers</p>"
-  descriptions:
-    google_books: "Bram Stoker\u2019s gothic horror masterpiece pits good against\
-      \ evil and life against death, all under the thrall of the original vampire....\
-      \ \u201CListen to them\u2014the children of the night. What music they make!\u201D\
-      \ He is a creature of darkness. His face deathly pale, his eyes ablaze with\
-      \ the fires of hell. He has been dead for centuries, yet he may never die. He\
-      \ waits in his crumbling castle in the mountains of Transylvania, as his prey\
-      \ draws closer and closer to destruction.... Here begins one of the most celebrated\
-      \ horror stories in history, the tale of an undead monster who craves the blood\
-      \ of his victims and relishes his dominance over mankind. With its delicious\
-      \ mix of action, suspense, and looming dread, Bram Stoker\u2019s Dracula has\
-      \ terrified and inspired readers for more than a hundred years. With an Introduction\
-      \ by Leonard Wolf and an Afterword by Jeffrey Meyers"
-  google_id: sCY6EAAAQBAJ
-  id: 832420
-  isbn13: 0593438493
-  language: en
-  metadata_sources:
-  - google_books
-  pages: 417
-  pub_date: '2021-08-24'
-  publisher: Penguin
-  tags:
-  - fiction
-  title: Dracula
-- author_ids:
-  - 837812
+  - 352375
+  author_roles:
+  - 0
   authors:
   - Louisa May Alcott
   cover_images:
-    local: media/audiobooks/Fiction/Louisa May Alcott - [Little Women 02] - Little
-      Men/Little Men-Cover.jpg
-  description: "<p>The beloved March family trilogy\u2014presented in one \u201Csingle,\
-    \ beautifully crafted volume\u201D featuring original illustrations (John Matteson,\
-    \ Pulitzer Prize\u2013winning author) From the incidents of her own remarkable\
-    \ childhood, Louisa May Alcott fashioned a trilogy of novels that catapulted her\
-    \ to fame and fortune and that remain among the most beloved works in all of American\
-    \ literature. Here, in an authoritative single-volume edition restoring Alcott\u2019\
-    s original text as well as her sister May (the original of Amy)\u2019s illustrations,\
-    \ is the complete series. Set in a small New England town during the Civil War\
-    \ and Reconstruction, Little Women introduces Alcott\u2019s remarkable heroines,\
-    \ the March sisters\u2014above all, her alter ego Jo March, with her literary\
-    \ ambition and independent spirit. The follow-up, Little Men, follows Jo into\
-    \ adulthood and marriage as she finds herself the caretaker of a houseful of rambunctious\
-    \ children at Plumfield School. Jo\u2019s Boys returns to Plumfield a decade later;\
-    \ now grown, Jo\u2019s children recount adventures of their own. At once heartwarming\
-    \ and true to life, Alcott\u2019s novels will continue to win over readers both\
-    \ young and old, as they have for generations. LIBRARY OF AMERICA is an independent\
-    \ nonprofit cultural organization founded in 1979 to preserve our nation\u2019\
-    s literary heritage by publishing, and keeping permanently in print, America\u2019\
-    s best and most significant writing. The Library of America series includes more\
-    \ than 300 volumes to date, authoritative editions that average 1,000 pages in\
-    \ length, feature cloth covers, sewn bindings, and ribbon markers, and are printed\
-    \ on premium acid-free paper that will last for centuries.</p>"
+    google_books:
+      smallThumbnail: http://books.google.com/books/content?id=cXrrAj1cP3QC&printsec=frontcover&img=1&zoom=5&source=gbs_api
+      thumbnail: http://books.google.com/books/content?id=cXrrAj1cP3QC&printsec=frontcover&img=1&zoom=1&source=gbs_api
+    local: !Path 'media/audiobooks/Fiction/Louisa May Alcott - [Little Women 01] -
+      Little Women/Cover.jpg'
+  description: <p>Chronicles the joys and sorrows of the four March sisters as they
+    grow into young women in nineteenth-century New England.</p>
   descriptions:
-    google_books: "The beloved March family trilogy\u2014presented in one \u201Csingle,\
-      \ beautifully crafted volume\u201D featuring original illustrations (John Matteson,\
-      \ Pulitzer Prize\u2013winning author) From the incidents of her own remarkable\
-      \ childhood, Louisa May Alcott fashioned a trilogy of novels that catapulted\
-      \ her to fame and fortune and that remain among the most beloved works in all\
-      \ of American literature. Here, in an authoritative single-volume edition restoring\
-      \ Alcott\u2019s original text as well as her sister May (the original of Amy)\u2019\
-      s illustrations, is the complete series. Set in a small New England town during\
-      \ the Civil War and Reconstruction, Little Women introduces Alcott\u2019s remarkable\
-      \ heroines, the March sisters\u2014above all, her alter ego Jo March, with her\
-      \ literary ambition and independent spirit. The follow-up, Little Men, follows\
-      \ Jo into adulthood and marriage as she finds herself the caretaker of a houseful\
-      \ of rambunctious children at Plumfield School. Jo\u2019s Boys returns to Plumfield\
-      \ a decade later; now grown, Jo\u2019s children recount adventures of their\
-      \ own. At once heartwarming and true to life, Alcott\u2019s novels will continue\
-      \ to win over readers both young and old, as they have for generations. LIBRARY\
-      \ OF AMERICA is an independent nonprofit cultural organization founded in 1979\
-      \ to preserve our nation\u2019s literary heritage by publishing, and keeping\
-      \ permanently in print, America\u2019s best and most significant writing. The\
-      \ Library of America series includes more than 300 volumes to date, authoritative\
-      \ editions that average 1,000 pages in length, feature cloth covers, sewn bindings,\
-      \ and ribbon markers, and are printed on premium acid-free paper that will last\
-      \ for centuries."
-  google_id: q9SmFnhNNfYC
-  id: 958312
-  isbn13: '1931082731'
+    google_books: Chronicles the joys and sorrows of the four March sisters as they
+      grow into young women in nineteenth-century New England.
+  google_id: cXrrAj1cP3QC
+  id: 989352
+  isbn13: 0099572966
   language: en
   metadata_sources:
   - google_books
-  pages: 1108
-  pub_date: '2005-02-17'
-  publisher: Library of America
+  pages: 436
+  pub_date: '2012'
+  publisher: Random House
   series_name: Little Women
-  series_number: 2
-  tags:
-  - fiction
-  title: Little Men
+  series_number: 1
+  tags: []
+  title: Little Women
 db_version: 0

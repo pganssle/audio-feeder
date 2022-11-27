@@ -7,14 +7,17 @@ import pathlib
 import shutil
 import typing
 import warnings
+from concurrent import futures
 from datetime import datetime, timezone
 from random import SystemRandom
 
+import attrs
 from PIL import Image
 
 from . import cache_utils
 from . import database_handler as dh
 from . import directory_parser as dp
+from . import file_probe as fp
 from . import metadata_loader as mdl
 from . import object_handler as oh
 from ._db_types import (
@@ -27,6 +30,7 @@ from ._db_types import (
 )
 from ._useful_types import PathType
 from .config import read_from_config
+from .hash_utils import hash_random
 from .html_utils import clean_html
 from .resolver import get_resolver
 
@@ -86,6 +90,7 @@ class BookDatabaseUpdater:
         book_loader: typing.Type[dp.BaseAudioLoader] = dp.AudiobookLoader,
         metadata_loaders: typing.Sequence[mdl.BookLoader] = (mdl.GoogleBooksLoader(),),
         id_handler: typing.Type[IDHandler] = IDHandler,
+        executor: typing.Optional[futures.Executor] = None,
     ):
         self.table = table or self.BOOK_TABLE_NAME
         self.entry_table = entry_table
@@ -94,13 +99,20 @@ class BookDatabaseUpdater:
         self.metadata_loaders = metadata_loaders
         self.id_handler = id_handler
 
+        if executor is not None:
+            self.executor = executor
+        else:
+            self.executor = futures.ThreadPoolExecutor(thread_name_prefix="updater")
+
     def load_book_paths(self) -> typing.Sequence[pathlib.Path]:
         aps = dp.load_all_audio(self.books_location)
         media_loc = read_from_config("media_loc")
 
         return [ap.relative_to(media_loc.path) for ap in aps]
 
-    def update_db_entries(self, database: MutableDatabase) -> MutableDatabase:
+    def update_db_entries(
+        self, database: MutableDatabase, check_hashes: bool = False
+    ) -> MutableDatabase:
         book_paths = self.load_book_paths()
 
         entry_table = typing.cast(
@@ -117,20 +129,67 @@ class BookDatabaseUpdater:
             id_by_path[path] = c_id
 
         # Drop any paths from the table that don't exist anymore
+        media_loc_path: pathlib.Path = read_from_config("media_loc").path
         for path, e_id in id_by_path.items():
-            media_loc_path = read_from_config("media_loc").path
 
             if path is None or not (media_loc_path / path).exists():
                 del entry_table[e_id]
 
-        new_paths = [path for path in book_paths if path not in id_by_path]
-        new_paths = list(set(new_paths))  # Enforce unique paths only
+        new_path_set = set()
+        existing_path_set = set()
+        for path in book_paths:
+            if path in id_by_path:
+                existing_path_set.add(path)
+            else:
+                new_path_set.add(path)
 
         entry_id_handler = self.id_handler(invalid_ids=entry_table.keys())
 
-        for path in new_paths:
-            entry_obj = self.make_new_entry(path, entry_id_handler)
+        new_entries = map(
+            functools.partial(self.make_new_entry, id_handler=entry_id_handler),
+            new_path_set,
+        )
+
+        existing_entries = [
+            (c_entry := entry_table[id_by_path[existing_path]])
+            for existing_path in existing_path_set
+            if check_hashes or not c_entry.file_hashes  # type: ignore[has-type]
+        ]
+
+        logging.info(
+            "Updating with %s new entries and %s existing entries",
+            len(new_path_set),
+            len(existing_path_set),
+        )
+
+        def _update_entry_files(entry):
+            if not entry.files:
+                entry.files = [
+                    file.relative_to(media_loc_path)
+                    for file in self.book_loader.audio_files(
+                        media_loc_path / entry.path
+                    )
+                ]
+
+            return entry
+
+        entries_with_files = self.executor.map(_update_entry_files, existing_entries)
+
+        updated_entries = (
+            entry_obj.updated_metadata(media_loc_path, executor=self.executor)
+            for entry_obj in entries_with_files
+        )
+
+        log_every = min(
+            100, max(10, int((len(new_path_set) + len(existing_entries)) * 0.05))
+        )
+        logging.debug("Updating progress every %d entries.", log_every)
+        for i, entry_obj in enumerate(
+            itertools.chain(new_entries, updated_entries), start=1
+        ):
             entry_table[entry_obj.id] = entry_obj
+            if i % log_every == 0:
+                logging.debug("Updated %s entries.", i)
 
         return database
 
@@ -188,6 +247,12 @@ class BookDatabaseUpdater:
 
         # Go through and try to update metadata.
         for book_id, book_obj in pbar_resolved(book_table.items()):
+            logging.debug(
+                "Updating book info for book_obj %d: %s - %s",
+                book_id,
+                " & ".join(book_obj.authors) if book_obj.authors else None,
+                book_obj.title,
+            )
             for loader in self.metadata_loaders:
                 # Skip anything that's already had metadata loaded for it.
                 if not reload_metadata and (
@@ -400,9 +465,16 @@ class BookDatabaseUpdater:
         # Try to match to an existing book.
         e_id = id_handler.new_id()
 
-        abs_path = os.path.join(read_from_config("media_loc").path, rel_path)
+        media_path: pathlib.Path = read_from_config("media_loc").path
+        abs_path = media_path / rel_path
         lmtime = os.path.getmtime(abs_path)
         last_modified = datetime.fromtimestamp(lmtime, tz=timezone.utc)
+        hashseed = _rand.randint(0, 2**32)
+
+        audio_files = [
+            path.relative_to(media_path)
+            for path in self.book_loader.audio_files(abs_path)
+        ]
 
         entry_obj = oh.Entry(
             id=e_id,
@@ -412,10 +484,11 @@ class BookDatabaseUpdater:
             type="Book",
             table=self.BOOK_TABLE_NAME,
             data_id=None,  # type: ignore
-            hashseed=_rand.randint(0, 2**32),
+            hashseed=hashseed,
+            files=audio_files,
         )
 
-        return entry_obj
+        return entry_obj.updated_metadata(media_path, executor=self.executor)
 
     def load_book(
         self, path: PathType, book_table: Table, id_handler: IDHandler

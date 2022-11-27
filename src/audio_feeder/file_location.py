@@ -96,6 +96,9 @@ class FileLocation:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}('{self._rel_path}')>"
 
+    def __hash__(self) -> int:
+        return hash((self.path, self.url))
+
 
 class InvalidURLError(ValueError):
     pass

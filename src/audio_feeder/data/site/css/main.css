@@ -76,6 +76,25 @@ div.entry_body {
     flex-grow: 1;
 }
 
+div.entry_extra_feeds {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    max-width: 50%;
+}
+
+div.extra_feed {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    margin-right: 10px;
+}
+
+i.extra_feed_qr {
+    margin-right: 5px;
+}
+
 div.cover_col {
     width: 15%;
     padding-top: 20px;

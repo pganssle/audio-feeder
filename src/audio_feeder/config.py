@@ -126,6 +126,7 @@ class Configuration:
     site_images_loc: str = "images/site-images"
     qr_cache_path: str = "images/qr_cache"
     cover_cache_path: str = "images/entry_cover_cache"
+    media_cache_path: str = "media_cache"
     css_loc: str = "css"
 
     # Relative to base

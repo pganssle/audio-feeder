@@ -137,34 +137,10 @@ def install(config_dir, config_name):
     Installs the feeder configuration and populates the initial file structures
     with the default package data.
     """
-    import importlib
     import os
     import warnings
-    from importlib import resources
 
-    from . import config
-
-    def _copy_resource(
-        resource: importlib.abc.Traversable, target_dir: pathlib.Path
-    ) -> None:
-        if resource.is_file():
-            if not target_dir.exists():
-                target_dir.mkdir(parents=True)
-
-            target_loc = target_dir / resource.name
-            target_loc.write_bytes(resource.read_bytes())
-        else:
-            for child in resource.iterdir():
-                if (
-                    child.name.endswith(".py")
-                    or child.name.endswith(".pyc")
-                    or child.name == "__pycache__"
-                ):
-                    continue
-                if child.is_dir():
-                    _copy_resource(child, target_dir / child.name)
-                else:
-                    _copy_resource(child, target_dir)
+    from . import config, resources
 
     # Assign a configuration directory
     if config_dir is None:
@@ -242,10 +218,10 @@ def install(config_dir, config_name):
                 raise
 
     # Copy all package data as appropriate
-    site = resources.files("audio_feeder.data.site")
-    templates = resources.files("audio_feeder.data.templates")
+    site = importlib.resources.files("audio_feeder.data.site")
+    templates = importlib.resources.files("audio_feeder.data.templates")
 
-    _copy_resource(site, pathlib.Path(config_obj["static_media_path"]))
+    resources.copy_resource(site, pathlib.Path(config_obj["static_media_path"]))
 
     # Directories
     pkg_dir_map = {
@@ -258,7 +234,7 @@ def install(config_dir, config_name):
     pkg_dir_map = {config_obj[k]: v for k, v in pkg_dir_map.items()}
 
     for target_loc, resource_loc in pkg_dir_map.items():
-        _copy_resource(templates / resource_loc, pathlib.Path(target_loc))
+        resources.copy_resource(templates / resource_loc, pathlib.Path(target_loc))
 
 
 @cli.group()

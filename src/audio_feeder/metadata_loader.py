@@ -70,8 +70,8 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
             if time_elapsed < self._poll_delay:
                 if raise_on_early_:
                     raise PollDelayIncomplete(remaining_time)
-                else:
-                    time.sleep(remaining_time)
+
+                time.sleep(remaining_time)
 
         old_poll = self._last_poll
         self._last_poll = datetime.datetime.now(datetime.timezone.utc)

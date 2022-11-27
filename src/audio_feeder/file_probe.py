@@ -309,7 +309,6 @@ def get_multipath_chapter_info(
             file_info = FileInfo.from_file(fpath)
 
         format_info = file_info.format_info
-        chapters = file_info.chapters or ()
         if file_info.chapters and not any(
             (format_info.duration is not None) and (c.start_time) > format_info.duration
             for c in file_info.chapters

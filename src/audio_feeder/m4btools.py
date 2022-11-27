@@ -378,11 +378,6 @@ def chapter_split_jobs(
 
             job_pool.append(new_job)
 
-        if chapter.start_time == 0.0:
-            start_time = None
-        else:
-            start_time = chapter.start_time
-
         if abs(chapter.end_time - file_infos[fpath].format_info.duration) < 0.25:
             end_time = None
         else:

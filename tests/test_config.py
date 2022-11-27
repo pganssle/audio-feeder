@@ -26,12 +26,12 @@ def test_config_dirs_no_pwd(default_config_locs: None, tmp_path: pathlib.Path):
 
 def test_extra_kwargs(config_defaults: pathlib.Path) -> None:
     with pytest.raises(TypeError, match="bad_kwargs"):
-        conf = config.Configuration(config_defaults, bad_kwargs="howdy")
+        config.Configuration(config_defaults, bad_kwargs="howdy")
 
 
 def test_config_from_file(tmp_path: pathlib.Path) -> None:
     with pytest.raises(IOError, match=f"{tmp_path}"):
-        conf = config.Configuration.from_file(tmp_path / "config.yml")
+        config.Configuration.from_file(tmp_path / "config.yml")
 
 
 def test_config_to_file(tmp_path: pathlib.Path) -> None:

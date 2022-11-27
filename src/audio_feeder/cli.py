@@ -175,7 +175,9 @@ def install(config_dir, config_name):
                     break
                 except Exception as e:
                     warnings.warn(
-                        "Failed to make directory {}".format(config_dir), RuntimeWarning
+                        f"Failed to make directory {config_dir}; "
+                        + f"failed with error:\n{e}",
+                        RuntimeWarning,
                     )
             else:
                 break
@@ -355,7 +357,6 @@ def update_missing_books(**kwargs):
         missing_db = yaml.safe_load(f)
 
     # Fields we're expecting to find
-    book_data = ["id", "authors", "title"]
     book_id_slots = ["isbn", "isbn13", "google_id", "goodreads_id"]
 
     print("Loading missing book data from {}".format(input_fpath))

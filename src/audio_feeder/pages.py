@@ -199,7 +199,6 @@ def derived_rss_feed(e_id, mode):
     media_loc = resolver.resolve_media_cache(f"{e_id}-{render_mode.lower()}")
     media_path = media_loc.path
 
-    rss_renderer = get_renderer(rss_renderer=True)
     renderer = mr.Renderer(media_path, entry_obj, mode=render_mode)
     renderer.trigger_rendering()
 
@@ -290,7 +289,7 @@ def chapter_data(e_id: int, guid: str) -> Response:
             flask.redirect(request.path)
 
         file_metadata = renderer.read_file_metadata()
-        for file, (file_info, file_guid) in renderer.read_file_metadata().items():
+        for file, (file_info, file_guid) in file_metadata.items():
             if guid == file_guid:
                 break
         else:

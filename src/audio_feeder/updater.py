@@ -367,7 +367,7 @@ class BookDatabaseUpdater:
         def _img_path_exists(img_path):
             return os.path.exists(_img_path(img_path))
 
-        for entry_id, entry_obj in entry_table.items():
+        for entry_obj in entry_table.values():
             # Check if the entry cover path exists.
             thumb_loc = os.path.join(
                 cover_cache_path, "{}-thumb.png".format(entry_obj.id)
@@ -412,7 +412,7 @@ class BookDatabaseUpdater:
 
                     cover_images = data_obj.cover_images[loader.source_name]
                     assert isinstance(cover_images, typing.Mapping)
-                    r, img_url, desc = loader.retrieve_best_image(cover_images)
+                    r, _img_url, desc = loader.retrieve_best_image(cover_images)
 
                     if r is None:
                         continue
@@ -719,8 +719,6 @@ class BookDatabaseUpdater:
                 "Cannot parse author name: {}".format(author_name), RuntimeWarning
             )
 
-        prenoms = None
-        surname = None
         modifiers = None
 
         if len(comma_split) == 2:
@@ -738,7 +736,6 @@ class BookDatabaseUpdater:
         # the surname. This is probably fine in almost all cases.
         split_name = base_name.split(" ")
         if len(split_name) == 1:
-            prenom = split_name[0]
             author_sort_name = split_name[0]
         else:
             author_sort_name = ", ".join((split_name[-1], " ".join(split_name[:-1])))

@@ -193,7 +193,6 @@ def load_feed_items(
     file_metadata: typing.MutableMapping[
         FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
     ] = {}
-    file_locs: typing.Sequence[FileLocation] = []
     for file in audio_files:
         fname = file.relative_to(audio_dir.path)
 

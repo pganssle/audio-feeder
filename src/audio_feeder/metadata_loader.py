@@ -335,7 +335,7 @@ class GoogleBooksLoader(BookLoader):
         **identifiers: typing.Optional[str],
     ) -> typing.Mapping[str, typing.Any]:
         if extra_identifiers := identifiers.keys() - self.valid_identifiers:
-            raise TypeError(f"Unknown identifiers: {','.join(identifiers)}")
+            raise TypeError(f"Unknown identifiers: {','.join(extra_identifiers)}")
 
         if (google_id := identifiers.pop("google_id", None)) is not None:
             r_json = self.retrieve_volume(google_id)

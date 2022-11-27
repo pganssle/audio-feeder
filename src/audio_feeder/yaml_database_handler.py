@@ -129,7 +129,7 @@ class YamlDatabaseHandler:
         # Try and do this as a pseudo-atomic operation
         tables_saved = []
         try:
-            for table_name, type_name in oh.TABLE_MAPPING.items():
+            for table_name in oh.TABLE_MAPPING.keys():
                 self.save_table(table_name, database[table_name])
                 tables_saved.append(table_name)
         except Exception as e:
@@ -147,8 +147,7 @@ class YamlDatabaseHandler:
 
         tables: MutableDatabase = {}
 
-        for table_name, type_name in oh.TABLE_MAPPING.items():
-            table_type = oh.TYPE_MAPPING[type_name]
+        for table_name in oh.TABLE_MAPPING.keys():
             table_loc = self._get_table_loc(table_name)
             if not table_loc.exists():
                 tables[table_name] = {}

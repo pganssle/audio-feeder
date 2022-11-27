@@ -1,10 +1,8 @@
 import datetime
 import logging
 import pathlib
-import subprocess
 import typing
 
-import attrs
 import pytest
 
 from audio_feeder import file_probe

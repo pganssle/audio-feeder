@@ -130,12 +130,14 @@ class AudiobookLoader(BaseAudioLoader):
         :return:
             Returns boolean value whether or not it's an audiobook.
         """
-        if os.path.isdir(dirloc):
-            for fpath in os.listdir(dirloc):
-                fbase, fext = os.path.splitext(fpath)
+        if not isinstance(dirloc, pathlib.Path):
+            dirloc = pathlib.Path(dirloc)
 
-                if fext.lower() in cls.AUDIO_EXTENSIONS:
-                    return True
+        if dirloc.is_dir():
+            return any(
+                fpath.suffix.lower() in cls.AUDIO_EXTENSIONS
+                for fpath in dirloc.iterdir()
+            )
 
         return False
 
@@ -152,7 +154,7 @@ class AudiobookLoader(BaseAudioLoader):
         """
         o = []
         for fname in os.listdir(dir_loc):
-            fname_base, fname_ext = os.path.splitext(fname)
+            _, fname_ext = os.path.splitext(fname)
 
             if fname_ext in cls.AUDIO_EXTENSIONS:
                 o.append(os.path.join(dir_loc, fname))
@@ -191,7 +193,7 @@ class AudiobookLoader(BaseAudioLoader):
         if not len(candidates):
             return None
 
-        mn, el, cover_loc = min(candidates)
+        _, _, cover_loc = min(candidates)
 
         return pathlib.Path(cover_loc)
 
@@ -217,7 +219,7 @@ class AudiobookLoader(BaseAudioLoader):
         """
         Try to parse audiobook information the directory name.
         """
-        base_path, dir_name = os.path.split(dir_path)
+        dir_name = os.path.basename(dir_path)
 
         m = cls.DIR_NAME_RE.match(dir_name)
         if m is None:

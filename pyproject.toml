@@ -52,6 +52,7 @@ package-data = { audio_feeder=["data/**/*"] }
 [tool.setuptools.dynamic]
 version = {attr = "audio_feeder.__version__.VERSION"}
 
+## Isort
 [tool.isort]
 atomic=true
 force_grid_wrap=0
@@ -73,6 +74,7 @@ known_third_party=[
 multi_line_output=3
 use_parentheses=true
 
+## Coverage
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]
 
@@ -80,10 +82,10 @@ source = ["src", ".tox/*/site-packages"]
 show_missing = true
 skip_covered = true
 
+## Mypy
 [tool.mypy]
 exclude = ["data/"]
 show_error_codes = true
-enable_recursive_aliases = true
 
 [[tool.mypy.overrides]]
 module = "qrcode.*"
@@ -101,5 +103,23 @@ ignore_missing_imports = true
 module = "werkzeug.*"
 ignore_missing_imports = true
 
+
+## Pytest
 [tool.pytest.ini_options]
 log_level="DEBUG"
+
+
+## Pylint
+[tool.pylint.'MESSAGES CONTROL']
+disable="all"
+enable="""
+    unused-import,
+    unused-variable,
+    unpacking-non-sequence,
+    invalid-all-object,
+    used-before-assignment,
+    no-else-raise,
+    bad-format-character,
+    bad-format-string,
+    bare-except,
+"""

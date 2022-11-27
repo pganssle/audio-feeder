@@ -1,18 +1,14 @@
 import contextlib
 import enum
 import importlib.resources
-import logging
 import os
 import pathlib
 import shutil
-import subprocess
-import tempfile
 import typing
 
 import pytest
 
-import audio_feeder.config
-from audio_feeder import cache_utils, file_probe
+from audio_feeder import cache_utils
 
 from . import utils
 
@@ -45,8 +41,6 @@ def copy_data_structure(dest: pathlib.Path):
 @pytest.fixture(scope="session", autouse=True)
 def config_defaults(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     config_dir = tmp_path_factory.mktemp("config")
-    templates_loc = config_dir / "templates"
-    static_loc = config_dir / "static"
     (config_dir / "database").mkdir()
 
     copy_data_structure(config_dir)

@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
 import functools
-import html
 import itertools as it
 import logging
 import os
@@ -14,12 +13,13 @@ import flask
 from flask import Blueprint, Response, request
 from jinja2 import Template
 
+from audio_feeder import _object_types as ot
 from audio_feeder import database_handler as dh
 from audio_feeder import media_renderer as mr
 from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
 from audio_feeder import rss_feeds as rf
-from audio_feeder.config import init_config, read_from_config
+from audio_feeder.config import read_from_config
 from audio_feeder.file_location import FileLocation
 from audio_feeder.resolver import get_resolver
 
@@ -130,7 +130,7 @@ def books():
     return t.render(page_data)
 
 
-def _render_rss_feed(entry_obj: oh.Entry, data_obj: oh.SchemaObject, feed_items) -> str:
+def _render_rss_feed(entry_obj: oh.Entry, data_obj: ot.SchemaObject, feed_items) -> str:
     # Render the main "feed-wide" portions of this
     renderer = get_renderer(rss_renderer=True)
     rendered_page = renderer.render(entry_obj, data_obj)
@@ -199,7 +199,6 @@ def derived_rss_feed(e_id, mode):
     media_loc = resolver.resolve_media_cache(f"{e_id}-{render_mode.lower()}")
     media_path = media_loc.path
 
-    rss_renderer = get_renderer(rss_renderer=True)
     renderer = mr.Renderer(media_path, entry_obj, mode=render_mode)
     renderer.trigger_rendering()
 
@@ -290,7 +289,7 @@ def chapter_data(e_id: int, guid: str) -> Response:
             flask.redirect(request.path)
 
         file_metadata = renderer.read_file_metadata()
-        for file, (file_info, file_guid) in renderer.read_file_metadata().items():
+        for file, (file_info, file_guid) in file_metadata.items():
             if guid == file_guid:
                 break
         else:
@@ -470,8 +469,8 @@ def get_sortable_args(args):
 
     if order_by is not None and order_by not in sort_options:
         logging.error(
-            "Order by option {} invalid, ".format(order_by)
-            + "must be one of: {}".format(",".join(sort_options))
+            f"Order by option {order_by} invalid, "
+            + f"must be one of: {','.join(sort_options)}"
         )
         order_by = None
 
@@ -495,9 +494,7 @@ def get_sortable_args(args):
             per_page_arg = args.get("perPage")
             per_page = int(per_page_arg)
         except ValueError:
-            logging.error(
-                "Number per page {} ".format(perPage) + "must be convertable to int."
-            )
+            logging.error("Number per page %s must be convertable to int.", perPage)
 
     per_page = per_page or per_page_dflt
 

@@ -1,6 +1,5 @@
 import os
 import pathlib
-import typing
 
 import pytest
 
@@ -27,12 +26,12 @@ def test_config_dirs_no_pwd(default_config_locs: None, tmp_path: pathlib.Path):
 
 def test_extra_kwargs(config_defaults: pathlib.Path) -> None:
     with pytest.raises(TypeError, match="bad_kwargs"):
-        conf = config.Configuration(config_defaults, bad_kwargs="howdy")
+        config.Configuration(config_defaults, bad_kwargs="howdy")
 
 
 def test_config_from_file(tmp_path: pathlib.Path) -> None:
     with pytest.raises(IOError, match=f"{tmp_path}"):
-        conf = config.Configuration.from_file(tmp_path / "config.yml")
+        config.Configuration.from_file(tmp_path / "config.yml")
 
 
 def test_config_to_file(tmp_path: pathlib.Path) -> None:
@@ -58,3 +57,12 @@ def test_config_url_no_port(tmp_path: pathlib.Path) -> None:
 
     assert conf.base_url == "https://mydomain.pizza"
     assert conf.static_media_url == "https://mydomain.pizza/static"
+
+
+def test_config_bad_replacement(tmp_path: pathlib.Path) -> None:
+    config_loc = tmp_path / "config.yml"
+    with pytest.raises(ValueError, match="BADLOC"):
+        config.Configuration(
+            config_loc,
+            database_loc=config.TemplatePath("{{BADLOC}}", "database/db.sqlite"),
+        )

@@ -77,7 +77,7 @@ def test_load_empty_sql_database(tmp_path: pathlib.Path) -> None:
     handler = sdh.SqlDatabaseHandler(db)
 
     db_tables = handler.load_database()
-    for table_name, table in db_tables.items():
+    for table_name, table in db_tables.items():  # pylint: disable=unused-variable
         assert len(table) == 0
 
 

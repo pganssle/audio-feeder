@@ -11,7 +11,6 @@ import pathlib
 import re
 import typing
 import warnings
-from collections import OrderedDict
 from itertools import product
 from pathlib import Path
 
@@ -315,7 +314,7 @@ class Configuration:
                 out = out.replace(to_replace, replacement_value)
 
             if (m := re.search("{{([A-Z_]+)}}", out)) is not None:
-                raise ValueError(f"Unknown replacement string: {{f.groups()[0]}}")
+                raise ValueError(f"Unknown replacement string: {m.groups()[0]}")
 
             return out
         else:
@@ -354,7 +353,7 @@ def init_config(
 
             # Make sure we can write to this directory
             if not os.access(os.path.split(config_loc)[0], os.W_OK):
-                msg = "Cannot write to {}".format(config_loc)
+                msg = f"Cannot write to {config_loc}"
                 raise ConfigWritePermissionsError(msg)
         config_location = pathlib.Path(config_loc)
     else:
@@ -377,7 +376,7 @@ def init_config(
         if falling_back:
             msg = (
                 "Could not find config file from environment variable:"
-                + " {},".format(os.environ["AUDIO_RSS_CONFIG"])
+                + f" {os.environ['AUDIO_RSS_CONFIG']},"
             )
             if config_location is not None:
                 msg += f", using {config_location} instead."
@@ -403,7 +402,7 @@ def init_config(
         new_conf = Configuration(config_location, **kwargs)
 
         if config_location is not None:
-            logging.info("Creating configuration file at {}".format(config_location))
+            logging.info("Creating configuration file at %s", config_location)
 
             new_conf.to_file(config_location)
     return new_conf

@@ -3,7 +3,6 @@ Book handlers
 """
 
 import datetime
-import functools
 import types
 import typing
 from concurrent import futures
@@ -15,7 +14,7 @@ import attrs
 from . import hash_utils
 from ._compat import Self
 from ._db_types import ID, TableName
-from ._object_types import SchemaObject, SchemaType, TypeName
+from ._object_types import SchemaType, TypeName
 from .file_probe import FileInfo
 
 

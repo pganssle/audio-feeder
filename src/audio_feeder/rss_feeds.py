@@ -5,21 +5,19 @@ import datetime
 import functools
 import json
 import os
-import pathlib
 import re
 import typing
-import urllib.parse
 from concurrent import futures
 from datetime import timedelta
 from urllib.parse import urljoin
 from xml.sax import saxutils
 
+from . import _object_types as ot
 from . import database_handler as dh
 from . import directory_parser as dp
 from . import file_probe as fp
 from . import object_handler as oh
 from ._db_types import TableName
-from .config import read_from_config
 from .file_location import FileLocation
 from .hash_utils import hash_random
 from .resolver import Resolver
@@ -69,7 +67,7 @@ def format_datetime(dt: datetime.datetime) -> str:
     return dt.strftime("%a, %d %b %Y %H:%M:%S %z")
 
 
-def _get_description(data_obj: oh.SchemaObject, metadata: fp.FileInfo):
+def _get_description(data_obj: ot.SchemaObject, metadata: fp.FileInfo):
     chapter_descs = []
     if metadata.chapters:
         for chapter in metadata.chapters:
@@ -96,7 +94,7 @@ def _get_description(data_obj: oh.SchemaObject, metadata: fp.FileInfo):
 
 def feed_items_from_metadata(
     entry_obj: oh.Entry,
-    data_obj: oh.SchemaObject,
+    data_obj: ot.SchemaObject,
     audio_dir: FileLocation,
     file_metadata: typing.Mapping[
         FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
@@ -177,7 +175,7 @@ def load_feed_items(
     assert audio_dir.path is not None
     assert media_path is not None
     if not audio_dir.path.exists():
-        raise ItemNotFoundError("Could not find item: {}".format(audio_dir))
+        raise ItemNotFoundError(f"Could not find item: {audio_dir}")
 
     table = entry_obj.table
     assert table is not None
@@ -195,7 +193,6 @@ def load_feed_items(
     file_metadata: typing.MutableMapping[
         FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
     ] = {}
-    file_locs: typing.Sequence[FileLocation] = []
     for file in audio_files:
         fname = file.relative_to(audio_dir.path)
 

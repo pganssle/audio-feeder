@@ -40,7 +40,6 @@ def brute_force_minimization(
     arr: typing.Sequence[segmenter.Scorable],
     cost_func: segmenter.CostFunc = segmenter.asymmetric_cost(3600),
 ) -> typing.Tuple[typing.Sequence[typing.Sequence[segmenter.Scorable]], float]:
-    min_cost: typing.Optional[float] = None
     segmentation_scorer = make_segmentation_scorer(cost_func)
 
     best_segmentation = min(map(list, all_segmentations(arr)), key=segmentation_scorer)
@@ -99,8 +98,8 @@ def test_algo(
 )
 def test_algo_comparison(chapters: typing.Sequence[int]) -> None:
     cost_func = segmenter.asymmetric_cost(3600.0)
-    bf_results, bf_score = brute_force_minimization(chapters, cost_func=cost_func)
-    dp_results, dp_score = segment_with_score(chapters, cost_func=cost_func)
+    _bf_results, bf_score = brute_force_minimization(chapters, cost_func=cost_func)
+    _dp_results, dp_score = segment_with_score(chapters, cost_func=cost_func)
 
     # We only assert that the scores are the same, because there are some
     # cases where more than one solution minimizes the score, e.g.

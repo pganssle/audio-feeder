@@ -11,26 +11,16 @@ from concurrent import futures
 from datetime import datetime, timezone
 from random import SystemRandom
 
-import attrs
 from PIL import Image
 
 from . import cache_utils
 from . import database_handler as dh
 from . import directory_parser as dp
-from . import file_probe as fp
 from . import metadata_loader as mdl
 from . import object_handler as oh
-from ._db_types import (
-    ID,
-    Database,
-    MutableDatabase,
-    MutableTable,
-    Table,
-    TableName,
-)
+from ._db_types import ID, MutableDatabase, Table, TableName
 from ._useful_types import PathType
 from .config import read_from_config
-from .hash_utils import hash_random
 from .html_utils import clean_html
 from .resolver import get_resolver
 
@@ -124,7 +114,7 @@ class BookDatabaseUpdater:
         for c_id, entry in entry_table.items():
             path = entry.path
             if path in id_by_path:
-                raise DuplicateEntryError("Path duplicate found: {}".format(path))
+                raise DuplicateEntryError(f"Path duplicate found: {path}")
 
             id_by_path[path] = c_id
 
@@ -377,11 +367,9 @@ class BookDatabaseUpdater:
         def _img_path_exists(img_path):
             return os.path.exists(_img_path(img_path))
 
-        for entry_id, entry_obj in entry_table.items():
+        for entry_obj in entry_table.values():
             # Check if the entry cover path exists.
-            thumb_loc = os.path.join(
-                cover_cache_path, "{}-thumb.png".format(entry_obj.id)
-            )
+            thumb_loc = os.path.join(cover_cache_path, f"{entry_obj.id}-thumb.png")
 
             regenerate_thumb = not _img_path_exists(thumb_loc)
 
@@ -422,7 +410,7 @@ class BookDatabaseUpdater:
 
                     cover_images = data_obj.cover_images[loader.source_name]
                     assert isinstance(cover_images, typing.Mapping)
-                    r, img_url, desc = loader.retrieve_best_image(cover_images)
+                    r, _img_url, desc = loader.retrieve_best_image(cover_images)
 
                     if r is None:
                         continue
@@ -553,7 +541,7 @@ class BookDatabaseUpdater:
                 if key_id in books_by_key_cache:
                     msg = (
                         "Book table has duplicate author-title combination:"
-                        + " {}".format(key_id)
+                        + f" {key_id}"
                     )
                     raise DuplicateEntryError(msg)
 
@@ -725,12 +713,8 @@ class BookDatabaseUpdater:
         comma_split = author_name.split(",")
 
         def bad_name_warning():
-            warnings.warn(
-                "Cannot parse author name: {}".format(author_name), RuntimeWarning
-            )
+            warnings.warn(f"Cannot parse author name: {author_name}", RuntimeWarning)
 
-        prenoms = None
-        surname = None
         modifiers = None
 
         if len(comma_split) == 2:
@@ -748,7 +732,6 @@ class BookDatabaseUpdater:
         # the surname. This is probably fine in almost all cases.
         split_name = base_name.split(" ")
         if len(split_name) == 1:
-            prenom = split_name[0]
             author_sort_name = split_name[0]
         else:
             author_sort_name = ", ".join((split_name[-1], " ".join(split_name[:-1])))
@@ -852,7 +835,8 @@ def _pbar_stub(iterator_: typing.Iterable[_T]) -> typing.Iterable[_T]:
 def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
     img = Image.open(img_loc)
     w, h = img.size
-    w_m, h_m = read_from_config("thumb_max")
+    # Not sure why pylint thinks this is not a sequence
+    w_m, h_m = read_from_config("thumb_max")  # pylint: disable=unpacking-non-sequence
 
     # Unspecified widths and heights are unlimited
     w_m = w_m or w

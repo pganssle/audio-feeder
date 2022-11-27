@@ -1,7 +1,6 @@
 """Tools to split or create chaptered m4b files."""
 import copy
 import functools
-import io
 import logging
 import math
 import operator
@@ -14,20 +13,14 @@ from concurrent import futures
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Iterable,
     Mapping,
     MutableMapping,
     MutableSequence,
     Optional,
     Sequence,
-    Tuple,
-    TypedDict,
-    Union,
 )
 
 import attrs
-import lxml
 
 from . import file_probe, segmenter
 from .file_probe import ChapterInfo
@@ -384,11 +377,6 @@ def chapter_split_jobs(
             )
 
             job_pool.append(new_job)
-
-        if chapter.start_time == 0.0:
-            start_time = None
-        else:
-            start_time = chapter.start_time
 
         if abs(chapter.end_time - file_infos[fpath].format_info.duration) < 0.25:
             end_time = None

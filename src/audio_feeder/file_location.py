@@ -36,13 +36,12 @@ class FileLocation:
             file system.
         """
         if os.path.isabs(rel_path):
-            raise InvalidRelativePathError("Path must be relative: {}".format(rel_path))
+            raise InvalidRelativePathError(f"Path must be relative: {rel_path}")
 
         protocol_match = self.PROTOCOL_SPLIT_RE.match(url_base)
         if protocol_match is None:
             raise InvalidURLError(
-                "URL must be of the form protocol://<url>"
-                + ", got: {}".format(url_base)
+                f"URL must be of the form protocol://<url>, got: {url_base}"
             )
 
         self._rel_path = pathlib.Path(rel_path)

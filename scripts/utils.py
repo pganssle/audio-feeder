@@ -12,3 +12,5 @@ sys.path.append(os.fspath(TESTS_LOC))
 from utils import copy_with_unzip, make_file  # type: ignore[import]
 
 sys.path.pop(sys.path.index(os.fspath(TESTS_LOC)))
+
+__all__ = ("copy_with_unzip", "make_file")

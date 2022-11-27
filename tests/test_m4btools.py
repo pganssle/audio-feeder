@@ -3,7 +3,6 @@ import logging
 import os
 import pathlib
 import subprocess
-import tempfile
 import typing
 from concurrent import futures
 from unittest import mock

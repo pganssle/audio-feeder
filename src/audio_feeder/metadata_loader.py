@@ -11,7 +11,6 @@ import logging
 import os
 import time
 import typing
-from collections import OrderedDict
 
 import attrs
 import requests
@@ -71,8 +70,8 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
             if time_elapsed < self._poll_delay:
                 if raise_on_early_:
                     raise PollDelayIncomplete(remaining_time)
-                else:
-                    time.sleep(remaining_time)
+
+                time.sleep(remaining_time)
 
         old_poll = self._last_poll
         self._last_poll = datetime.datetime.now(datetime.timezone.utc)
@@ -336,7 +335,7 @@ class GoogleBooksLoader(BookLoader):
         **identifiers: typing.Optional[str],
     ) -> typing.Mapping[str, typing.Any]:
         if extra_identifiers := identifiers.keys() - self.valid_identifiers:
-            raise TypeError(f"Unknown identifiers: {','.join(identifiers)}")
+            raise TypeError(f"Unknown identifiers: {','.join(extra_identifiers)}")
 
         if (google_id := identifiers.pop("google_id", None)) is not None:
             r_json = self.retrieve_volume(google_id)

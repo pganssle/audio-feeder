@@ -6,7 +6,6 @@ import json
 import logging
 import os
 import pathlib
-import sqlite3
 import typing
 from collections import abc
 
@@ -14,6 +13,7 @@ import attrs
 import sqlalchemy as sa
 from sqlalchemy import orm
 
+from . import _object_types as ot
 from . import file_probe as fp
 from . import object_handler as oh
 from ._db_types import ID, Database, Table, TableName
@@ -255,7 +255,7 @@ class SqlDatabaseHandler:
     def session(self) -> orm.Session:
         return orm.Session(self.engine, expire_on_commit=False)
 
-    def _load_table(self, session: orm.Session, table_type: oh.SchemaType) -> Table:
+    def _load_table(self, session: orm.Session, table_type: ot.SchemaType) -> Table:
         query = session.query(table_type)
         return {ID(result.id): result for result in query.all()}
 

@@ -86,7 +86,6 @@ skip_covered = true
 [tool.mypy]
 exclude = ["data/"]
 show_error_codes = true
-enable_recursive_aliases = true
 
 [[tool.mypy.overrides]]
 module = "qrcode.*"

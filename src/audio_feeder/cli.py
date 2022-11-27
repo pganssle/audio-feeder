@@ -171,21 +171,13 @@ def install(config_dir, config_name):
     config_obj.to_file(config_loc)
 
     # Create the directories that need to exist, if they don't already
-    make_dir_entries = (
-        "templates_base_loc",
-        "entry_templates_loc",
-        "pages_templates_loc",
-        "rss_templates_loc",
-        "rss_entry_templates_loc",
-        "static_media_path",
-    )  # Absolute paths
+    make_dir_entries = ("static_media_path",)  # Absolute paths
 
     make_dir_directories = [config_obj[x] for x in make_dir_entries]
     static_paths = [
         os.path.join(config_obj.static_media_path, config_obj[x])
         for x in (
             "site_images_loc",
-            "css_loc",
             "cover_cache_path",
             "qr_cache_path",
             "media_cache_path",
@@ -218,23 +210,9 @@ def install(config_dir, config_name):
                 raise
 
     # Copy all package data as appropriate
-    site = importlib.resources.files("audio_feeder.data.site")
-    templates = importlib.resources.files("audio_feeder.data.templates")
-
-    resources.copy_resource(site, pathlib.Path(config_obj["static_media_path"]))
-
-    # Directories
-    pkg_dir_map = {
-        "entry_templates_loc": "entry_types",
-        "pages_templates_loc": "pages",
-        "rss_templates_loc": "rss",
-        "rss_entry_templates_loc": "entry_types",
-    }
-
-    pkg_dir_map = {config_obj[k]: v for k, v in pkg_dir_map.items()}
-
-    for target_loc, resource_loc in pkg_dir_map.items():
-        resources.copy_resource(templates / resource_loc, pathlib.Path(target_loc))
+    resources.update_resource(
+        "audio_feeder.data.site", pathlib.Path(config_obj["static_media_path"])
+    )
 
 
 @cli.group()

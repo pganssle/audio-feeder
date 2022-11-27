@@ -88,3 +88,13 @@ def test_update_resource_changed_size(tmp_path: Path, resource, subtests) -> Non
         with subtests.test(f"{target_path}: after modification"):
             assert target_path.exists()
             assert target_path.read_bytes() == originals[target_path]
+
+
+def test_get_resource(tmp_path: Path) -> None:
+    resources.copy_resource("audio_feeder.data.templates.pages", tmp_path)
+    list_contents = (tmp_path / "list.tpl").read_text()
+
+    assert (
+        resources.get_text_resource("audio_feeder.data.templates.pages", "list.tpl")
+        == list_contents
+    )

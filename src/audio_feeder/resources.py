@@ -4,7 +4,7 @@ import importlib.resources
 import os
 from importlib.abc import Traversable
 from pathlib import Path
-from typing import Callable, Optional, Protocol, Union
+from typing import Callable, Iterable, Optional, Protocol, Union
 
 
 class _Comparable(Protocol):
@@ -96,3 +96,14 @@ def update_resource(resource: Union[str, Traversable], target_dir: Path) -> None
     """
     resource = _resolve_resource(resource)
     _copy_resource(resource, target_dir, copy_if=_copy_if_hash_mismatch)
+
+
+def get_text_resource(package: str, resource: str) -> str:
+    """Retrieve the text of a given text resource."""
+    return importlib.resources.read_text(package, resource)
+
+
+def get_children(resource: Union[str, Traversable]) -> Iterable[Traversable]:
+    """Retrieve a list of resources nested under the specified `resource`."""
+    resource = _resolve_resource(resource)
+    yield from resource.iterdir()

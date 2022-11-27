@@ -11,16 +11,14 @@ import typing
 from concurrent import futures
 from datetime import datetime, timezone
 
+from . import _object_types as ot
 from . import database_handler as dh
 from . import directory_parser as dp
 from . import file_probe as fp
 from . import hash_utils, m4btools
 from . import object_handler as oh
-from . import rss_feeds as rf
 from ._compat import StrEnum
-from ._db_types import ID, TableName
-from .config import read_from_config
-from .file_location import FileLocation
+from ._db_types import TableName
 from .resolver import get_resolver
 
 ACTIVE_JOBS: typing.Set[pathlib.Path] = set()
@@ -49,11 +47,11 @@ class Renderer:
         self.media_path: typing.Final[pathlib.Path] = media_path
         self.entry: typing.Final[oh.Entry] = entry
         self.mode: typing.Final[RenderModes] = mode
-        self.data_obj: typing.Final[oh.SchemaObject] = self._get_data_obj()
+        self.data_obj: typing.Final[ot.SchemaObject] = self._get_data_obj()
         self._loader = loader
         self._executor = executor
 
-    def _get_data_obj(self) -> oh.SchemaObject:
+    def _get_data_obj(self) -> ot.SchemaObject:
         if self.entry.table is None:
             raise ValueError(f"Invalid entry, must have table set: {self.entry}")
         data_table = dh.get_database_table(TableName(self.entry.table))

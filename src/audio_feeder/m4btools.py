@@ -1,7 +1,6 @@
 """Tools to split or create chaptered m4b files."""
 import copy
 import functools
-import io
 import logging
 import math
 import operator
@@ -14,20 +13,14 @@ from concurrent import futures
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Iterable,
     Mapping,
     MutableMapping,
     MutableSequence,
     Optional,
     Sequence,
-    Tuple,
-    TypedDict,
-    Union,
 )
 
 import attrs
-import lxml
 
 from . import file_probe, segmenter
 from .file_probe import ChapterInfo

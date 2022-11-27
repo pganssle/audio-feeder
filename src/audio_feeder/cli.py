@@ -99,7 +99,6 @@ def update(content_type, reload_metadata, path):
 
     The path at PATH will be recursively searched for data.
     """
-    import os
     import typing
 
     from progressbar import ETA, Bar, ProgressBar, Timer
@@ -140,7 +139,6 @@ def install(config_dir, config_name):
     """
     import importlib
     import os
-    import shutil
     import warnings
     from importlib import resources
 

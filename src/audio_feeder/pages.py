@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
 import functools
-import html
 import itertools as it
 import logging
 import os
@@ -14,12 +13,13 @@ import flask
 from flask import Blueprint, Response, request
 from jinja2 import Template
 
+from audio_feeder import _object_types as ot
 from audio_feeder import database_handler as dh
 from audio_feeder import media_renderer as mr
 from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
 from audio_feeder import rss_feeds as rf
-from audio_feeder.config import init_config, read_from_config
+from audio_feeder.config import read_from_config
 from audio_feeder.file_location import FileLocation
 from audio_feeder.resolver import get_resolver
 
@@ -130,7 +130,7 @@ def books():
     return t.render(page_data)
 
 
-def _render_rss_feed(entry_obj: oh.Entry, data_obj: oh.SchemaObject, feed_items) -> str:
+def _render_rss_feed(entry_obj: oh.Entry, data_obj: ot.SchemaObject, feed_items) -> str:
     # Render the main "feed-wide" portions of this
     renderer = get_renderer(rss_renderer=True)
     rendered_page = renderer.render(entry_obj, data_obj)

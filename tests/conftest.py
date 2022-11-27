@@ -1,18 +1,14 @@
 import contextlib
 import enum
 import importlib.resources
-import logging
 import os
 import pathlib
 import shutil
-import subprocess
-import tempfile
 import typing
 
 import pytest
 
-import audio_feeder.config
-from audio_feeder import cache_utils, file_probe
+from audio_feeder import cache_utils
 
 from . import utils
 

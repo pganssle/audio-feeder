@@ -11,7 +11,6 @@ import pathlib
 import re
 import typing
 import warnings
-from collections import OrderedDict
 from itertools import product
 from pathlib import Path
 

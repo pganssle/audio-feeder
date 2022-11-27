@@ -1,18 +1,10 @@
 import functools
-import os
 import pathlib
 import typing
 
+from . import _object_types as ot
 from . import cache_utils
-from . import object_handler as oh
-from ._db_types import (
-    ID,
-    Database,
-    DatabaseHandler,
-    MutableDatabase,
-    Table,
-    TableName,
-)
+from ._db_types import Database, DatabaseHandler, Table, TableName
 from ._useful_types import PathType
 from .config import read_from_config
 
@@ -100,7 +92,7 @@ def get_database_table(
 
 def get_data_obj(
     entry_obj, database: typing.Optional[Database] = None
-) -> oh.SchemaObject:
+) -> ot.SchemaObject:
     """
     Given an :class:`object_handler.Entry` object, return the corresponding data
     object, loaded from the appropriate table.

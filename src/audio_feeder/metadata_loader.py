@@ -11,7 +11,6 @@ import logging
 import os
 import time
 import typing
-from collections import OrderedDict
 
 import attrs
 import requests

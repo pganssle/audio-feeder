@@ -1,20 +1,16 @@
 """
 Page generator
 """
-import glob
 import math
 import os
 import string
-import warnings
 from urllib.parse import urljoin
 
 from jinja2 import Template
 
-from .config import get_configuration, read_from_config
+from .config import read_from_config
 from .html_utils import TagStripper
 from .media_renderer import RenderModes
-from .object_handler import Book as BaseBook
-from .object_handler import Entry as BaseEntry
 
 WORD_CHARS = set(string.ascii_letters + string.digits)
 

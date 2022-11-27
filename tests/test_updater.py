@@ -5,8 +5,6 @@ import pathlib
 import typing
 from unittest import mock
 
-import pytest
-
 from audio_feeder import metadata_loader as mdl
 from audio_feeder import updater
 

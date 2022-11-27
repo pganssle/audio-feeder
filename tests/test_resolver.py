@@ -1,6 +1,4 @@
 #! /usr/bin/env python3
-import pytest
-
 from audio_feeder import resolver as afr
 
 

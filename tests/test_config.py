@@ -1,6 +1,5 @@
 import os
 import pathlib
-import typing
 
 import pytest
 

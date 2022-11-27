@@ -20,7 +20,7 @@ def cli():
 def version():
     from . import __version__
 
-    print("audio_feeder version: %s" % __version__.VERSION)
+    print(f"audio_feeder version: {__version__.VERSION}")
 
 
 @cli.command()
@@ -296,7 +296,7 @@ def load(overwrite, output):
     from . import database_handler as dh
 
     if os.path.exists(output) and not overwrite:
-        click.confirm("Do you want to overwrite {}?".format(output), abort=True)
+        click.confirm(f"Do you want to overwrite {output}?", abort=True)
 
     print("Loading database")
     books_table = dh.get_database_table("books")
@@ -333,7 +333,7 @@ def load(overwrite, output):
         books_out, key=lambda x: x[book_data.index("authors")]["authors"][0]
     )
 
-    print("Writing output to {}".format(output))
+    print(f"Writing output to {output}")
     with open(output, "w") as f:
         yaml.dump(books_out, stream=f, default_flow_style=False)
 
@@ -359,7 +359,7 @@ def update_missing_books(**kwargs):
     # Fields we're expecting to find
     book_id_slots = ["isbn", "isbn13", "google_id", "goodreads_id"]
 
-    print("Loading missing book data from {}".format(input_fpath))
+    print(f"Loading missing book data from {input_fpath}")
     books_in = {}
     for book_in in missing_db:
         # These are a list of dictionaries, for human readability reasons.

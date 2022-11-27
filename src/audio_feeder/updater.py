@@ -114,7 +114,7 @@ class BookDatabaseUpdater:
         for c_id, entry in entry_table.items():
             path = entry.path
             if path in id_by_path:
-                raise DuplicateEntryError("Path duplicate found: {}".format(path))
+                raise DuplicateEntryError(f"Path duplicate found: {path}")
 
             id_by_path[path] = c_id
 
@@ -369,9 +369,7 @@ class BookDatabaseUpdater:
 
         for entry_obj in entry_table.values():
             # Check if the entry cover path exists.
-            thumb_loc = os.path.join(
-                cover_cache_path, "{}-thumb.png".format(entry_obj.id)
-            )
+            thumb_loc = os.path.join(cover_cache_path, f"{entry_obj.id}-thumb.png")
 
             regenerate_thumb = not _img_path_exists(thumb_loc)
 
@@ -543,7 +541,7 @@ class BookDatabaseUpdater:
                 if key_id in books_by_key_cache:
                     msg = (
                         "Book table has duplicate author-title combination:"
-                        + " {}".format(key_id)
+                        + f" {key_id}"
                     )
                     raise DuplicateEntryError(msg)
 
@@ -715,9 +713,7 @@ class BookDatabaseUpdater:
         comma_split = author_name.split(",")
 
         def bad_name_warning():
-            warnings.warn(
-                "Cannot parse author name: {}".format(author_name), RuntimeWarning
-            )
+            warnings.warn(f"Cannot parse author name: {author_name}", RuntimeWarning)
 
         modifiers = None
 

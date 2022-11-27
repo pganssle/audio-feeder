@@ -469,8 +469,8 @@ def get_sortable_args(args):
 
     if order_by is not None and order_by not in sort_options:
         logging.error(
-            "Order by option {} invalid, ".format(order_by)
-            + "must be one of: {}".format(",".join(sort_options))
+            f"Order by option {order_by} invalid, "
+            + f"must be one of: {','.join(sort_options)}"
         )
         order_by = None
 
@@ -494,9 +494,7 @@ def get_sortable_args(args):
             per_page_arg = args.get("perPage")
             per_page = int(per_page_arg)
         except ValueError:
-            logging.error(
-                "Number per page {} ".format(perPage) + "must be convertable to int."
-            )
+            logging.error("Number per page %s must be convertable to int.", perPage)
 
     per_page = per_page or per_page_dflt
 

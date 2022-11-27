@@ -175,7 +175,7 @@ def load_feed_items(
     assert audio_dir.path is not None
     assert media_path is not None
     if not audio_dir.path.exists():
-        raise ItemNotFoundError("Could not find item: {}".format(audio_dir))
+        raise ItemNotFoundError(f"Could not find item: {audio_dir}")
 
     table = entry_obj.table
     assert table is not None

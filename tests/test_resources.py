@@ -1,5 +1,6 @@
 import importlib.resources
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -98,3 +99,36 @@ def test_get_resource(tmp_path: Path) -> None:
         resources.get_text_resource("audio_feeder.data.templates.pages", "list.tpl")
         == list_contents
     )
+
+
+@pytest.mark.parametrize(
+    "resource",
+    [
+        "audio_feeder.data.css",
+        "audio_feeder.data.site",
+        pytest.param(
+            "audio_feeder.data.site.fonts",
+            marks=pytest.mark.xfail(
+                sys.version_info < (3, 10), reason="No __init__.py"
+            ),
+        ),
+        "audio_feeder.data.templates",
+        "audio_feeder.data.templates.entry_types",
+        "audio_feeder.data.templates.entry_types.Book",
+        "audio_feeder.data.templates.entry_types",
+        "audio_feeder.data.templates.pages",
+        "audio_feeder.data.templates.rss",
+        "audio_feeder.data.templates.rss.entry_types",
+        "audio_feeder.data.templates.rss.entry_types.Book",
+    ],
+)
+def test_resource_exists(resource: str, tmp_path: Path) -> None:
+    resources.copy_resource(resource, tmp_path)
+    assert list(tmp_path.iterdir())  # At least one resource copied.
+
+
+def test_site_images_exists(tmp_path: Path) -> None:
+    # Because this doesn't have a normal name, we need to check it separately.
+    resources.copy_resource("audio_feeder.data.site", tmp_path)
+    assert (tmp_path / "site-images").exists()
+    assert list((tmp_path / "site-images").iterdir())

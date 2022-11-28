@@ -1,1 +1,0 @@
-- Version information is now stored in the git tag metadata (though hard-coded versions will be written to a file in all build artifacts).

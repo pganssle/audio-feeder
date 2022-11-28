@@ -1,1 +1,0 @@
-- Adds a new ``/version`` endpoint, which displays the current version of ``audio-feeder`` that is running.

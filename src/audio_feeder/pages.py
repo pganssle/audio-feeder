@@ -25,6 +25,7 @@ from audio_feeder.file_location import FileLocation
 from audio_feeder.resolver import get_resolver
 
 from . import cache_utils, updater
+from .__version__ import VERSION as _VERSION
 from ._db_types import ID, TableName
 
 root = Blueprint("root", __name__)
@@ -368,6 +369,11 @@ def update():
             background_thread = threading.Thread(target=updater.update, daemon=True)
             background_thread.start()
         return flask.redirect(flask.url_for("root.update_status"))
+
+
+@root.route("/version")
+def version() -> str:
+    return _VERSION
 
 
 ###

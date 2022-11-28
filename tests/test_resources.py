@@ -1,6 +1,5 @@
 import importlib.resources
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -106,12 +105,7 @@ def test_get_resource(tmp_path: Path) -> None:
     [
         "audio_feeder.data.css",
         "audio_feeder.data.site",
-        pytest.param(
-            "audio_feeder.data.site.fonts",
-            marks=pytest.mark.xfail(
-                sys.version_info < (3, 10), reason="No __init__.py"
-            ),
-        ),
+        "audio_feeder.data.site.fonts",
         "audio_feeder.data.templates",
         "audio_feeder.data.templates.entry_types",
         "audio_feeder.data.templates.entry_types.Book",

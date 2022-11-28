@@ -361,12 +361,33 @@ def update_status():
     )
 
 
+def _evaluate_bool_param(param: str) -> bool:
+    return param.lower() == "true"
+
+
 @root.route("/update")
 def update():
+
     with UPDATE_LOCK:
         if not updater.UPDATE_IN_PROGRESS:
+            reload_metadata: bool = request.args.get(
+                "reloadMetadata", type=_evaluate_bool_param, default=False
+            )
+            check_hashes: bool = request.args.get(
+                "checkHashes", type=_evaluate_bool_param, default=False
+            )
+
+            if reload_metadata or check_hashes:
+                update_func = functools.partial(
+                    updater.update,
+                    reload_metadata=reload_metadata,
+                    check_hashes=check_hashes,
+                )
+            else:
+                update_func = updater.update
+
             updater.UPDATE_IN_PROGRESS = True
-            background_thread = threading.Thread(target=updater.update, daemon=True)
+            background_thread = threading.Thread(target=update_func, daemon=True)
             background_thread.start()
         return flask.redirect(flask.url_for("root.update_status"))
 

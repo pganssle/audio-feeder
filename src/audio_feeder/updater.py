@@ -768,7 +768,10 @@ def _clear_update_output() -> None:
 
 
 def _update_books(
-    update_path: str, progress_bar: typing.Optional[_PBar] = None
+    update_path: str,
+    progress_bar: typing.Optional[_PBar] = None,
+    reload_metadata: bool = False,
+    check_hashes: bool = False,
 ) -> None:
     """
     Trigger an update to the database.
@@ -782,10 +785,19 @@ def _update_books(
 
     OpFunction = typing.Callable[[typing.Any], typing.Any]
     ops: typing.Sequence[typing.Tuple[OpFunction, str]] = [
-        (book_updater.update_db_entries, "Updating database entries."),
+        (
+            functools.partial(
+                book_updater.update_db_entries, check_hashes=check_hashes
+            ),
+            "Updating database entries.",
+        ),
         (book_updater.assign_books_to_entries, "Assigning books to entries"),
         (
-            functools.partial(book_updater.update_book_metadata, pbar=progress_bar),
+            functools.partial(
+                book_updater.update_book_metadata,
+                reload_metadata=reload_metadata,
+                pbar=progress_bar,
+            ),
             "Updating book metadata",
         ),
         (book_updater.update_author_db, "Updating author db"),
@@ -815,13 +827,20 @@ def update(
     content_type: typing.Optional[str] = None,
     path: typing.Optional[str] = None,
     progress_bar: typing.Optional[_PBar] = None,
+    reload_metadata: bool = False,
+    check_hashes: bool = False,
 ) -> None:
 
     if path is None:
         path = "."
 
     if content_type is None or content_type == "books":
-        _update_books(update_path=path, progress_bar=progress_bar)
+        _update_books(
+            update_path=path,
+            progress_bar=progress_bar,
+            reload_metadata=reload_metadata,
+            check_hashes=check_hashes,
+        )
     else:
         raise ValueError(f"Unknown content type: {content_type}")
 

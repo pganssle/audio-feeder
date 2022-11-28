@@ -1,3 +1,12 @@
+Version 0.6.1
+=============
+
+- Fixed an issue on Python 3.9 where the app would crash because ``audio_feeder.data.site.fonts`` did not have an ``__init__.py``.
+
+- Version information is now stored in the git tag metadata (though hard-coded versions will be written to a file in all build artifacts).
+
+- Adds a new ``/version`` endpoint, which displays the current version of ``audio-feeder`` that is running.
+
 Version 0.6.0
 =============
 
@@ -20,4 +29,3 @@ Version 0.6.0
 - "Updating database" status now cleared if the database update fails.
 
 - Updated books pagination to consistently use a zero-based index.
-

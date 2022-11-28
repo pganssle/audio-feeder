@@ -20,7 +20,7 @@ def cli():
 def version():
     from . import __version__
 
-    print(f"audio_feeder version: {__version__.VERSION}")
+    print(f"audio_feeder version: {__version__}")
 
 
 @cli.command()

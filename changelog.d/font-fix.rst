@@ -1,0 +1,1 @@
+- Fixed an issue on Python 3.9 where the app would crash because ``audio_feeder.data.site.fonts`` did not have an ``__init__.py``.

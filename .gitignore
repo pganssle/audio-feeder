@@ -10,6 +10,8 @@ dist/
 *.pyo
 .tox
 
+src/audio_feeder/_version.py
+
 venv/
 
 # Detritus from profling

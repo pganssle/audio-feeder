@@ -2,6 +2,7 @@
 requires = [
   "setuptools >= 40.9.0",
   "wheel",
+  "versioningit",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -50,8 +51,9 @@ packages = {find = {where = ["src"]}}
 package-data = { audio_feeder=["data/**/*"] }
 license-files = ["LICENSE"]
 
-[tool.setuptools.dynamic]
-version = {attr = "audio_feeder.__version__.VERSION"}
+[tool.versioningit]
+vcs={method = "git", default-tag = "0.0.0"}
+write={file="src/audio_feeder/_version.py"}
 
 ## Isort
 [tool.isort]

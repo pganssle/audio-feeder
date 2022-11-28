@@ -24,8 +24,8 @@ from audio_feeder.config import read_from_config
 from audio_feeder.file_location import FileLocation
 from audio_feeder.resolver import get_resolver
 
+from . import __version__ as _VERSION
 from . import cache_utils, updater
-from .__version__ import VERSION as _VERSION
 from ._db_types import ID, TableName
 
 root = Blueprint("root", __name__)

@@ -91,8 +91,13 @@ def run(host, port, config, profile):
     is_flag=True,
     help="Passed if metadata from all sources should be reloaded if present.",
 )
+@click.option(
+    "--check-hashes",
+    is_flag=True,
+    help="Passed if the updater should re-check hashes existing in the database",
+)
 @click.argument("path", metavar="PATH", type=str, required=True)
-def update(content_type, reload_metadata, path):
+def update(content_type, reload_metadata, check_hashes, path):
     """
     Add a specific path to the databases, loading all content and updating the
     database where necessary.
@@ -114,6 +119,8 @@ def update(content_type, reload_metadata, path):
         content_type=content_type,
         path=path,
         progress_bar=pbar("Loading book metadata:"),
+        reload_metadata=reload_metadata,
+        check_hashes=check_hashes,
     )
 
 

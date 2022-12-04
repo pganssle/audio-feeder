@@ -730,3 +730,129 @@ def test_segmenter_split_single_file(
             assert actual_chapter.end_time == pytest.approx(
                 expected_chapter.end_time, abs=0.25
             )
+
+
+@pytest.mark.parametrize("base_name", ("John Jones's Dollar", r"John Jones\' Dollar"))
+def test_segmenter_weird_names(tmp_path: pathlib.Path, base_name: str) -> None:
+    format_info_base = file_probe.FormatInfo(
+        format_name="mp3",
+        format_long_name="MP2/3 (MPEG audio layer 2/3)",
+        start_time=0.0,
+        tags={
+            "title": "John Jones's Dollar",
+            "artist": "Harry Stephen Keeler",
+        },
+    )
+
+    file_infos = [
+        file_probe.FileInfo(
+            format_info=attrs.evolve(
+                format_info_base,
+                filename=f"{base_name}-Part00.mp3",
+                duration=60.0,
+            ),
+            chapters=[
+                file_probe.ChapterInfo(
+                    num=0,
+                    title="Chapter 01",
+                    start_time=0.0,
+                    end_time=60.0,
+                )
+            ],
+        ),
+        file_probe.FileInfo(
+            format_info=attrs.evolve(
+                format_info_base,
+                filename=f"{base_name}-Part01.mp3",
+                duration=75.0,
+            ),
+            chapters=[
+                file_probe.ChapterInfo(
+                    num=1,
+                    title="Chapter 02",
+                    start_time=0.0,
+                    end_time=60.0,
+                ),
+                file_probe.ChapterInfo(
+                    num=2,
+                    title="Chapter 03",
+                    start_time=60.0,
+                    end_time=75.0,
+                ),
+            ],
+        ),
+        file_probe.FileInfo(
+            format_info=attrs.evolve(
+                format_info_base,
+                filename=f"{base_name}-Part02.mp3",
+                duration=105.0,
+            ),
+            chapters=[
+                file_probe.ChapterInfo(
+                    num=3,
+                    title="Chapter 04",
+                    start_time=0.0,
+                    end_time=45.0,
+                ),
+                file_probe.ChapterInfo(
+                    num=4, title="Chapter 05", start_time=45.0, end_time=105.0
+                ),
+            ],
+        ),
+        file_probe.FileInfo(
+            format_info=attrs.evolve(
+                format_info_base,
+                filename=f"{base_name}-Part03.mp3",
+                duration=120.0,
+            ),
+            chapters=[
+                file_probe.ChapterInfo(
+                    num=5,
+                    title="Chapter 06",
+                    start_time=0.0,
+                    end_time=60.0,
+                ),
+                file_probe.ChapterInfo(
+                    num=6, title="Chapter 07", start_time=60.0, end_time=120.0
+                ),
+            ],
+        ),
+    ]
+
+    in_path = tmp_path / "in_path"
+    in_path.mkdir()
+
+    out_path = tmp_path / "out_path"
+    out_path.mkdir()
+
+    for fi in file_infos:
+        utils.make_file(fi, in_path / fi.format_info.filename)
+
+    loader = dp.AudiobookLoader()
+    files = loader.audio_files(in_path)
+    jobs = m4btools.segment_files_jobs(
+        files, out_path, cost_func=segmenter.asymmetric_cost(60.0)
+    )
+
+    m4btools.render_jobs(jobs)
+
+    file_infos = [file_probe.FileInfo.from_file(p) for p in sorted(out_path.iterdir())]
+
+    expected_chapter_titles = [
+        ("Chapter 01",),
+        ("Chapter 02",),
+        (
+            "Chapter 03",
+            "Chapter 04",
+        ),
+        ("Chapter 05",),
+        ("Chapter 06",),
+        ("Chapter 07",),
+    ]
+
+    assert len(file_infos) == len(expected_chapter_titles)
+    for file_info, expected_chapters in zip(file_infos, expected_chapter_titles):
+        assert file_info.format_info.duration == pytest.approx(60.0, abs=0.5)
+        assert file_info.chapters and len(file_info.chapters) == len(expected_chapters)
+        for chapter, expected_title in zip(file_info.chapters, expected_chapters):
+            assert chapter.title == expected_title

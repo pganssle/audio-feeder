@@ -448,12 +448,19 @@ def segment_files_jobs(
     job_queue: MutableSequence[RenderJob] = []
     padding_format = _zero_padding_format(len(segmented))
 
+    def _get_original_duration(segment: SegmentableFiles) -> float:
+        # Need to pull it out of file_infos because we change the duration
+        # of the FileInfo in SegmentableFiles so that it can be more
+        # easily merged.
+        duration = file_infos[segment.fpath].format_info.duration
+        assert duration is not None
+        return duration
+
     ext = files[0].suffix
     for i, segment in enumerate(segmented):
         out_file = out_path / f"Part{format(i, padding_format)}{ext}"
         if len(segment) == 1:
-            duration = segment[0].file_info.format_info.duration
-            assert duration is not None
+            duration = _get_original_duration(segment[0])
             chapter = segment[0].chapter
             if duration > chapter.duration:
                 subset = FileSubset(
@@ -473,8 +480,7 @@ def segment_files_jobs(
 
             subsets: MutableSequence[FileSubset] = []
             for element in segment:
-                duration = element.file_info.format_info.duration
-                assert duration is not None
+                duration = _get_original_duration(element)
                 if abs(element.chapter.end_time - duration) < 0.25:
                     end_time = None
                 else:

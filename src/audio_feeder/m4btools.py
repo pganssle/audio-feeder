@@ -123,7 +123,7 @@ def _merge_file_infos(
 
 def _to_file_list_entry(p: Path, s: Optional[float] = None, e: Optional[float] = None):
     pathstr = os.fspath(p)
-    pathstr = pathstr.replace("'", r"\'")
+    pathstr = pathstr.replace("'", r"'\''")
     o = f"file '{pathstr}'\n"
     if s is not None:
         o += f"inpoint {s:0.3f}\n"

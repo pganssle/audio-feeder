@@ -1,3 +1,10 @@
+Version 0.6.2
+=============
+
+- Fixed an issue where some feeds would fail to merge files with an apostrophe in their paths.
+
+- Fixed an issue where chapters taken from the beginning of a file accidentally cause the entire file to be merged into a segment.
+
 Version 0.6.1
 =============
 

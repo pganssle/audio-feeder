@@ -930,9 +930,6 @@ def m4bs_with_cover(
     yield file1, file2
 
 
-@pytest.mark.xfail(
-    raises=IOError, reason="Video channel causes ffmpeg concatenation to fail"
-)
 @pytest.mark.parametrize(
     "job_maker, output_filename",
     [

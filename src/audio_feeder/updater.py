@@ -140,11 +140,14 @@ class BookDatabaseUpdater:
             new_path_set,
         )
 
-        existing_entries = [
-            (c_entry := entry_table[id_by_path[existing_path]])
+        entries = (
+            entry_table[id_by_path[existing_path]]
             for existing_path in existing_path_set
-            if check_hashes or not c_entry.file_hashes  # type: ignore[has-type]
-        ]
+        )
+        if not check_hashes:
+            entries = (x for x in entries if not x.file_hashes)
+
+        existing_entries = list(entries)
 
         logging.info(
             "Updating with %s new entries and %s existing entries",

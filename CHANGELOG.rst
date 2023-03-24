@@ -1,3 +1,18 @@
+Version 0.6.3
+=============
+
+- Pinned SQLAlchemy version to <2.0.
+
+- Fixed some typing issues on newer versions of SQLAlchemy.
+
+- Fixed an error where files would faily to concatenate if they have cover art (the cover art will now be dropped instead) (See GH-#43)
+
+- Fixed an error rendering "single file" versions (See GH-#46)
+
+- Fixed an issue where changes to the database that update existing entries in some cases would fail. (See GH-#49)
+
+- Fixed an error in the updater caused by the scoping of assignment expressions. (See GH-#44)
+
 Version 0.6.2
 =============
 

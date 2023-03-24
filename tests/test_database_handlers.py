@@ -182,9 +182,6 @@ def test_update_database_mutate(db_handler: _db_types.DatabaseHandler) -> None:
     assert author_table[author_id].description == "The first author in the table"
 
 
-@pytest.mark.xfail(
-    reason="Error in delete operation causes violation of UNIQUE constraint"
-)
 def test_update_database_replace(db_handler: _db_types.DatabaseHandler) -> None:
     db_tables = db_handler.load_database()
 

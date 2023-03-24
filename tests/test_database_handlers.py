@@ -5,6 +5,7 @@ import shutil
 import sqlite3
 import typing
 
+import attrs
 import pytest
 
 from audio_feeder import _db_types
@@ -148,6 +149,7 @@ def test_save_table(db_handler: _db_types.DatabaseHandler) -> None:
 
 
 def test_save_database_remove(db_handler: _db_types.DatabaseHandler) -> None:
+    """Test removing a key from the database."""
     db_tables = db_handler.load_database()
 
     book_ids = [book_id for book_id in db_tables["books"].keys()]
@@ -165,6 +167,39 @@ def test_save_database_remove(db_handler: _db_types.DatabaseHandler) -> None:
 
     for book_id in book_ids[3:]:
         assert book_id in books_table
+
+
+def test_update_database_mutate(db_handler: _db_types.DatabaseHandler) -> None:
+    db_tables = db_handler.load_database()
+
+    author_id, author = next(iter(db_tables["authors"].items()))
+    assert author.description is None
+    author.description = "The first author in the table"
+
+    db_handler.save_table("authors", db_tables["authors"])
+
+    author_table = db_handler.load_table("authors")
+    assert author_table[author_id].description == "The first author in the table"
+
+
+def test_update_database_replace(db_handler: _db_types.DatabaseHandler) -> None:
+    db_tables = db_handler.load_database()
+
+    ((book_id, book),) = filter(
+        lambda x: x[1].title == "Dracula", db_tables["books"].items()
+    )
+
+    book_kwargs = attrs.asdict(book)
+    book_kwargs["series_name"] = "Dracula"
+    book_kwargs["series_number"] = 1
+    replacement_book = oh.Book(**book_kwargs)
+    db_tables["books"][book_id] = replacement_book
+
+    db_handler.save_table("books", db_tables["books"])
+
+    books_table = db_handler.load_table("books")
+    assert books_table[book_id].series_name == "Dracula"
+    assert books_table[book_id].series_number == 1
 
 
 @pytest.mark.parametrize(

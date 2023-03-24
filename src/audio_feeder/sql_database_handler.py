@@ -300,21 +300,45 @@ class SqlDatabaseHandler:
     ) -> None:
         table_type = oh.TYPE_MAPPING[oh.TABLE_MAPPING[table_name]]
 
+        # Delete anything not in `table_contents`
         stmt = sa.delete(table_type).where(
             sa.column("id").not_in(table_contents.keys())
         )
         session.execute(stmt)
 
-        try:
-            session.add_all(list(table_contents.values()))
-        except orm.exc.UnmappedInstanceError:
-            # If the instances were created before the ORM mapping was set up,
-            # instrumentation won't be set up on the instances, so we need to
-            # create new copies of the instances (at least until we find a
-            # better way to do this.
-            session.add_all(
-                [table_entry.copy() for table_entry in table_contents.values()]
+        # Find all the objects that have been modified, either by mutating them
+        # in-place, replacing them with a new schema object or because they
+        # are new to the table.
+        to_update: typing.MutableMapping[ID, ot.SchemaObject] = {}
+        to_replace: typing.MutableMapping[ID, ot.SchemaObject] = {}
+
+        for key, obj in table_contents.items():
+            insp = sa.inspect(obj)
+            if insp.modified:
+                if insp.has_identity:
+                    # These objects already exist in the table
+                    to_update[key] = obj
+                else:
+                    # These are either new or are using a new instance
+                    to_replace[key] = obj
+
+        if to_replace:
+            # Delete all rows where the object in the table dictionary is using
+            # a new instance.
+            replace_stmt = sa.delete(table_type).where(
+                sa.column("id").in_(to_replace.keys())
             )
+            session.execute(replace_stmt)
+
+        for to_add in (to_replace, to_update):
+            try:
+                session.add_all(to_add.values())
+            except orm.exc.UnmappedInstanceError:
+                # If the instances were created before the ORM mapping was set
+                # up, instrumentation won't be set up on the instances, so we
+                # need to create new copies of the instances (at least until we
+                # find a better way to do this.
+                session.add_all([table_entry.copy() for table_entry in to_add.values()])
 
     def save_table(self, table_name: TableName, table_contents: Table) -> None:
         with self.session() as session:

@@ -367,7 +367,6 @@ def _evaluate_bool_param(param: str) -> bool:
 
 @root.route("/update")
 def update():
-
     with UPDATE_LOCK:
         if not updater.UPDATE_IN_PROGRESS:
             reload_metadata: bool = request.args.get(

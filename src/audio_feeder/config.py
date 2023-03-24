@@ -325,7 +325,6 @@ class Configuration:
             return value
 
     def _make_replacements(self) -> None:
-
         replacements = self._replacements
         for field in attrs.fields(self.__class__):
             attrib = getattr(self, field.name)

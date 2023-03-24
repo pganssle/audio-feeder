@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import shutil
 import threading
 import typing
@@ -107,6 +108,14 @@ class Renderer:
             with JOB_LOCK:
                 ACTIVE_JOBS.remove(self.media_path)
 
+    def _to_filename(self, title: str) -> str:
+        """Post-process a title to give a relatively easier to handle filename.
+
+        This is not strictly necessary to do, but seems prudent to be a little
+        less likely to cause stuff to break on some random device.
+        """
+        return re.sub("[^a-zA-Z0-9]", "-", title).lower()
+
     def trigger_rendering(self) -> None:
         if self.media_path in ACTIVE_JOBS or self.is_render_complete():
             return
@@ -138,7 +147,12 @@ class Renderer:
                 files = self._loader.audio_files(self.entry.path)
 
             if self.mode == RenderModes.SINGLE_FILE:
-                jobs = m4btools.single_file_chaptered_jobs(files, self.media_path)
+                out_filename = (
+                    self._to_filename(getattr(self.data_obj, "title", "book")) + ".m4b"
+                )
+                jobs = m4btools.single_file_chaptered_jobs(
+                    files, self.media_path / out_filename
+                )
             elif self.mode == RenderModes.CHAPTERS:
                 if (item_title := getattr(self.data_obj, "title", None)) is not None:
                     base_name = item_title + "-"

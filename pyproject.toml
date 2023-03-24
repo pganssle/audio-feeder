@@ -109,8 +109,8 @@ ignore_missing_imports = true
 
 ## Pytest
 [tool.pytest.ini_options]
-log_level="DEBUG"
-
+log_level = "DEBUG"
+xfail_strict = true
 
 ## Pylint
 [tool.pylint.'MESSAGES CONTROL']

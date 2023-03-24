@@ -8,6 +8,7 @@ from concurrent import futures
 from unittest import mock
 
 import attrs
+import PIL
 import pytest
 
 from audio_feeder import directory_parser as dp
@@ -856,3 +857,108 @@ def test_segmenter_weird_names(tmp_path: pathlib.Path, base_name: str) -> None:
         assert file_info.chapters and len(file_info.chapters) == len(expected_chapters)
         for chapter, expected_title in zip(file_info.chapters, expected_chapters):
             assert chapter.title == expected_title
+
+
+@pytest.fixture(scope="session", autouse=False)
+def m4bs_with_cover(
+    tmp_path_factory,
+) -> typing.Iterator[typing.Tuple[pathlib.Path, pathlib.Path]]:
+    """Fixture for use with tests of m4bs with covers."""
+    # At the moment this is only used for one parameterized test, but we'll
+    # keep it as a session-scoped fixture so that we only have to create these
+    # files once.
+
+    format_info_base = file_probe.FormatInfo(
+        format_name="mov,mp4,m4a,3gp,3g2,mj2",
+        format_long_name="QuickTime / MOV",
+        start_time=0.0,
+        tags={
+            "title": "Generic Book",
+            "artist": "Author Q. Authorson",
+        },
+    )
+
+    file_info_1 = file_probe.FileInfo(
+        format_info=attrs.evolve(
+            format_info_base,
+            filename="Book-Part00.m4b",
+            duration=23.5,
+        ),
+        chapters=[
+            file_probe.ChapterInfo(
+                num=0,
+                title="Chapter 00",
+                start_time=0.0,
+                end_time=23.5,
+            ),
+        ],
+    )
+    file_info_2 = file_probe.FileInfo(
+        format_info=attrs.evolve(
+            format_info_base, filename="Book-Part01.m4b", duration=65.0
+        ),
+        chapters=[
+            file_probe.ChapterInfo(
+                num=1,
+                title="Chapter 01",
+                start_time=10.5,
+                end_time=45.0,
+            ),
+            file_probe.ChapterInfo(
+                num=2,
+                title="Chapter 02",
+                start_time=0.0,
+                end_time=65.0,
+            ),
+        ],
+    )
+
+    tmp_path = tmp_path_factory.mktemp("m4b_with_cover")
+    in_path = tmp_path / "input"
+    in_path.mkdir()
+
+    cover_image_data = PIL.Image.new(mode="RGB", size=(200, 200), color=(153, 153, 255))
+    cover_image = in_path / "cover.jpg"
+    cover_image_data.save(cover_image)
+
+    file1 = in_path / file_info_1.format_info.filename
+    file2 = in_path / file_info_2.format_info.filename
+
+    utils.make_file_with_cover(file_info_1, file1, cover_art=cover_image)
+    utils.make_file_with_cover(file_info_2, file2, cover_art=cover_image)
+
+    yield file1, file2
+
+
+@pytest.mark.parametrize(
+    "job_maker, output_filename",
+    [
+        (m4btools.segment_files_jobs, None),
+        (m4btools.single_file_chaptered_jobs, "output.m4b"),
+        (m4btools.chapter_split_jobs, None),
+    ],
+)
+def test_merge_covers(
+    job_maker: typing.Callable[
+        [typing.Sequence[pathlib.Path], pathlib.Path],
+        typing.Sequence[m4btools.RenderJob],
+    ],
+    output_filename: typing.Optional[str],
+    m4bs_with_cover: typing.Tuple[pathlib.Path, pathlib.Path],
+    tmp_path: pathlib.Path,
+) -> None:
+    file1, file2 = m4bs_with_cover
+    if output_filename is None:
+        out_path = tmp_path
+    else:
+        out_path = tmp_path / output_filename
+
+    jobs = job_maker([file1, file2], out_path)
+
+    assert len(jobs) >= 1
+    expected_outputs = [job.out_path for job in jobs]
+
+    m4btools.render_jobs(jobs)
+
+    for expected_output in expected_outputs:
+        assert expected_output.exists()

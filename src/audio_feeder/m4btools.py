@@ -230,8 +230,10 @@ def _merge_subsets(
             "0",
             "-c:a",
             audio_codec,
-            "-c:v",
-            "copy",
+            "-map",
+            "-v?",
+            "-map",
+            "-V?",
             os.fspath(out_path),
         ]
 
@@ -299,8 +301,12 @@ def _extract_subset(
         "1",
         "-map_metadata",
         "0",
-        "-c",
+        "-c:a",
         "copy",
+        "-map",
+        "-v?",
+        "-map",
+        "-V?",
         os.fspath(out_path),
     ]
 

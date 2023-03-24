@@ -121,7 +121,6 @@ class BookDatabaseUpdater:
         # Drop any paths from the table that don't exist anymore
         media_loc_path: pathlib.Path = read_from_config("media_loc").path
         for path, e_id in id_by_path.items():
-
             if path is None or not (media_loc_path / path).exists():
                 del entry_table[e_id]
 
@@ -522,7 +521,6 @@ class BookDatabaseUpdater:
         if bt_id not in books_by_key or len(books_by_key[bt_id]) < len(
             book_table.items()
         ):
-
             if bt_id in books_by_key:
                 books_by_key_cache = books_by_key[bt_id]
                 cached_book_id_set = cached_book_ids[bt_id]
@@ -833,7 +831,6 @@ def update(
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:
-
     if path is None:
         path = "."
 
@@ -882,7 +879,6 @@ def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
 
 
 def _get_img_ext(fobj: typing.BinaryIO) -> str:
-
     img = Image.open(fobj)
     img_type = img.format
     ext_map = {

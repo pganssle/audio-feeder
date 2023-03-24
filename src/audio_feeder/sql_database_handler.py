@@ -104,7 +104,6 @@ class _PathCollection(_CustomJsonType):
 
 class _CoverImages(_CustomJsonType):
     def process_result_value(self, value: str, dialect):
-
         json_obj = self._load_json(value)
 
         if json_obj is None:
@@ -123,7 +122,6 @@ class _CoverImages(_CustomJsonType):
 
 class _FileMetadata(_CustomJsonType):
     def process_result_value(self, value: str, dialect):
-
         json_obj = self._load_json(value)
         if json_obj is None:
             return None

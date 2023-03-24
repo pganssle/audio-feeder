@@ -9,6 +9,7 @@ from ._compat import Self
 
 ID = typing.NewType("ID", int)
 
+
 # TODO: When attrs > 22.1 is released, this should be an AttrsInstance
 # pragma: nocover
 class SchemaObject(typing.Protocol):

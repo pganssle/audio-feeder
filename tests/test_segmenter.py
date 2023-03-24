@@ -50,7 +50,6 @@ def brute_force_minimization(
 def segment_with_score(
     arr: typing.Sequence[segmenter.Scorable], cost_func: segmenter.CostFunc
 ) -> typing.Tuple[typing.Sequence[typing.Sequence[segmenter.Scorable]], float]:
-
     sequence = segmenter.segment(arr, cost_func)
     scorer = make_segmentation_scorer(cost_func)
     return sequence, scorer(sequence)

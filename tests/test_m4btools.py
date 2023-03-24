@@ -8,6 +8,7 @@ from concurrent import futures
 from unittest import mock
 
 import attrs
+import PIL
 import pytest
 
 from audio_feeder import directory_parser as dp
@@ -856,3 +857,72 @@ def test_segmenter_weird_names(tmp_path: pathlib.Path, base_name: str) -> None:
         assert file_info.chapters and len(file_info.chapters) == len(expected_chapters)
         for chapter, expected_title in zip(file_info.chapters, expected_chapters):
             assert chapter.title == expected_title
+
+
+@pytest.mark.xfail(
+    raises=IOError,
+    reason="Cannot concatenate with covers.",
+)
+def test_merge_covers(tmp_path: pathlib.Path):
+    format_info_base = file_probe.FormatInfo(
+        format_name="mov,mp4,m4a,3gp,3g2,mj2",
+        format_long_name="QuickTime / MOV",
+        start_time=0.0,
+        tags={
+            "title": "Generic Book",
+            "artist": "Author Q. Authorson",
+        },
+    )
+
+    file_info_1 = file_probe.FileInfo(
+        format_info=attrs.evolve(
+            format_info_base,
+            filename="Book-Part00.m4b",
+            duration=23.5,
+        ),
+        chapters=[
+            file_probe.ChapterInfo(
+                num=0,
+                title="Chapter 00",
+                start_time=0.0,
+                end_time=23.5,
+            ),
+        ],
+    )
+    file_info_2 = file_probe.FileInfo(
+        format_info=attrs.evolve(
+            format_info_base, filename="Book-Part01.m4b", duration=45.0
+        ),
+        chapters=[
+            file_probe.ChapterInfo(
+                num=1,
+                title="Chapter 01",
+                start_time=0.0,
+                end_time=45.0,
+            ),
+        ],
+    )
+
+    in_path = tmp_path / "input"
+    in_path.mkdir()
+
+    cover_image_data = PIL.Image.new(mode="RGB", size=(200, 200), color=(153, 153, 255))
+    cover_image = in_path / "cover.jpg"
+    cover_image_data.save(cover_image)
+
+    file1 = in_path / file_info_1.format_info.filename
+    file2 = in_path / file_info_2.format_info.filename
+
+    utils.make_file_with_cover(file_info_1, file1, cover_art=cover_image)
+    utils.make_file_with_cover(file_info_2, file2, cover_art=cover_image)
+
+    out_path = tmp_path / "output"
+    out_path.mkdir()
+
+    output_file = out_path / "output.m4b"
+
+    jobs = m4btools.single_file_chaptered_jobs([file1, file2], output_file)
+
+    m4btools.render_jobs(jobs)
+
+    assert output_file.exists()

@@ -19,28 +19,81 @@ def make_file(
         gen_filter = f"anullsrc=d={duration:0.3f}:r=44100:cl=mono"
     else:
         gen_filter = f"sine=f={freq}:d={duration:0.3f}:r=44100"
+    cmd = [
+        "ffmpeg",
+        "-loglevel",
+        "error",
+        "-i",
+        "pipe:",
+        "-f",
+        "lavfi",
+        "-i",
+        gen_filter,
+        "-map_metadata",
+        "0",
+        "-map",
+        "1",
+        "-q:a",
+        "9",
+        "-acodec",
+        "libmp3lame",
+        os.fspath(out_path),
+    ]
 
     subprocess.run(
-        [
-            "ffmpeg",
-            "-loglevel",
-            "error",
-            "-i",
-            "pipe:",
-            "-f",
-            "lavfi",
-            "-i",
-            gen_filter,
-            "-q:a",
-            "9",
-            "-acodec",
-            "libmp3lame",
-            "-map_metadata",
-            "0",
-            "-map",
-            "1",
-            os.fspath(out_path),
-        ],
+        cmd,
+        check=True,
+        input=file_info.to_ffmetadata(),
+        encoding="utf-8",
+    )
+
+
+def make_file_with_cover(
+    file_info: file_probe.FileInfo,
+    out_path: pathlib.Path,
+    cover_art: pathlib.Path,
+    freq: typing.Optional[int] = None,
+) -> None:
+    format_info = file_info.format_info
+    duration = format_info.duration
+    if freq is None:
+        gen_filter = f"anullsrc=d={duration:0.3f}:r=44100:cl=mono"
+    else:
+        gen_filter = f"sine=f={freq}:d={duration:0.3f}:r=44100"
+
+    cmd = [
+        "ffmpeg",
+        "-loglevel",
+        "error",
+        "-i",
+        "pipe:",
+        "-f",
+        "lavfi",
+        "-i",
+        gen_filter,
+        "-i",
+        os.fspath(cover_art),
+        "-map_metadata",
+        "0",
+        "-map",
+        "1",
+        "-map",
+        "2",
+        "-c",
+        "copy",
+        "-disposition:v:1",
+        "attached_pic",
+        "-f",
+        "mov",
+        "-q:a",
+        "9",
+        "-c:a:0",
+        "aac",
+        os.fspath(out_path),
+    ]
+
+    subprocess.run(
+        cmd,
         check=True,
         input=file_info.to_ffmetadata(),
         encoding="utf-8",

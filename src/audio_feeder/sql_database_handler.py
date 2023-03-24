@@ -273,10 +273,12 @@ class SqlDatabaseHandler:
         if not self._db.exists():
             _metadata_object().create_all(self.engine)
             with self.session() as session:
+                assert session is not None
                 session.execute(f"PRAGMA user_version={DB_VERSION}")
         else:
             with self.session() as session:
-                db_version: int = session.execute("PRAGMA user_version").first()[0]  # type: ignore[index]
+                assert session is not None
+                db_version: int = session.execute("PRAGMA user_version").first()[0]  # type: ignore[index,assignment]
                 if db_version < DB_VERSION:
                     logging.info(
                         "Upgrading database from %s to %s", db_version, DB_VERSION
@@ -316,12 +318,14 @@ class SqlDatabaseHandler:
 
     def save_table(self, table_name: TableName, table_contents: Table) -> None:
         with self.session() as session:
+            assert session is not None
             self._save_table(session, table_name, table_contents)
             session.commit()
 
     def save_database(self, database: Database) -> None:
         self._initialize_db()
         with self.session() as session:
+            assert session is not None
             for table_name, contents in database.items():
                 self._save_table(session, table_name, contents)
 

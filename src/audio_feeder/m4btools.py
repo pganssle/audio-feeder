@@ -193,6 +193,64 @@ def _zero_padding_format(max_num: int) -> str:
     return f"0{zero_padding:d}d"
 
 
+def _try_video_variations(
+    cmd_before: Sequence[str],
+    cmd_after: Sequence[str],
+    out_path: Path,
+    *run_args,
+    **run_kwargs,
+):
+    """Hack method to try handling video streams multiple ways.
+
+    Some errors around video streams are happening when you specify -c:v copy,
+    others happen when you specify -map v?, so we'll just try both and see
+    which one doesn't error out. If they both fail, we just drop video
+    handling entirely.
+    """
+    # TODO: This is a hack, instead we should identify situations where the
+    # video stream can be copied proactively and choose the right value.
+
+    commands = [
+        [*cmd_before, "-c:v", "copy", *cmd_after, os.fspath(out_path)],
+        [*cmd_before, "-map", "v?", "-map", "V?", *cmd_after, os.fspath(out_path)],
+        [*cmd_before, *cmd_after, os.fspath(out_path)],
+    ]
+
+    error = None
+
+    out_path_existed = out_path.exists()
+
+    for cmd in commands:
+        logging.debug("Running ffmpeg command: %s", cmd)
+
+        proc = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=True,
+            encoding="utf-8",
+            *run_args,
+            **run_kwargs,
+        )
+
+        if proc.stdout:  # pragma: nocover
+            logging.info(proc.stdout)
+
+        if proc.stderr:  # pragma: nocover
+            logging.error(proc.stderr)
+
+        if proc.returncode != 0:
+            if error is None:
+                error = IOError(f"ffmpeg failed with exit code: {proc.returncode}")
+
+            if not out_path_existed and out_path.exists():
+                out_path.unlink()
+        else:
+            break
+    else:
+        assert error is not None
+        raise error
+
+
 def _merge_subsets(
     subsets: Sequence[FileSubset],
     out_path: Path,
@@ -212,7 +270,7 @@ def _merge_subsets(
             "\n".join(_to_file_list_entry(x.path, x.start, x.end) for x in subsets)
         )
 
-        cmd = [
+        cmd_before = [
             "ffmpeg",
             "-loglevel",
             "error",
@@ -230,32 +288,17 @@ def _merge_subsets(
             "0",
             "-c:a",
             audio_codec,
-            "-map",
-            "-v?",
-            "-map",
-            "-V?",
-            os.fspath(out_path),
         ]
 
-        logging.debug("Running ffmpeg command: %s", cmd)
+        cmd_after = []
+
         logging.debug("file list:\n%s", file_list.read_text())
-
-        proc = subprocess.run(
-            cmd,
+        _try_video_variations(
+            cmd_before,
+            cmd_after,
+            out_path,
             input=file_info.to_ffmetadata(),
-            capture_output=True,
-            encoding="utf-8",
-            check=False,
         )
-
-        if proc.stdout:  # pragma: nocover
-            logging.info(proc.stdout)
-
-        if proc.stderr:  # pragma: nocover
-            logging.error(proc.stderr)
-
-        if proc.returncode != 0:
-            raise IOError(f"ffmpeg failed with exit code: {proc.returncode}")
 
 
 def _extract_subset(
@@ -288,7 +331,7 @@ def _extract_subset(
     if subset.end:
         subset_directives.extend(("-to", str(subset.end)))
 
-    cmd = [
+    cmd_before = [
         "ffmpeg",
         "-loglevel",
         "error",
@@ -303,31 +346,16 @@ def _extract_subset(
         "0",
         "-c:a",
         "copy",
-        "-map",
-        "-v?",
-        "-map",
-        "-V?",
-        os.fspath(out_path),
     ]
 
-    logging.debug("Executing ffmpeg command: %s", cmd)
+    cmd_after = []
 
-    proc = subprocess.run(
-        cmd,
-        check=False,
-        capture_output=True,
-        encoding="utf-8",
+    _try_video_variations(
+        cmd_before,
+        cmd_after,
+        out_path,
         input=file_info.to_ffmetadata(),
     )
-
-    if proc.stdout:  # pragma: nocover
-        logging.info(proc.stdout)
-
-    if proc.stderr:  # pragma: nocover
-        logging.error(proc.stderr)
-
-    if proc.returncode != 0:
-        raise IOError(f"ffmpeg failed with exit code: {proc.returncode}")
 
 
 def chapter_split_jobs(

@@ -4,8 +4,7 @@
       "https://www.googleapis.com/books/v1/volumes",
       [
         [
-          "orderBy",
-          "relevance"
+          "orderBy", "relevance"
         ],
         [
           "q",
@@ -5332,6 +5331,97 @@
       ],
       "kind": "books#volumes",
       "totalItems": 203
+    }
+  ],
+  [
+    [
+      "https://www.googleapis.com/books/v1/volumes",
+      [
+        [
+          "orderBy",
+          "relevance"
+        ],
+        [
+          "q",
+          "inauthor:Charles Y M Kelvin+intitle:How to Decode CMYK Images"
+        ]
+      ]
+    ],
+    {
+      "items": [
+        {
+          "accessInfo": {
+            "accessViewStatus": "NONE",
+            "country": "US",
+            "embeddable": false,
+            "epub": {
+              "isAvailable": false
+            },
+            "pdf": {
+              "isAvailable": false
+            },
+            "publicDomain": false,
+            "quoteSharingAllowed": false,
+            "textToSpeechPermission": "ALLOWED",
+            "viewability": "NO_PAGES",
+            "webReaderLink": "http://play.google.com/books/reader?id=XYZ123&hl=&source=gbs_api"
+          },
+          "etag": "abc123",
+          "id": "XYZ123",
+          "kind": "books#volume",
+          "saleInfo": {
+            "country": "US",
+            "isEbook": false,
+            "saleability": "NOT_FOR_SALE"
+          },
+          "searchInfo": {
+            "textSnippet": "A comprehensive guide on decoding CMYK images, providing practical insights and technical details. Ideal for professionals in the field of digital imaging."
+          },
+          "selfLink": "https://www.googleapis.com/books/v1/volumes/XYZ123",
+          "volumeInfo": {
+            "allowAnonLogging": false,
+            "authors": [
+              "Charles Y M Kelvin"
+            ],
+            "canonicalVolumeLink": "https://books.google.com/books/about/How_to_Decode_CMYK_Images.html?hl=&id=XYZ123",
+            "contentVersion": "preview-1.0.0",
+            "description": "How to Decode CMYK Images is a non-fiction book by Charles Y M Kelvin, focusing on the technical aspects of decoding and analyzing CMYK images for digital imaging professionals. This guide delves into color theory, image analysis, and decoding methodologies, providing a vital resource for anyone working in print or digital media.",
+            "imageLinks": {
+              "smallThumbnail": "http://books.google.com/books/content?id=XYZ123&printsec=frontcover&img=1&zoom=5&source=gbs_api",
+              "thumbnail": "http://books.google.com/books/content?id=XYZ123&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+            },
+            "industryIdentifiers": [
+              {
+                "identifier": "1234567890",
+                "type": "ISBN_10"
+              },
+              {
+                "identifier": "9781234567890",
+                "type": "ISBN_13"
+              }
+            ],
+            "infoLink": "http://books.google.com/books?id=XYZ123&dq=inauthor:Charles+Y+M+Kelvin%2Bintitle:How+to+Decode+CMYK+Images&hl=&source=gbs_api",
+            "language": "en",
+            "maturityRating": "NOT_MATURE",
+            "pageCount": 320,
+            "panelizationSummary": {
+              "containsEpubBubbles": false,
+              "containsImageBubbles": false
+            },
+            "previewLink": "http://books.google.com/books?id=XYZ123&dq=inauthor:Charles+Y+M+Kelvin%2Bintitle:How+to+Decode+CMYK+Images&hl=&cd=2&source=gbs_api",
+            "printType": "BOOK",
+            "publishedDate": "2023-05-15",
+            "publisher": "Tech Insights Publishing",
+            "readingModes": {
+              "image": false,
+              "text": false
+            },
+            "title": "How to Decode CMYK Images"
+          }
+        }
+      ],
+      "kind": "books#volumes",
+      "totalItems": 1
     }
   ]
 ]

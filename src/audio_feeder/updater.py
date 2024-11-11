@@ -874,6 +874,9 @@ def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
     # Don't upscale it
     scale = min([scale, 1])
 
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+
     img.thumbnail((w * scale, h * scale))
     img.save(thumb_loc)
 

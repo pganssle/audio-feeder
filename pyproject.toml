@@ -23,7 +23,7 @@ dependencies = [
     "jinja2",
     "click>=6.0",
     "progressbar2",
-    "lxml>=2.0",
+    "lxml>=2.0,<5.2.0",
     "SQLAlchemy>=1.4,<2",
     "attrs>=22.0",
     "backports.strenum>=1.1.1;python_version<'3.11'",

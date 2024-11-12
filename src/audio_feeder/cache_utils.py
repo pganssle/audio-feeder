@@ -1,6 +1,7 @@
 """
 Functions useful for caching.
 """
+
 import functools
 import typing
 

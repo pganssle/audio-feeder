@@ -1,4 +1,5 @@
 """Tests for audio_feeder.updater"""
+
 import contextlib
 import json
 import pathlib

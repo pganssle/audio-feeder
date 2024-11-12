@@ -1,6 +1,7 @@
 """
 Module for handling HTML-related operations
 """
+
 import bisect
 import io
 from html.parser import HTMLParser

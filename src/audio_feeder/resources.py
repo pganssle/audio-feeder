@@ -1,4 +1,5 @@
 """Modules for handling package data resources."""
+
 import hashlib
 import importlib.resources
 import os

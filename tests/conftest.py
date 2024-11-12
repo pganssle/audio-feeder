@@ -36,9 +36,9 @@ def change_config_loc(new_config_loc: _OptPath = None) -> typing.Iterator[_OptPa
     class SentinelEnum(enum.Enum):
         Sentinel = enum.auto
 
-    old_config_dir: typing.Union[
-        str, typing.Literal[SentinelEnum.Sentinel]
-    ] = os.environ.get("AF_CONFIG_DIR", SentinelEnum.Sentinel)
+    old_config_dir: typing.Union[str, typing.Literal[SentinelEnum.Sentinel]] = (
+        os.environ.get("AF_CONFIG_DIR", SentinelEnum.Sentinel)
+    )
     try:
         if new_config_loc is None:
             del os.environ["AF_CONFIG_DIR"]

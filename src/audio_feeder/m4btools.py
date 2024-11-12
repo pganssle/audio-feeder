@@ -1,4 +1,5 @@
 """Tools to split or create chaptered m4b files."""
+
 import copy
 import functools
 import logging

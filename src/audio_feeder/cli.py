@@ -1,6 +1,7 @@
 """
 Command line scripts
 """
+
 import pathlib
 
 import click

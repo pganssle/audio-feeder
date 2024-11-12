@@ -1,6 +1,7 @@
 """
 RSS Feed generators
 """
+
 import datetime
 import functools
 import json

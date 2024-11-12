@@ -176,9 +176,9 @@ ExistingDir = click.Path(
 ExistingFileOrDir = click.Path(
     dir_okay=True, file_okay=True, exists=True, path_type=pathlib.Path
 )  # type: ignore
-FA_VERSION_TEMPLATE: typing.Final[
-    str
-] = "https://use.fontawesome.com/releases/v{version}/fontawesome-free-{version}-web.zip"
+FA_VERSION_TEMPLATE: typing.Final[str] = (
+    "https://use.fontawesome.com/releases/v{version}/fontawesome-free-{version}-web.zip"
+)
 LATEST_FA_VERSION: typing.Final[str] = "6.2.0"
 
 

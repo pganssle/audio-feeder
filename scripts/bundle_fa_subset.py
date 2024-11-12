@@ -69,7 +69,7 @@ def extract_font_awesome(icon: str, css: str) -> str:
     name = f".fa-{icon}"
 
     m = re.search(
-        name + ":+before {\s+content: " "['\"]+(?P<codepoint>[^'\"]+)",
+        name + r":+before {\s+content: " "['\"]+(?P<codepoint>[^'\"]+)",
         css,
         re.MULTILINE,
     )

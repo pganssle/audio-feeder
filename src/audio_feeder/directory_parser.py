@@ -107,14 +107,14 @@ class AudiobookLoader(BaseAudioLoader):
     )
 
     COVER_PATTERNS: typing.Final[typing.Sequence[re.Pattern]] = [
-        re.compile("$.*\-Cover^", re.IGNORECASE),
+        re.compile(r"$.*-Cover^", re.IGNORECASE),
         re.compile("cover", re.IGNORECASE),
     ]
 
     DIR_NAME_RE = re.compile(
-        "(?P<authors>.+?)(?= \- )"
-        + "(?: \- \[(?P<series_name>.*?) (?P<series_number>\d+)\])? \- "
-        + "(?P<title>.*$)"
+        r"(?P<authors>.+?)(?= - )"
+        + r"(?: - \[(?P<series_name>.*?) (?P<series_number>\d+)\])? - "
+        + r"(?P<title>.*$)"
     )
 
     @classmethod

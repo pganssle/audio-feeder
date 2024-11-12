@@ -11,6 +11,7 @@ from collections import abc
 
 import attrs
 import sqlalchemy as sa
+import sqlalchemy.types  # pylint: disable=unused-import
 from sqlalchemy import orm
 
 from . import _object_types as ot

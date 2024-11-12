@@ -30,7 +30,7 @@ _T = typing.TypeVar("_T")
 # This technically violates PEP 484, but it works. See
 # https://github.com/python/mypy/issues/14023 for more details.
 _PBar = typing.TypeVar(
-    "_PBar", bound=typing.Callable[[typing.Iterable[_T]], typing.Iterable[_T]]
+    "_PBar", bound=typing.Callable[[typing.Iterable[_T]], typing.Iterable[_T]]  # type: ignore[valid-type]
 )
 
 

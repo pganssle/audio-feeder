@@ -50,16 +50,16 @@ class BaseObject:
     id: ID
 
     def to_dict(self) -> typing.Mapping[str, typing.Any]:
-        return attrs.asdict(self)
+        return attrs.asdict(self)  # type: ignore[arg-type]
 
     def to_dict_sparse(
         self, *, _filter=_filter_sparse
     ) -> typing.Mapping[str, typing.Any]:
-        return attrs.asdict(self, filter=_filter)
+        return attrs.asdict(self, filter=_filter)  # type: ignore[arg-type]
 
     def copy(self: Self) -> Self:
         """Make a new copy of this object."""
-        return attrs.evolve(self)
+        return attrs.evolve(self)  # type: ignore[misc]
 
 
 # SqlAlchemy has problems with slots ☹

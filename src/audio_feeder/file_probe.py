@@ -67,6 +67,7 @@ class OverdriveMediaMarker:
     @classmethod
     def from_xml(cls, xml: str) -> typing.Sequence[Self]:
         root = lxml.etree.fromstring(xml)
+        assert isinstance(root.tag, str)
         if root.tag != "Markers":
             raise ValueError(
                 f"Unknown media marker tag: {root.tag}. " + "Should be 'Markers'"
@@ -197,6 +198,7 @@ class FileInfo:
             if omm_tag in format_info.tags:
                 omm_tags = OverdriveMediaMarker.from_xml(format_info.tags[omm_tag])
                 omm_tags = sorted(omm_tags)
+                assert format_info.duration is not None  # TODO: Handle this gracefully
 
                 for num, start_tag, end_tag in zip(
                     itertools.count(1),

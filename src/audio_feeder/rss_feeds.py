@@ -208,9 +208,10 @@ def load_feed_items(
             file_hash = None
 
         if entry_obj.file_metadata is None or m_rel_path not in entry_obj.file_metadata:
+            # TODO: Use an assertion or fix fl.path possibly being None
             metadata_futures.append(
                 _executor().submit(
-                    lambda fl, fh: (fl, fp.FileInfo.from_file(fl.path), fh),
+                    lambda fl, fh: (fl, fp.FileInfo.from_file(fl.path), fh),  # type: ignore[arg-type]
                     file_loc,
                     file_hash,
                 )

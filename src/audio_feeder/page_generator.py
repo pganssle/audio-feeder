@@ -1,6 +1,7 @@
 """
 Page generator
 """
+
 import math
 import os
 import string

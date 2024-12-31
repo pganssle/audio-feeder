@@ -3,6 +3,7 @@
 This is partially to allow typing without circular imports and partially to
 allow typing on the generated schema types.
 """
+
 import typing
 
 from ._compat import Self
@@ -15,13 +16,11 @@ ID = typing.NewType("ID", int)
 class SchemaObject(typing.Protocol):
     id: ID
 
-    def to_dict(self) -> typing.Mapping[str, typing.Any]:
-        ...
+    def to_dict(self) -> typing.Mapping[str, typing.Any]: ...
 
     def to_dict_sparse(
         self, *, _filter: typing.Callable = ...
-    ) -> typing.Mapping[str, typing.Any]:
-        ...
+    ) -> typing.Mapping[str, typing.Any]: ...
 
     def copy(self: Self) -> Self:
         """Make a new copy of this object."""

@@ -1,4 +1,5 @@
 """Tools to split or create chaptered m4b files."""
+
 import copy
 import functools
 import logging
@@ -270,7 +271,7 @@ def _merge_subsets(
             "\n".join(_to_file_list_entry(x.path, x.start, x.end) for x in subsets)
         )
 
-        cmd_before = [
+        cmd_before: Sequence[str] = (
             "ffmpeg",
             "-loglevel",
             "error",
@@ -288,9 +289,9 @@ def _merge_subsets(
             "0",
             "-c:a",
             audio_codec,
-        ]
+        )
 
-        cmd_after = []
+        cmd_after: Sequence[str] = ()
 
         logging.debug("file list:\n%s", file_list.read_text())
         _try_video_variations(
@@ -331,7 +332,7 @@ def _extract_subset(
     if subset.end:
         subset_directives.extend(("-to", str(subset.end)))
 
-    cmd_before = [
+    cmd_before: Sequence[str] = [
         "ffmpeg",
         "-loglevel",
         "error",
@@ -348,7 +349,7 @@ def _extract_subset(
         "copy",
     ]
 
-    cmd_after = []
+    cmd_after: Sequence[str] = ()
 
     _try_video_variations(
         cmd_before,
@@ -412,7 +413,9 @@ def chapter_split_jobs(
 
             job_pool.append(new_job)
 
-        if abs(chapter.end_time - file_infos[fpath].format_info.duration) < 0.25:
+        duration = file_infos[fpath].format_info.duration
+        assert duration is not None  # TODO: Handle this gracefully
+        if abs(chapter.end_time - duration) < 0.25:
             end_time = None
         else:
             end_time = chapter.end_time

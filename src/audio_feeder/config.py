@@ -1,6 +1,7 @@
 """
 Configuration manager - handles the application's global configuration.
 """
+
 import base64
 import functools
 import graphlib
@@ -64,13 +65,11 @@ class TemplateStr(str):
 
 
 @typing.overload
-def _path_converter(s: typing.Union[TemplatePath, TemplateStr]) -> TemplatePath:
-    ...
+def _path_converter(s: typing.Union[TemplatePath, TemplateStr]) -> TemplatePath: ...
 
 
 @typing.overload
-def _path_converter(s: typing.Union[str, Path]) -> Path:
-    ...
+def _path_converter(s: typing.Union[str, Path]) -> Path: ...
 
 
 def _path_converter(s):
@@ -288,25 +287,25 @@ class Configuration:
     @typing.overload
     def _make_single_replacement(
         self, value: typing.Union[str, TemplateStr], replacements: _ReplacementsMapType
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @typing.overload
     def _make_single_replacement(
         self,
         value: typing.Union[Path, TemplatePath],
         replacements: _ReplacementsMapType,
-    ) -> Path:
-        ...
+    ) -> Path: ...
 
     def _make_single_replacement(self, value, replacements):
         if isinstance(value, TemplatePath):
             return Path(
                 *(
                     self._make_single_replacement(
-                        TemplateStr(component)
-                        if component.startswith("{{")
-                        else component,
+                        (
+                            TemplateStr(component)
+                            if component.startswith("{{")
+                            else component
+                        ),
                         replacements=replacements,
                     )
                     for component in value.parts

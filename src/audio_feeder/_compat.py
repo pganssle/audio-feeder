@@ -6,6 +6,6 @@ except ImportError:
 try:
     from enum import StrEnum  # type: ignore[attr-defined]
 except ImportError:
-    from backports.strenum import StrEnum  # type: ignore[import]
+    from backports.strenum import StrEnum  # type: ignore[import,no-redef]
 
 __all__ = ("Self", "StrEnum")

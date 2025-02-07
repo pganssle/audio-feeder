@@ -6,8 +6,6 @@ import pathlib
 import typing
 from unittest import mock
 
-import pytest
-
 from audio_feeder import metadata_loader as mdl
 from audio_feeder import updater
 
@@ -96,7 +94,6 @@ def patch_book_updater() -> typing.Iterator[None]:
         updater.BookDatabaseUpdater = old_book_updater
 
 
-@pytest.mark.xfail
 def test_update_books(testgen_config: pathlib.Path) -> None:
     with patch_book_updater():
         updater.update(content_type="books")

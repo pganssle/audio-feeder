@@ -161,7 +161,7 @@ class EntryRenderer:
                     type_dict[fname] = Template(child.read_text())
 
             if not type_dict:
-                raise FileNotFounderror(
+                raise FileNotFoundError(
                     f"No entry templates found for type {type_name}"
                 )
 

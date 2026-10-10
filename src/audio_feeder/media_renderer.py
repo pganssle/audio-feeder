@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from concurrent import futures
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Final, Optional
+from typing import Final
 
 from . import _object_types as ot
 from . import database_handler as dh
@@ -45,7 +45,7 @@ class Renderer:
         mode: RenderModes,
         *,
         loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
-        executor: Optional[futures.Executor] = None,
+        executor: futures.Executor | None = None,
     ):
         self.media_path: Final[pathlib.Path] = media_path
         self.entry: Final[oh.Entry] = entry
@@ -231,7 +231,7 @@ class Renderer:
 
         return out
 
-    def read_access_time(self) -> Optional[datetime]:
+    def read_access_time(self) -> datetime | None:
         last_access_path = self.media_path / ".last_retrieved"
         if not last_access_path.exists():
             return None

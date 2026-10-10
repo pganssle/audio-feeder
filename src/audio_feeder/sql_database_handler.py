@@ -7,9 +7,10 @@ import logging
 import os
 import pathlib
 import threading
+import types
 from collections import abc
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, Final, Optional, Union, get_args, get_origin
+from typing import Any, Final, TypeAlias, Union, get_args, get_origin
 
 import attrs
 import sqlalchemy as sa
@@ -80,7 +81,7 @@ class _CustomJsonType(sa.types.TypeDecorator):
     impl = sa.types.String
     cache_ok = True
 
-    def _load_json(self, value: Optional[str]) -> Any:
+    def _load_json(self, value: str | None) -> Any:
         if value is None:
             return None
 
@@ -92,7 +93,7 @@ class _CustomJsonType(sa.types.TypeDecorator):
 
 
 class _PathCollection(_CustomJsonType):
-    def process_result_value(self, value: Optional[str], dialect):
+    def process_result_value(self, value: str | None, dialect):
         json_obj = self._load_json(value)
         if json_obj is None:
             return None
@@ -106,7 +107,7 @@ class _PathCollection(_CustomJsonType):
 
 
 class _CoverImages(_CustomJsonType):
-    def process_result_value(self, value: Optional[str], dialect):
+    def process_result_value(self, value: str | None, dialect):
         json_obj = self._load_json(value)
 
         if json_obj is None:
@@ -124,7 +125,7 @@ class _CoverImages(_CustomJsonType):
 
 
 class _FileMetadata(_CustomJsonType):
-    def process_result_value(self, value: Optional[str], dialect):
+    def process_result_value(self, value: str | None, dialect):
         json_obj = self._load_json(value)
         if json_obj is None:
             return None
@@ -135,13 +136,22 @@ class _FileMetadata(_CustomJsonType):
         }
 
 
-_NestedType = Union[type, tuple["_NestedType", ...]]
+# Either a type or (origin, (arguments...)); origins include special forms like
+# `Union`, which are not types.
+_NestedType: TypeAlias = object | tuple[object, tuple["_NestedType", ...]]
 
 
-def _parse_nested_type(t: type) -> _NestedType:
-    container_type: Optional[type] = get_origin(t)
+# `X | Y` and `Union[X, Y]` have different origins, but mean the same thing
+_UNION_TYPES = (Union, types.UnionType)
+
+
+def _parse_nested_type(t: object) -> _NestedType:
+    container_type: object = get_origin(t)
     if container_type is None:
         return t
+
+    if container_type in _UNION_TYPES:
+        container_type = Union
 
     return (container_type, tuple(map(_parse_nested_type, get_args(t))))
 
@@ -166,7 +176,7 @@ def _map_type(t: type) -> type[sa.sql.type_api.TypeEngine]:
     else:
         type_container = get_origin(t)
         argtypes = [argtype for argtype in get_args(t) if argtype is not type(None)]
-        if type_container == Union:
+        if type_container in _UNION_TYPES:
             if len(argtypes) != 1:
                 raise ValueError(
                     f"Unions other than (type | None) not supported, got: {t}"

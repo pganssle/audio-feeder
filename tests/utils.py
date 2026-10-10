@@ -3,7 +3,6 @@ import os
 import pathlib
 import shutil
 import subprocess
-from typing import Optional
 
 from audio_feeder import file_probe
 
@@ -11,7 +10,7 @@ from audio_feeder import file_probe
 def make_file(
     file_info: file_probe.FileInfo,
     out_path: pathlib.Path,
-    freq: Optional[int] = None,
+    freq: int | None = None,
 ) -> None:
     format_info = file_info.format_info
     duration = format_info.duration
@@ -52,7 +51,7 @@ def make_file_with_cover(
     file_info: file_probe.FileInfo,
     out_path: pathlib.Path,
     cover_art: pathlib.Path,
-    freq: Optional[int] = None,
+    freq: int | None = None,
 ) -> None:
     format_info = file_info.format_info
     duration = format_info.duration

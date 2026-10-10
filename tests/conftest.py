@@ -4,7 +4,7 @@ import os
 import pathlib
 import shutil
 from collections.abc import Iterator
-from typing import Literal, Optional, TypeVar, Union
+from typing import Literal, TypeVar
 
 import pytest
 
@@ -29,7 +29,7 @@ def config_defaults(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield config_loc
 
 
-_OptPath = TypeVar("_OptPath", bound=Optional[pathlib.Path])
+_OptPath = TypeVar("_OptPath", bound=pathlib.Path | None)
 
 
 @contextlib.contextmanager
@@ -37,7 +37,7 @@ def change_config_loc(new_config_loc: _OptPath = None) -> Iterator[_OptPath]:
     class SentinelEnum(enum.Enum):
         Sentinel = enum.auto
 
-    old_config_dir: Union[str, Literal[SentinelEnum.Sentinel]] = os.environ.get(
+    old_config_dir: str | Literal[SentinelEnum.Sentinel] = os.environ.get(
         "AF_CONFIG_DIR", SentinelEnum.Sentinel
     )
     try:

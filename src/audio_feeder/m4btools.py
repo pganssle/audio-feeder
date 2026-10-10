@@ -12,7 +12,7 @@ import tempfile
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import attrs
 
@@ -34,8 +34,8 @@ class SegmentableFiles:
 @attrs.frozen
 class FileSubset:
     path: Path
-    start: Optional[float] = None
-    end: Optional[float] = None
+    start: float | None = None
+    end: float | None = None
 
 
 @attrs.frozen
@@ -115,7 +115,7 @@ def _merge_file_infos(
     )
 
 
-def _to_file_list_entry(p: Path, s: Optional[float] = None, e: Optional[float] = None):
+def _to_file_list_entry(p: Path, s: float | None = None, e: float | None = None):
     pathstr = os.fspath(p)
     pathstr = pathstr.replace("'", r"'\''")
     o = f"file '{pathstr}'\n"
@@ -133,7 +133,7 @@ def single_file_chaptered_jobs(
     files: Sequence[Path],
     out_path: Path,
     *,
-    chapter_info: Optional[Mapping[Path, Sequence[ChapterInfo]]] = None,
+    chapter_info: Mapping[Path, Sequence[ChapterInfo]] | None = None,
 ) -> Sequence[RenderJob]:
     if chapter_info is not None:
         if set(files) - chapter_info.keys():
@@ -355,7 +355,7 @@ def _extract_subset(
 def chapter_split_jobs(
     files: Sequence[Path],
     out_path: Path,
-    base_name: Optional[str] = None,
+    base_name: str | None = None,
 ) -> Sequence[RenderJob]:
     ext = files[0].suffix
 
@@ -372,7 +372,7 @@ def chapter_split_jobs(
     padding_format = _zero_padding_format(max_chapter)
 
     job_pool: MutableSequence[RenderJob] = []
-    last_file: Optional[Path] = None
+    last_file: Path | None = None
     for fpath, chapter in chapter_info:
         out_file = out_path / f"{base_name}{format(chapter.num, padding_format)}{ext}"
         logging.debug("Adding job to generate %s", out_file)
@@ -441,7 +441,7 @@ def segment_files_jobs(
     files: Sequence[Path],
     out_path: Path,
     *,
-    cost_func: Optional[segmenter.CostFunc] = None,
+    cost_func: segmenter.CostFunc | None = None,
 ) -> Sequence[RenderJob]:
     file_infos = {fpath: file_probe.FileInfo.from_file(fpath) for fpath in files}
 
@@ -532,7 +532,7 @@ def segment_files_jobs(
 def render_jobs(
     jobs: Sequence[RenderJob],
     *,
-    executor: Optional[futures.Executor] = None,
+    executor: futures.Executor | None = None,
 ) -> None:
     if executor is None:
         executor = futures.ThreadPoolExecutor()

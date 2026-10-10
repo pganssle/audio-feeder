@@ -3,7 +3,7 @@ import os
 import pathlib
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Final, Optional, Protocol
+from typing import Any, Final, Protocol
 
 from ._useful_types import PathType
 
@@ -29,9 +29,7 @@ class BaseAudioLoader:
         raise NotImplementedError("Function must be defined in child classes.")
 
     @classmethod
-    def audio_cover(
-        cls, dir_loc: PathType
-    ) -> Optional[pathlib.Path]:  # pragma: nocover
+    def audio_cover(cls, dir_loc: PathType) -> pathlib.Path | None:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes.")
 
     @classmethod
@@ -161,7 +159,7 @@ class AudiobookLoader(BaseAudioLoader):
         return list(map(pathlib.Path, sorted(o, key=cls.natural_sort_key)))
 
     @classmethod
-    def audio_cover(cls, dir_loc: PathType) -> Optional[pathlib.Path]:
+    def audio_cover(cls, dir_loc: PathType) -> pathlib.Path | None:
         """
         Retrieve the best candidate for an audiobook cover.
 
@@ -244,7 +242,7 @@ class AudiobookLoader(BaseAudioLoader):
 def load_all_audio(
     base_dir: PathType,
     *,
-    visited_dirs: Optional[set[pathlib.Path]] = None,
+    visited_dirs: set[pathlib.Path] | None = None,
     audio_loader_class: type[BaseAudioLoader] = AudiobookLoader,
 ) -> Sequence[pathlib.Path]:
     """

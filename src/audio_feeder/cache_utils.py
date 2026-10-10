@@ -4,7 +4,7 @@ Functions useful for caching.
 
 import functools
 from collections.abc import Callable, MutableMapping, MutableSequence
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 _FUNCTION_CACHES: MutableMapping[str, MutableSequence[Any]] = {}
 
@@ -20,7 +20,7 @@ def register_function_cache(cache_type: str) -> Callable[[_T], _T]:
     return registration_decorator
 
 
-def clear_caches(cache_type: Optional[str] = None) -> None:
+def clear_caches(cache_type: str | None = None) -> None:
     """Clears all caches of a given type.
 
     If cache_type is unspecified, all caches are cleared.

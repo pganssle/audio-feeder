@@ -5,7 +5,7 @@ allow typing on the generated schema types.
 """
 
 from collections.abc import Callable, Mapping
-from typing import Any, NewType, Protocol, Self
+from typing import Any, NewType, Protocol, Self, TypeAlias
 
 ID = NewType("ID", int)
 
@@ -24,5 +24,5 @@ class SchemaObject(Protocol):
         ...
 
 
-SchemaType = type[SchemaObject]
+SchemaType: TypeAlias = type[SchemaObject]
 TypeName = NewType("TypeName", str)

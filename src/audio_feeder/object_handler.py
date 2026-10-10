@@ -7,7 +7,7 @@ import types
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Optional, Self, TypeVar, Union
+from typing import Any, Self, TypeVar
 
 import attrs
 
@@ -61,17 +61,17 @@ class BaseObject:
 class Entry(BaseObject):
     id: ID = attrs.field(metadata={"required": True, "primary_key": True})
     path: Path = attrs.field(metadata={"required": True})
-    cover_images: Optional[Sequence[Path]] = None
-    date_added: Optional[datetime.datetime] = None
-    last_modified: Optional[datetime.datetime] = None
+    cover_images: Sequence[Path] | None = None
+    date_added: datetime.datetime | None = None
+    last_modified: datetime.datetime | None = None
 
-    type: Optional[str] = None
-    table: Optional[str] = None
-    data_id: Optional[ID] = attrs.field(default=None, metadata={"required": True})
-    hashseed: Optional[int] = None
-    files: Optional[Sequence[Path]] = None
-    file_metadata: Optional[Mapping[Path, FileInfo]] = None
-    file_hashes: Optional[Mapping[Path, str]] = None
+    type: str | None = None
+    table: str | None = None
+    data_id: ID | None = attrs.field(default=None, metadata={"required": True})
+    hashseed: int | None = None
+    files: Sequence[Path] | None = None
+    file_metadata: Mapping[Path, FileInfo] | None = None
+    file_hashes: Mapping[Path, str] | None = None
 
     def updated_hashes(self, base_path: Path) -> tuple[Mapping[Path, str], bool]:
         if self.files is None:
@@ -102,7 +102,7 @@ class Entry(BaseObject):
             return (file_hashes, False)
 
     def updated_metadata(
-        self, base_path: Path, *, executor: Optional[futures.Executor] = None
+        self, base_path: Path, *, executor: futures.Executor | None = None
     ) -> Self:
         if executor is None:
             executor = futures.ThreadPoolExecutor()
@@ -144,59 +144,59 @@ class Book(BaseObject):
     id: ID = attrs.field(metadata={"required": True, "primary_key": True})
 
     # Book information
-    isbn: Optional[str] = None
-    isbn13: Optional[str] = None
-    oclc: Optional[str] = None
-    lccn: Optional[str] = None
-    issn: Optional[str] = None
-    google_id: Optional[str] = None
-    goodreads_id: Optional[str] = None
-    ASIN: Optional[str] = None
-    metadata_sources: Optional[Sequence[str]] = None
+    isbn: str | None = None
+    isbn13: str | None = None
+    oclc: str | None = None
+    lccn: str | None = None
+    issn: str | None = None
+    google_id: str | None = None
+    goodreads_id: str | None = None
+    ASIN: str | None = None
+    metadata_sources: Sequence[str] | None = None
 
-    pub_date: Optional[str] = None
-    original_pub_date: Optional[str] = None
-    publisher: Optional[str] = None
+    pub_date: str | None = None
+    original_pub_date: str | None = None
+    publisher: str | None = None
 
-    tags: Optional[Sequence[str]] = None
-    duration: Optional[float] = None
-    pages: Optional[int] = None
+    tags: Sequence[str] | None = None
+    duration: float | None = None
+    pages: int | None = None
 
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
+    title: str | None = None
+    subtitle: str | None = None
 
-    authors: Optional[Sequence[str]] = None
-    author_ids: Optional[Sequence[ID]] = attrs.field(
+    authors: Sequence[str] | None = None
+    author_ids: Sequence[ID] | None = attrs.field(
         default=None,
         metadata={
             "foreign_key": "authors.id",
             "comment": "Foreign key to the authors table.",
         },
     )
-    author_roles: Optional[Sequence[int]] = attrs.field(
+    author_roles: Sequence[int] | None = attrs.field(
         default=None,
         metadata={"comment": "Author = 0, Narrator = 1, Contributor = 2, Editor = 3"},
     )
-    description: Optional[str] = None
-    descriptions: Optional[Mapping[str, str]] = attrs.field(
+    description: str | None = None
+    descriptions: Mapping[str, str] | None = attrs.field(
         default=None, metadata={"comment": "Cache multiple descriptions by source"}
     )
 
     # Series information will be three corresponding lists, with the
     # primary series as the first entry in the list.
-    series_id: Optional[Sequence[int]] = attrs.field(
+    series_id: Sequence[int] | None = attrs.field(
         default=None,
         metadata={
             "foreign_key": "series.id",
             "comment": "Foreign key to the series table.",
         },
     )
-    series_name: Optional[Sequence[str]] = None
-    series_number: Optional[Sequence[int]] = None
+    series_name: Sequence[str] | None = None
+    series_number: Sequence[int] | None = None
 
-    cover_images: Optional[Mapping[str, Union[Path, Mapping[str, str]]]] = None
+    cover_images: Mapping[str, Path | Mapping[str, str]] | None = None
 
-    language: Optional[str] = None
+    language: str | None = None
 
 
 @_register_type("authors")
@@ -207,26 +207,26 @@ class Author(BaseObject):
     id: ID = attrs.field(metadata={"required": True, "primary_key": True})
 
     # Author information
-    name: Optional[str] = None
-    sort_name: Optional[str] = None
-    books: Optional[Sequence[int]] = attrs.field(
+    name: str | None = None
+    sort_name: str | None = None
+    books: Sequence[int] | None = attrs.field(
         default=None,
         metadata={
             "foreign_key": "books.id",
             "comment": "Foreign key to the books table.",
         },
     )
-    tags: Optional[Sequence[str]] = None
+    tags: Sequence[str] | None = None
 
     # Miscellaneous information
-    description: Optional[str] = attrs.field(
+    description: str | None = attrs.field(
         default=None, metadata={"comment": "Biographical information"}
     )
-    images: Optional[Sequence[Path]] = None
-    alternate_names: Optional[Sequence[str]] = None
-    website: Optional[str] = None
-    birthdate: Optional[datetime.date] = None
-    deathdate: Optional[datetime.date] = None
+    images: Sequence[Path] | None = None
+    alternate_names: Sequence[str] | None = None
+    website: str | None = None
+    birthdate: datetime.date | None = None
+    deathdate: datetime.date | None = None
 
 
 @_register_type("series")
@@ -237,37 +237,37 @@ class Series(BaseObject):
     id: ID = attrs.field(metadata={"required": True, "primary_key": True})
 
     # Series information
-    name: Optional[str] = attrs.field(
+    name: str | None = attrs.field(
         default=None,
         metadata={"comment": "Series names will be of the form 'name (modifier)'"},
     )
-    modifier: Optional[str] = attrs.field(
+    modifier: str | None = attrs.field(
         default=None,
         metadata={
             "comment": "The modifier is used for disambiguating alternate "
             "versions of a series with different subsets or orders."
         },
     )
-    name_with_modifier: Optional[str] = None
+    name_with_modifier: str | None = None
 
-    data_ids: Optional[Sequence[int]] = attrs.field(
+    data_ids: Sequence[int] | None = attrs.field(
         default=None,
         metadata={
             "comment": "List of keys to components - these are foreign keys to "
             "potentially multiple tables."
         },
     )
-    data_numbers: Optional[Sequence[float]] = attrs.field(
+    data_numbers: Sequence[float] | None = attrs.field(
         default=None,
         metadata={
             "comment": "A list, the same size as data_ids, of the "
             "corresponding series numbering."
         },
     )
-    data_tables: Optional[Sequence[str]] = attrs.field(
+    data_tables: Sequence[str] | None = attrs.field(
         default=None, metadata={"comment": "The tables to find the data ids in."}
     )
-    authors: Optional[Sequence[str]] = attrs.field(
+    authors: Sequence[str] | None = attrs.field(
         default=None,
         metadata={
             "foreign_key": "authors.id",
@@ -275,7 +275,7 @@ class Series(BaseObject):
         },
     )
 
-    alternate_orders: Optional[Sequence[int]] = attrs.field(
+    alternate_orders: Sequence[int] | None = attrs.field(
         default=None,
         metadata={
             "comment": "IDs of other series representing the same books in a "
@@ -283,7 +283,7 @@ class Series(BaseObject):
         },
     )
 
-    superseries: Optional[Sequence[int]] = attrs.field(
+    superseries: Sequence[int] | None = attrs.field(
         default=None,
         metadata={
             "comment": "When a series is a subset of a larger series, "
@@ -293,4 +293,4 @@ class Series(BaseObject):
         },
     )
 
-    related_series: Optional[Sequence[int]] = None
+    related_series: Sequence[int] | None = None

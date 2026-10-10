@@ -20,7 +20,7 @@ from collections.abc import (
     MutableSequence,
     Sequence,
 )
-from typing import Any, Optional, Self, TypedDict, cast
+from typing import Any, Self, TypedDict, cast
 
 import attrs
 
@@ -67,7 +67,7 @@ class FFProbeReturnJSON(TypedDict, total=False):
 @attrs.frozen(order=True)
 class OverdriveMediaMarker:
     time: float
-    name: Optional[str] = attrs.field(default=None, order=False)
+    name: str | None = attrs.field(default=None, order=False)
 
     @classmethod
     def from_xml(cls, xml: str) -> Sequence[Self]:
@@ -105,7 +105,7 @@ class ChapterInfo:
     num: int
     start_time: float
     end_time: float
-    title: Optional[str] = None
+    title: str | None = None
     tags: Mapping[str, str] = attrs.field(factory=dict)
 
     @property
@@ -145,13 +145,13 @@ class ChapterInfo:
 
 @attrs.frozen
 class FormatInfo:
-    filename: Optional[str] = attrs.field(default=None)
-    format_name: Optional[str] = attrs.field(default=None)
-    format_long_name: Optional[str] = attrs.field(default=None)
-    start_time: Optional[float] = attrs.field(default=None)
-    duration: Optional[float] = attrs.field(default=None)
-    size: Optional[int] = attrs.field(default=None)  # Bytes
-    bit_rate: Optional[int] = attrs.field(default=None)
+    filename: str | None = attrs.field(default=None)
+    format_name: str | None = attrs.field(default=None)
+    format_long_name: str | None = attrs.field(default=None)
+    start_time: float | None = attrs.field(default=None)
+    duration: float | None = attrs.field(default=None)
+    size: int | None = attrs.field(default=None)  # Bytes
+    bit_rate: int | None = attrs.field(default=None)
     tags: Mapping[str, str] = attrs.field(factory=dict)
 
     def to_json(self) -> JSONFormatType:
@@ -184,7 +184,7 @@ class FormatInfo:
 @attrs.frozen
 class FileInfo:
     format_info: FormatInfo
-    chapters: Optional[Sequence[ChapterInfo]] = attrs.field(default=None)
+    chapters: Sequence[ChapterInfo] | None = attrs.field(default=None)
 
     @classmethod
     def from_json(cls, json_dict: FFProbeReturnJSON) -> Self:
@@ -299,10 +299,10 @@ def get_multipath_chapter_info(
     fpaths: Iterable[pathlib.Path],
     /,
     fall_back_to_durations: bool = False,
-    file_infos: Optional[Mapping[pathlib.Path, FileInfo]] = None,
+    file_infos: Mapping[pathlib.Path, FileInfo] | None = None,
 ) -> Sequence[tuple[pathlib.Path, ChapterInfo]]:
     out: MutableSequence[tuple[pathlib.Path, ChapterInfo]] = []
-    chapter_num: Optional[int] = None
+    chapter_num: int | None = None
     if file_infos is None:
         file_infos = {}
 
@@ -356,7 +356,7 @@ def get_multipath_chapter_info(
     return out
 
 
-def get_file_duration(fpath: pathlib.Path) -> Optional[datetime.timedelta]:
+def get_file_duration(fpath: pathlib.Path) -> datetime.timedelta | None:
     p = subprocess.run(
         [
             "ffprobe",

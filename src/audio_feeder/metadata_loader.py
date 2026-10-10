@@ -11,7 +11,7 @@ import logging
 import os
 import time
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
-from typing import Any, BinaryIO, Final, Optional, TypedDict, Union
+from typing import Any, BinaryIO, Final, TypedDict
 
 import attrs
 import requests
@@ -31,9 +31,9 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        poll_delay: Union[float, datetime.timedelta] = 0.2,
+        poll_delay: float | datetime.timedelta = 0.2,
     ):
-        self._last_poll: Optional[datetime.datetime] = None
+        self._last_poll: datetime.datetime | None = None
         self._poll_delay = (
             datetime.timedelta(seconds=poll_delay)
             if not isinstance(poll_delay, datetime.timedelta)
@@ -128,7 +128,7 @@ class BookLoader(MetaDataLoader):
     @abc.abstractmethod
     def retrieve_best_image(
         self, cover_images: Mapping[str, str]
-    ) -> Union[tuple[BinaryIO, str, str], tuple[None, None, None]]:
+    ) -> tuple[BinaryIO, str, str] | tuple[None, None, None]:
         """
         Given a dictionary of cover image URLs, this retrieves the largest
         available image.
@@ -298,7 +298,7 @@ class GoogleBooksLoader(BookLoader):
 
     def retrieve_best_image(
         self, cover_images: Mapping[str, str]
-    ) -> Union[tuple[BinaryIO, str, str], tuple[None, None, None]]:
+    ) -> tuple[BinaryIO, str, str] | tuple[None, None, None]:
         """
         Given a dictionary of cover image URLs, this retrieves the largest
         available image.
@@ -328,14 +328,14 @@ class GoogleBooksLoader(BookLoader):
         return None, None, None
 
     @functools.cached_property
-    def _google_api_key(self) -> Optional[str]:
+    def _google_api_key(self) -> str | None:
         return read_from_config("google_api_key")
 
     def _get_volume(
         self,
-        authors: Optional[Sequence[str]] = None,
-        title: Optional[str] = None,
-        **identifiers: Optional[str],
+        authors: Sequence[str] | None = None,
+        title: str | None = None,
+        **identifiers: str | None,
     ) -> Mapping[str, Any]:
         if extra_identifiers := identifiers.keys() - self.valid_identifiers:
             raise TypeError(f"Unknown identifiers: {','.join(extra_identifiers)}")

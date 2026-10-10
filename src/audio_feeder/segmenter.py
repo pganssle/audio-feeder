@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable, MutableSequence, Sequence
-from typing import Optional, Protocol, TypeVar
+from typing import Protocol, TypeAlias, TypeVar
 
 import attrs
 
@@ -15,10 +15,10 @@ Scorable = TypeVar("Scorable", bound=_Floatable)
 @attrs.frozen(order=True)
 class _MemoEntry:
     score: float
-    previous_split: Optional[int] = None
+    previous_split: int | None = None
 
 
-CostFunc = Callable[[Iterable[_Floatable]], float]
+CostFunc: TypeAlias = Callable[[Iterable[_Floatable]], float]
 
 
 def asymmetric_cost(
@@ -55,7 +55,7 @@ def segment(
     # go, then you recursively calculate the total score of breaking up the list
     # at each point to the left of your pointer (caching the calculation in a
     # memo table to avoid recalculating).
-    memo_table: MutableSequence[Optional[_MemoEntry]] = [None] * (len(values) + 1)
+    memo_table: MutableSequence[_MemoEntry | None] = [None] * (len(values) + 1)
 
     # Initialize the list with a zero score — this represents an empty segment.
     memo_table[0] = _MemoEntry(score=0.0, previous_split=None)

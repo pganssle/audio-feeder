@@ -1,6 +1,5 @@
 import functools
 import pathlib
-import typing
 
 from . import _object_types as ot
 from . import cache_utils
@@ -34,14 +33,14 @@ def _get_handler_from_db_loc(db_loc: PathType) -> DatabaseHandler:
 
 @cache_utils.register_function_cache("database")
 @functools.lru_cache
-def _get_handler(db_loc: typing.Optional[PathType]) -> DatabaseHandler:
+def _get_handler(db_loc: PathType | None) -> DatabaseHandler:
     db_loc = _get_db_loc(db_loc)
     handler_type = _get_handler_by_suffix(pathlib.Path(db_loc).suffix)
     return handler_type(db_loc)
 
 
 def load_database(
-    db_loc: typing.Optional[PathType] = None,
+    db_loc: PathType | None = None,
 ) -> Database:
     """
     Loads the 'database' into memory.
@@ -55,7 +54,7 @@ def load_database(
     return handler.load_database()
 
 
-def save_database(database: Database, db_loc: typing.Optional[PathType] = None) -> None:
+def save_database(database: Database, db_loc: PathType | None = None) -> None:
     """
     Saves the 'database' into memory. See :func:`load_database` for details.
     """
@@ -80,7 +79,7 @@ def get_database(refresh: bool = False) -> Database:
 
 
 def get_database_table(
-    table_name: TableName, database: typing.Optional[Database] = None
+    table_name: TableName, database: Database | None = None
 ) -> Table:
     """
     Loads a database table from a cached read-only database.
@@ -90,9 +89,7 @@ def get_database_table(
     return db[table_name]
 
 
-def get_data_obj(
-    entry_obj, database: typing.Optional[Database] = None
-) -> ot.SchemaObject:
+def get_data_obj(entry_obj, database: Database | None = None) -> ot.SchemaObject:
     """
     Given an :class:`object_handler.Entry` object, return the corresponding data
     object, loaded from the appropriate table.
@@ -103,7 +100,7 @@ def get_data_obj(
     return table[entry_obj.data_id]
 
 
-def _get_db_loc(db_loc: typing.Optional[PathType] = None) -> PathType:
+def _get_db_loc(db_loc: PathType | None = None) -> PathType:
     if db_loc is None:
         db_loc = read_from_config("database_loc")
 

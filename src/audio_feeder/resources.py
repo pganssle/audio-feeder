@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable, Iterable
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import Optional, Protocol, Union
+from typing import Protocol, TypeAlias
 
 
 class _Comparable(Protocol):
@@ -20,11 +20,11 @@ class _Comparable(Protocol):
         ...
 
 
-_CompareFunc = Callable[[_Comparable, Path], bool]
+_CompareFunc: TypeAlias = Callable[[_Comparable, Path], bool]
 
 
 def _copy_resource(
-    resource: Traversable, target_dir: Path, copy_if: Optional[_CompareFunc] = None
+    resource: Traversable, target_dir: Path, copy_if: _CompareFunc | None = None
 ) -> None:
     target_loc = target_dir / resource.name
     if copy_if is not None:
@@ -51,13 +51,13 @@ def _copy_resource(
                 _copy_resource(child, target_dir, copy_if=copy_if)
 
 
-def _resolve_resource(resource: Union[str, Traversable]) -> Traversable:
+def _resolve_resource(resource: str | Traversable) -> Traversable:
     if isinstance(resource, str):
         return importlib.resources.files(resource)
     return resource
 
 
-def copy_resource(resource: Union[str, Traversable], target_dir: Path) -> None:
+def copy_resource(resource: str | Traversable, target_dir: Path) -> None:
     """Copies a resource from the package data to a target path.
 
     This will not copy any `.py` files or __pycache__ files, and it recursively
@@ -90,7 +90,7 @@ def _copy_if_hash_mismatch(resource: _Comparable, target: Path) -> bool:
     return resource_hash != existing_hash
 
 
-def update_resource(resource: Union[str, Traversable], target_dir: Path) -> None:
+def update_resource(resource: str | Traversable, target_dir: Path) -> None:
     """Update a resource on disk if its contents have changed.
 
     This is equivalent to copy_resource, but if the resource already exists
@@ -105,7 +105,7 @@ def get_text_resource(package: str, resource: str) -> str:
     return importlib.resources.read_text(package, resource)
 
 
-def get_children(resource: Union[str, Traversable]) -> Iterable[Traversable]:
+def get_children(resource: str | Traversable) -> Iterable[Traversable]:
     """Retrieve a list of resources nested under the specified `resource`."""
     resource = _resolve_resource(resource)
     yield from resource.iterdir()

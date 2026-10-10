@@ -8,14 +8,18 @@ import textwrap
 import threading
 from collections.abc import Mapping, MutableSequence, Sequence
 from datetime import UTC, datetime
-from typing import cast
+from pathlib import PurePosixPath
+from typing import Any, cast
+from urllib.parse import urlencode
 
+import attrs
 import flask
 from flask import Blueprint, Response, request
 from jinja2 import Template
 
 from audio_feeder import _object_types as ot
 from audio_feeder import database_handler as dh
+from audio_feeder import entry_filters as ef
 from audio_feeder import media_renderer as mr
 from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
@@ -66,6 +70,11 @@ def books():
     The main page for listing audiobooks
     """
     sort_args = get_sortable_args(request.args)
+    try:
+        entry_filter = ef.EntryFilter.from_args(request.args)
+    except ef.InvalidFilter as e:
+        logging.error("Ignoring invalid filter: %s", e)
+        entry_filter = ef.EntryFilter()
 
     # Retrieve or populate the entry cache.
     entry_cache = _book_entry_cache()
@@ -82,10 +91,15 @@ def books():
     else:
         entries = entry_cache["base"]
 
+    all_entries = entries
+    if entry_filter not in entry_cache:
+        entry_cache[entry_filter] = entry_filter.apply(entries)
+    entries = entry_cache[entry_filter]
+
     nav_generator = _book_nav_generator(len(entries), request.endpoint)
 
     # Retrieve or populate the specific sort cache
-    arg_sort = tuple(sorted(sort_args.items()))
+    arg_sort = (entry_filter, tuple(sorted(sort_args.items())))
     if arg_sort not in entry_cache:
         entries = get_sorted_entries(entries, sort_args)
         entry_cache[arg_sort] = entries
@@ -95,7 +109,10 @@ def books():
     # Do the pagination
     entry_page = get_paged_entries(entries, sort_args)
 
-    nav_list = nav_generator.get_pages(sort_args)
+    # Navigation links need to preserve the filter as well as the sort order
+    filter_params = entry_filter.to_params()
+    nav_args = {**filter_params, **sort_args}
+    nav_list = nav_generator.get_pages(nav_args)
     max_page = len(nav_list) - 1
     page = min(sort_args["page"], max_page)
     if nav_list:
@@ -114,16 +131,22 @@ def books():
 
     page_data = {
         "entries": get_rendered_entries(entry_page),
-        "nav_list": nav_generator.get_pages(sort_args),
+        "nav_list": nav_list,
         "first_index": first_index,
         "final_index": final_index,
         "prev_index": prev_index,
         "next_index": next_index,
-        "pagetitle": f"Books: Page {page} of {max_page}",
+        "pagetitle": (
+            f"Books: {entry_filter.folder.as_posix()}: Page {page} of {max_page}"
+            if entry_filter.folder is not None
+            else f"Books: Page {page} of {max_page}"
+        ),
         "site_images_url": site_images.url,
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
         "sort_options": get_sort_options(),
         "sort_args": sort_args,
+        "filter_params": filter_params,
+        "folder_nav": _folder_navigation(all_entries, entry_filter, sort_args),
         "stylesheet_links": get_css_links(),
         "favicon": None,
     }
@@ -399,6 +422,37 @@ def version() -> str:
 
 ###
 # Functions (probably want to move most of these to page_generator)
+def _folder_navigation(
+    entries: Sequence[oh.Entry],
+    entry_filter: ef.EntryFilter,
+    sort_args: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    """Breadcrumbs and subfolder links for the folder filter."""
+    # Changing folders keeps the sort settings but goes back to the first page
+    link_args = {k: v for k, v in sort_args.items() if k != "page"}
+
+    def folder_url(folder: PurePosixPath | None) -> str:
+        params = attrs.evolve(entry_filter, folder=folder).to_params()
+        return flask.url_for("root.books") + "?" + urlencode({**params, **link_args})
+
+    current = entry_filter.folder
+    crumbs = [{"name": "All", "url": folder_url(None) if current else None}]
+    for folder in ef.breadcrumbs(current):
+        crumbs.append(
+            {
+                "name": folder.name,
+                "url": folder_url(folder) if folder != current else None,
+            }
+        )
+
+    subfolders = [
+        {"name": sub.name, "count": sub.count, "url": folder_url(sub.folder)}
+        for sub in ef.subfolders(entries, current)
+    ]
+
+    return {"breadcrumbs": crumbs, "subfolders": subfolders}
+
+
 def get_rendered_entries(entry_list):
     renderer = get_renderer()
 

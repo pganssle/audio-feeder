@@ -123,6 +123,9 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <div class="topnav-settings-container topnav-icon">
             <i class="fa fa-gear"></i>
             <form action="/books" class="options-dropdown">
+            {% for param_name, param_value in filter_params.items() %}
+            <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
+            {% endfor %}
             <div class="options-line">
                 <label for="sort-dropdown" class="topnav-label">Sort order:</label>
                 <select id="sort-dropdown" class="topnav-form" name="orderBy">
@@ -156,6 +159,25 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
 </div>
 {% endblock %}
     <div class='maintable'>
+    {% block folder_nav %}
+    {% if folder_nav.subfolders or folder_nav.breadcrumbs|length > 1 %}
+    <div class="folder_nav">
+        <div class="breadcrumbs">
+            {% for crumb in folder_nav.breadcrumbs %}
+                {% if not crumb.url is sameas none %}<a class="breadcrumb" href="{{ crumb.url|e }}">{{ crumb.name|e }}</a>{% else %}<span class="breadcrumb current_folder">{{ crumb.name|e }}</span>{% endif %}
+                {% if not loop.last %}<span class="breadcrumb_separator">&rsaquo;</span>{% endif %}
+            {% endfor %}
+        </div>
+        {% if folder_nav.subfolders %}
+        <div class="subfolders">
+            {% for subfolder in folder_nav.subfolders %}
+            <a class="subfolder" href="{{ subfolder.url|e }}">{{ subfolder.name|e }} <span class="subfolder_count">({{ subfolder.count }})</span></a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endblock %}
     {% block navbar %}
     <div class="navbar">
         <div class="nav_arrow"><a{% if not first_index is sameas none %} href="{{ first_index }}"{% endif %}><i class="fa fa-angle-double-left nav_arrow" id="firstnav"></i></a></div>

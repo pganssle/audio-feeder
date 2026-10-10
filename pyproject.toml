@@ -113,6 +113,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 log_level = "DEBUG"
 xfail_strict = true
+markers = [
+    "subprocess: tests that need to start a new Python interpreter",
+]
 
 ## Pylint
 [tool.pylint.'MESSAGES CONTROL']

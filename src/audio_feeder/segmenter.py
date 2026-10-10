@@ -1,23 +1,24 @@
-import typing
+from collections.abc import Callable, Iterable, MutableSequence, Sequence
+from typing import Optional, Protocol, TypeVar
 
 import attrs
 
 
-class _Floatable(typing.Protocol):
+class _Floatable(Protocol):
     def __float__(self) -> float:  # pragma: nocover
         ...
 
 
-Scorable = typing.TypeVar("Scorable", bound=_Floatable)
+Scorable = TypeVar("Scorable", bound=_Floatable)
 
 
 @attrs.frozen(order=True)
 class _MemoEntry:
     score: float
-    previous_split: typing.Optional[int] = None
+    previous_split: Optional[int] = None
 
 
-CostFunc = typing.Callable[[typing.Iterable[_Floatable]], float]
+CostFunc = Callable[[Iterable[_Floatable]], float]
 
 
 def asymmetric_cost(
@@ -32,7 +33,7 @@ def asymmetric_cost(
     `target` is assumed to be duration in seconds.
     """
 
-    def segment_cost(values: typing.Iterable[_Floatable]) -> float:
+    def segment_cost(values: Iterable[_Floatable]) -> float:
         s = sum(map(float, values)) - target
         if s < 0:
             return abs(s) ** neg_exponent
@@ -43,8 +44,8 @@ def asymmetric_cost(
 
 
 def segment(
-    values: typing.Sequence[Scorable], cost_func: CostFunc = asymmetric_cost(3600)
-) -> typing.Sequence[typing.Sequence[Scorable]]:
+    values: Sequence[Scorable], cost_func: CostFunc = asymmetric_cost(3600)
+) -> Sequence[Sequence[Scorable]]:
     """Breaks up `values` into subsets in such a way to minimize the cost function."""
 
     # This uses a dynamic programming approach suggested by Nathaniel Smith
@@ -54,9 +55,7 @@ def segment(
     # go, then you recursively calculate the total score of breaking up the list
     # at each point to the left of your pointer (caching the calculation in a
     # memo table to avoid recalculating).
-    memo_table: typing.MutableSequence[typing.Optional[_MemoEntry]] = [None] * (
-        len(values) + 1
-    )
+    memo_table: MutableSequence[Optional[_MemoEntry]] = [None] * (len(values) + 1)
 
     # Initialize the list with a zero score — this represents an empty segment.
     memo_table[0] = _MemoEntry(score=0.0, previous_split=None)

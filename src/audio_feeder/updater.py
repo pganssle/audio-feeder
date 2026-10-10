@@ -5,11 +5,20 @@ import math
 import os
 import pathlib
 import shutil
-import typing
 import warnings
+from collections.abc import (
+    Callable,
+    Hashable,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Sequence,
+)
 from concurrent import futures
 from datetime import datetime, timezone
 from random import SystemRandom
+from typing import Any, BinaryIO, Final, Optional, TypeVar, cast
 
 from PIL import Image
 
@@ -25,12 +34,12 @@ from .html_utils import clean_html
 from .resolver import get_resolver
 
 _rand = SystemRandom()
-_T = typing.TypeVar("_T")
+_T = TypeVar("_T")
 
 # This technically violates PEP 484, but it works. See
 # https://github.com/python/mypy/issues/14023 for more details.
-_PBar = typing.TypeVar(
-    "_PBar", bound=typing.Callable[[typing.Iterable[_T]], typing.Iterable[_T]]  # type: ignore[valid-type]
+_PBar = TypeVar(
+    "_PBar", bound=Callable[[Iterable[_T]], Iterable[_T]]  # type: ignore[valid-type]
 )
 
 
@@ -39,7 +48,7 @@ class IDHandler:
     This is a class for handling the assignment of new IDs.
     """
 
-    def __init__(self, invalid_ids: typing.Optional[typing.Iterable[ID]] = None):
+    def __init__(self, invalid_ids: Optional[Iterable[ID]] = None):
         if invalid_ids is None:
             invalid_ids = set()
         else:
@@ -68,19 +77,19 @@ class IDHandler:
 
 
 class BookDatabaseUpdater:
-    AUTHOR_TABLE_NAME: typing.Final[TableName] = TableName("authors")
-    BOOK_TABLE_NAME: typing.Final[TableName] = TableName("books")
+    AUTHOR_TABLE_NAME: Final[TableName] = TableName("authors")
+    BOOK_TABLE_NAME: Final[TableName] = TableName("books")
 
     def __init__(
         self,
         books_location: PathType,
         *,
         entry_table: TableName = TableName("entries"),
-        table: typing.Optional[TableName] = None,
-        book_loader: typing.Type[dp.BaseAudioLoader] = dp.AudiobookLoader,
-        metadata_loaders: typing.Sequence[mdl.BookLoader] = (mdl.GoogleBooksLoader(),),
-        id_handler: typing.Type[IDHandler] = IDHandler,
-        executor: typing.Optional[futures.Executor] = None,
+        table: Optional[TableName] = None,
+        book_loader: type[dp.BaseAudioLoader] = dp.AudiobookLoader,
+        metadata_loaders: Sequence[mdl.BookLoader] = (mdl.GoogleBooksLoader(),),
+        id_handler: type[IDHandler] = IDHandler,
+        executor: Optional[futures.Executor] = None,
     ):
         self.table = table or self.BOOK_TABLE_NAME
         self.entry_table = entry_table
@@ -94,7 +103,7 @@ class BookDatabaseUpdater:
         else:
             self.executor = futures.ThreadPoolExecutor(thread_name_prefix="updater")
 
-    def load_book_paths(self) -> typing.Sequence[pathlib.Path]:
+    def load_book_paths(self) -> Sequence[pathlib.Path]:
         aps = dp.load_all_audio(self.books_location)
         media_loc = read_from_config("media_loc")
 
@@ -105,9 +114,7 @@ class BookDatabaseUpdater:
     ) -> MutableDatabase:
         book_paths = self.load_book_paths()
 
-        entry_table = typing.cast(
-            typing.MutableMapping[ID, oh.Entry], database[self.entry_table]
-        )
+        entry_table = cast(MutableMapping[ID, oh.Entry], database[self.entry_table])
 
         # Find out which ones already exist
         id_by_path = {}
@@ -188,16 +195,12 @@ class BookDatabaseUpdater:
     def assign_books_to_entries(self, database: MutableDatabase) -> MutableDatabase:
         # Go through and assign a book to each entry for both new entries and
         # entries with missing book IDs.
-        book_table = typing.cast(
-            typing.MutableMapping[ID, oh.Book], database[self.table]
-        )
-        entry_table = typing.cast(
-            typing.Mapping[ID, oh.Entry], database[self.entry_table]
-        )
+        book_table = cast(MutableMapping[ID, oh.Book], database[self.table])
+        entry_table = cast(Mapping[ID, oh.Entry], database[self.entry_table])
 
         book_id_handler = self.id_handler(invalid_ids=set(book_table.keys()))
 
-        book_to_entry: typing.MutableMapping[ID, typing.MutableSequence[ID]] = {}
+        book_to_entry: MutableMapping[ID, MutableSequence[ID]] = {}
         for entry_id, entry_obj in entry_table.items():
             if entry_obj.type != "Book":
                 continue
@@ -219,12 +222,10 @@ class BookDatabaseUpdater:
     def update_book_metadata(
         self,
         database: MutableDatabase,
-        pbar: typing.Optional[_PBar] = None,
+        pbar: Optional[_PBar] = None,
         reload_metadata: bool = False,
     ) -> MutableDatabase:
-        book_table = typing.cast(
-            typing.MutableMapping[ID, oh.Book], database[self.table]
-        )
+        book_table = cast(MutableMapping[ID, oh.Book], database[self.table])
         # Set the priority on who gets to set the description.
         description_priority = (mdl.LOCAL_DATA_SOURCE,) + tuple(
             x.source_name for x in self.metadata_loaders
@@ -233,7 +234,7 @@ class BookDatabaseUpdater:
         if pbar is None:
             # No idea why this is necessary, but support for this sort of thing
             # is super sketchy anyway, so 🤷
-            pbar_resolved: _PBar = typing.cast(_PBar, _pbar_stub)
+            pbar_resolved: _PBar = cast(_PBar, _pbar_stub)
         else:
             pbar_resolved = pbar
 
@@ -285,9 +286,9 @@ class BookDatabaseUpdater:
         return database
 
     def update_author_db(self, database: MutableDatabase) -> MutableDatabase:
-        book_table = typing.cast(typing.Mapping[ID, oh.Book], database[self.table])
-        author_table = typing.cast(
-            typing.MutableMapping[ID, oh.Author], database[self.AUTHOR_TABLE_NAME]
+        book_table = cast(Mapping[ID, oh.Book], database[self.table])
+        author_table = cast(
+            MutableMapping[ID, oh.Author], database[self.AUTHOR_TABLE_NAME]
         )
 
         author_id_handler = self.id_handler(invalid_ids=author_table.keys())
@@ -296,7 +297,7 @@ class BookDatabaseUpdater:
         for book_id, book_obj in book_table.items():
             book_tag_set = set(book_obj.tags or set())
 
-            new_authors: typing.MutableSequence[str] = []
+            new_authors: MutableSequence[str] = []
             new_author_ids = []
             new_author_roles = []
 
@@ -343,9 +344,7 @@ class BookDatabaseUpdater:
 
                 if book_id not in author_obj.books:
                     # TODO: Add an official method for this
-                    typing.cast(typing.MutableSequence[ID], author_obj.books).append(
-                        book_id
-                    )
+                    cast(MutableSequence[ID], author_obj.books).append(book_id)
 
                 orig_tags = set(author_obj.tags or set())
                 author_obj.tags = list(orig_tags | book_tag_set)
@@ -357,9 +356,7 @@ class BookDatabaseUpdater:
         return database
 
     def update_cover_images(self, database: MutableDatabase) -> MutableDatabase:
-        entry_table = typing.cast(
-            typing.MutableMapping[ID, oh.Entry], database[self.entry_table]
-        )
+        entry_table = cast(MutableMapping[ID, oh.Entry], database[self.entry_table])
         base_static_path = read_from_config("static_media_path")
         cover_cache_path = read_from_config("cover_cache_path")
 
@@ -411,7 +408,7 @@ class BookDatabaseUpdater:
                         continue
 
                     cover_images = data_obj.cover_images[loader.source_name]
-                    assert isinstance(cover_images, typing.Mapping)
+                    assert isinstance(cover_images, Mapping)
                     r, _img_url, desc = loader.retrieve_best_image(cover_images)
 
                     if r is None:
@@ -500,7 +497,7 @@ class BookDatabaseUpdater:
         :return:
             Returns a :class:`object_handler.Book` object.
         """
-        book_table = typing.cast(typing.Mapping[ID, oh.Book], book_table)
+        book_table = cast(Mapping[ID, oh.Book], book_table)
 
         # The path will be relative to the base media path
         resolver = get_resolver()
@@ -525,7 +522,7 @@ class BookDatabaseUpdater:
                 books_by_key_cache = books_by_key[bt_id]
                 cached_book_id_set = cached_book_ids[bt_id]
                 missing_keys = set(book_table.keys()) - cached_book_id_set
-                book_gen: typing.Iterable[tuple[ID, oh.Book]] = (
+                book_gen: Iterable[tuple[ID, oh.Book]] = (
                     (k, book_table[k]) for k in missing_keys
                 )
             else:
@@ -589,11 +586,9 @@ class BookDatabaseUpdater:
     def load_author(
         self,
         author_name: str,
-        author_table: typing.Mapping[ID, oh.Author],
+        author_table: Mapping[ID, oh.Author],
         id_handler: IDHandler,
-        disamb_func: typing.Callable[
-            [typing.Sequence[oh.Author]], oh.Author
-        ] = lambda x: x[0],
+        disamb_func: Callable[[Sequence[oh.Author]], oh.Author] = lambda x: x[0],
     ) -> oh.Author:
         """
         If the author is already in the table, load it by ID, otherwise create
@@ -644,10 +639,8 @@ class BookDatabaseUpdater:
         # Construct a lookup mapping author name to author id if it isn't
         # already cached.
         if at_id not in cached_author_ids_cache or at_id not in authors_by_name_cache:
-            authors_by_name: typing.Dict[
-                typing.Optional[str], typing.MutableSequence[ID]
-            ] = {}
-            cached_author_ids: typing.Set[ID] = set()
+            authors_by_name: dict[Optional[str], MutableSequence[ID]] = {}
+            cached_author_ids: set[ID] = set()
 
             cached_author_ids_cache[at_id] = cached_author_ids
             authors_by_name_cache[at_id] = authors_by_name
@@ -656,8 +649,8 @@ class BookDatabaseUpdater:
             authors_by_name = authors_by_name_cache[at_id]
 
         if set(author_table.keys()) != cached_author_ids:
-            author_table = typing.cast(
-                typing.Mapping[ID, oh.Author],
+            author_table = cast(
+                Mapping[ID, oh.Author],
                 dh.get_database_table(TableName("authors")),
             )
 
@@ -671,7 +664,7 @@ class BookDatabaseUpdater:
 
         # Try to find the author in the cached lookup table
         if author_name in authors_by_name:
-            author_list: typing.List[oh.Author] = [
+            author_list: list[oh.Author] = [
                 author_table[author_id] for author_id in authors_by_name[author_name]
             ]
         else:
@@ -690,7 +683,7 @@ class BookDatabaseUpdater:
         return disamb_func(author_list)
 
     @classmethod
-    def author_sort(cls, author_name: str) -> typing.Optional[str]:
+    def author_sort(cls, author_name: str) -> Optional[str]:
         """
         Takes the author name and returns a plausible sort name.
 
@@ -743,14 +736,14 @@ class BookDatabaseUpdater:
         return author_sort_name
 
     @classmethod
-    def _book_key(cls, authors: typing.Sequence[str], title: str) -> typing.Hashable:
+    def _book_key(cls, authors: Sequence[str], title: str) -> Hashable:
         """The key should be hashable and reproducible"""
         return (tuple(sorted(authors)), title)
 
 
 ###
 # Trigger update action
-UPDATE_OUTPUT: typing.Sequence[str] = []  # TODO: Replace with logging-based solution
+UPDATE_OUTPUT: Sequence[str] = []  # TODO: Replace with logging-based solution
 UPDATE_IN_PROGRESS: bool = False
 
 
@@ -759,18 +752,18 @@ def _log_update_output(update: str) -> None:
     if UPDATE_OUTPUT is None:
         UPDATE_OUTPUT = []
 
-    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).append(update)
+    cast(MutableSequence[str], UPDATE_OUTPUT).append(update)
     logging.info(update)
 
 
 def _clear_update_output() -> None:
     global UPDATE_OUTPUT
-    typing.cast(typing.MutableSequence[str], UPDATE_OUTPUT).clear()
+    cast(MutableSequence[str], UPDATE_OUTPUT).clear()
 
 
 def _update_books(
     update_path: str,
-    progress_bar: typing.Optional[_PBar] = None,
+    progress_bar: Optional[_PBar] = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:
@@ -784,8 +777,8 @@ def _update_books(
 
     book_updater = BookDatabaseUpdater(path)
 
-    OpFunction = typing.Callable[[typing.Any], typing.Any]
-    ops: typing.Sequence[typing.Tuple[OpFunction, str]] = [
+    OpFunction = Callable[[Any], Any]
+    ops: Sequence[tuple[OpFunction, str]] = [
         (
             functools.partial(
                 book_updater.update_db_entries, check_hashes=check_hashes
@@ -825,9 +818,9 @@ def _update_books(
 
 
 def update(
-    content_type: typing.Optional[str] = None,
-    path: typing.Optional[str] = None,
-    progress_bar: typing.Optional[_PBar] = None,
+    content_type: Optional[str] = None,
+    path: Optional[str] = None,
+    progress_bar: Optional[_PBar] = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:
@@ -847,7 +840,7 @@ def update(
 
 ###
 # Util
-def _pbar_stub(iterator_: typing.Iterable[_T]) -> typing.Iterable[_T]:
+def _pbar_stub(iterator_: Iterable[_T]) -> Iterable[_T]:
     return iterator_
 
 
@@ -881,7 +874,7 @@ def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
     img.save(thumb_loc)
 
 
-def _get_img_ext(fobj: typing.BinaryIO) -> str:
+def _get_img_ext(fobj: BinaryIO) -> str:
     img = Image.open(fobj)
     img_type = img.format
     ext_map = {

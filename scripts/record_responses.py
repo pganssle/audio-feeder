@@ -2,7 +2,8 @@ import json
 import os
 import pathlib
 import tempfile
-import typing
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 import click
 
@@ -14,11 +15,11 @@ from . import utils
 
 
 class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
-    SessionKey = typing.Tuple[str, typing.Sequence[typing.Tuple[str, str]]]
-    SessionJson = typing.Mapping[str, typing.Any]
+    SessionKey = tuple[str, Sequence[tuple[str, str]]]
+    SessionJson = Mapping[str, Any]
 
     def __init__(self, *args, **kwargs) -> None:
-        self._session_recording: typing.MutableMapping[
+        self._session_recording: MutableMapping[
             RecordingGoogleBooksLoader.SessionKey,
             RecordingGoogleBooksLoader.SessionJson,
         ] = {}
@@ -40,7 +41,7 @@ class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
         return resp
 
     @property
-    def session_recording(self) -> typing.Mapping[SessionKey, SessionJson]:
+    def session_recording(self) -> Mapping[SessionKey, SessionJson]:
         return self._session_recording
 
     def write_session_recording(self, out_path: pathlib.Path) -> None:

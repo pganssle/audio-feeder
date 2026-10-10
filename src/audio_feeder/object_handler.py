@@ -4,18 +4,10 @@ Book handlers
 
 import datetime
 import types
-import typing
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent import futures
 from pathlib import Path
-from typing import (
-    Mapping,
-    MutableMapping,
-    Optional,
-    Self,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Optional, Self, TypeVar, Union
 
 import attrs
 
@@ -25,23 +17,19 @@ from ._object_types import SchemaType, TypeName
 from .file_probe import FileInfo
 
 
-def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
+def _filter_sparse(_: attrs.Attribute, value: Any) -> bool:
     return value is not None
 
 
-_ST = typing.TypeVar("_ST", bound=SchemaType)
-_TYPE_MAPPING: typing.MutableMapping[TypeName, SchemaType] = {}
-_TABLE_MAPPING: typing.MutableMapping[TableName, TypeName] = {}
+_ST = TypeVar("_ST", bound=SchemaType)
+_TYPE_MAPPING: MutableMapping[TypeName, SchemaType] = {}
+_TABLE_MAPPING: MutableMapping[TableName, TypeName] = {}
 
-TYPE_MAPPING: typing.Mapping[TypeName, SchemaType] = types.MappingProxyType(
-    _TYPE_MAPPING
-)
-TABLE_MAPPING: typing.Mapping[TableName, TypeName] = types.MappingProxyType(
-    _TABLE_MAPPING
-)
+TYPE_MAPPING: Mapping[TypeName, SchemaType] = types.MappingProxyType(_TYPE_MAPPING)
+TABLE_MAPPING: Mapping[TableName, TypeName] = types.MappingProxyType(_TABLE_MAPPING)
 
 
-def _register_type(table_name: str) -> typing.Callable[[_ST], _ST]:
+def _register_type(table_name: str) -> Callable[[_ST], _ST]:
     table_name_: TableName = TableName(table_name)
 
     def register_type(t: _ST) -> _ST:
@@ -56,12 +44,10 @@ def _register_type(table_name: str) -> typing.Callable[[_ST], _ST]:
 class BaseObject:
     id: ID
 
-    def to_dict(self) -> typing.Mapping[str, typing.Any]:
+    def to_dict(self) -> Mapping[str, Any]:
         return attrs.asdict(self)  # type: ignore[arg-type]
 
-    def to_dict_sparse(
-        self, *, _filter=_filter_sparse
-    ) -> typing.Mapping[str, typing.Any]:
+    def to_dict_sparse(self, *, _filter=_filter_sparse) -> Mapping[str, Any]:
         return attrs.asdict(self, filter=_filter)  # type: ignore[arg-type]
 
     def copy(self: Self) -> Self:
@@ -87,7 +73,7 @@ class Entry(BaseObject):
     file_metadata: Optional[Mapping[Path, FileInfo]] = None
     file_hashes: Optional[Mapping[Path, str]] = None
 
-    def updated_hashes(self, base_path: Path) -> Tuple[Mapping[Path, str], bool]:
+    def updated_hashes(self, base_path: Path) -> tuple[Mapping[Path, str], bool]:
         if self.files is None:
             raise ValueError("entry.files must not be None when calculating hashes")
 

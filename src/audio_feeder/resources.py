@@ -3,9 +3,10 @@
 import hashlib
 import importlib.resources
 import os
+from collections.abc import Callable, Iterable
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Protocol, Union
+from typing import Optional, Protocol, Union
 
 
 class _Comparable(Protocol):

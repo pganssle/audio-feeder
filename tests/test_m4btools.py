@@ -3,8 +3,16 @@ import logging
 import os
 import pathlib
 import subprocess
-import typing
+from collections.abc import (
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableSequence,
+    Sequence,
+)
 from concurrent import futures
+from typing import Final, Optional
 from unittest import mock
 
 import attrs
@@ -16,7 +24,7 @@ from audio_feeder import file_probe, m4btools, segmenter
 
 from . import utils
 
-DRACULA_DESC: typing.Final[
+DRACULA_DESC: Final[
     str
 ] = """\
 Dracula is an Gothic horror novel by Irish author Bram Stoker. Famous for
@@ -26,7 +34,7 @@ between Dracula and a small group of men and women led by Professor Abraham Van
 Helsing.
 """
 
-DRACULA_CHAPTERS: typing.Sequence[file_probe.ChapterInfo] = [
+DRACULA_CHAPTERS: Sequence[file_probe.ChapterInfo] = [
     file_probe.ChapterInfo(
         num=0,
         title="01 - Jonathan Harker's Journal",
@@ -61,7 +69,7 @@ DRACULA_CHAPTERS: typing.Sequence[file_probe.ChapterInfo] = [
 
 
 @pytest.fixture(scope="session", autouse=False)
-def dracula_files(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
+def dracula_files(tmp_path_factory) -> Iterator[pathlib.Path]:
     out_dir = tmp_path_factory.mktemp("dracula")
 
     freqs = [600, 1200]
@@ -96,14 +104,14 @@ def dracula_files(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
         yield out_dir
 
 
-FRANKENSTEIN_METADATA: typing.Final[pathlib.Path] = (
+FRANKENSTEIN_METADATA: Final[pathlib.Path] = (
     pathlib.Path(__file__).parent
     / "data/example_media/audiobooks/Fiction/Mary Shelley - Frankenstein/frankenstein_ffmetadata.txt"
 )
 
 
 @pytest.fixture(scope="session", autouse=False)
-def chaptered_frankenstein(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
+def chaptered_frankenstein(tmp_path_factory) -> Iterator[pathlib.Path]:
     out_dir = tmp_path_factory.mktemp("frankenstein")
     filename = "Mary Shelley - Frankenstein.m4b"
     subprocess.run(
@@ -135,7 +143,7 @@ def chaptered_frankenstein(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="session", autouse=False)
-def multifile_chaptered(tmp_path_factory) -> typing.Iterable[pathlib.Path]:
+def multifile_chaptered(tmp_path_factory) -> Iterable[pathlib.Path]:
     file1_chapters = [
         file_probe.ChapterInfo(
             num=0,
@@ -220,9 +228,7 @@ def test_merge_durations(
     subtests,
     caplog,
     dracula_files: pathlib.Path,
-    chapter_infos: typing.Optional[
-        typing.Mapping[pathlib.Path, file_probe.ChapterInfo]
-    ],
+    chapter_infos: Optional[Mapping[pathlib.Path, file_probe.ChapterInfo]],
     tmp_path: pathlib.Path,
 ) -> None:
     out_path = tmp_path / "Dracula.m4b"
@@ -687,7 +693,7 @@ def test_segmenter_split_single_file(
     expected_results = []
     chap_num = 0
     for duration, chapter_data in expected_chap_data:
-        chapter_infos: typing.MutableSequence = []
+        chapter_infos: MutableSequence = []
         for start, end, chapter_title in chapter_data:
             chapter_infos.append(
                 file_probe.ChapterInfo(
@@ -862,7 +868,7 @@ def test_segmenter_weird_names(tmp_path: pathlib.Path, base_name: str) -> None:
 @pytest.fixture(scope="session", autouse=False)
 def m4bs_with_cover(
     tmp_path_factory,
-) -> typing.Iterator[typing.Tuple[pathlib.Path, pathlib.Path]]:
+) -> Iterator[tuple[pathlib.Path, pathlib.Path]]:
     """Fixture for use with tests of m4bs with covers."""
     # At the moment this is only used for one parameterized test, but we'll
     # keep it as a session-scoped fixture so that we only have to create these
@@ -939,12 +945,12 @@ def m4bs_with_cover(
     ],
 )
 def test_merge_covers(
-    job_maker: typing.Callable[
-        [typing.Sequence[pathlib.Path], pathlib.Path],
-        typing.Sequence[m4btools.RenderJob],
+    job_maker: Callable[
+        [Sequence[pathlib.Path], pathlib.Path],
+        Sequence[m4btools.RenderJob],
     ],
-    output_filename: typing.Optional[str],
-    m4bs_with_cover: typing.Tuple[pathlib.Path, pathlib.Path],
+    output_filename: Optional[str],
+    m4bs_with_cover: tuple[pathlib.Path, pathlib.Path],
     tmp_path: pathlib.Path,
 ) -> None:
     file1, file2 = m4bs_with_cover

@@ -6,8 +6,9 @@ import shutil
 import sqlite3
 import sys
 import threading
-import typing
+from collections.abc import Iterator
 from concurrent import futures
+from typing import Final
 
 import attrs
 import pytest
@@ -17,7 +18,7 @@ from audio_feeder import object_handler as oh
 from audio_feeder import sql_database_handler as sdh
 from audio_feeder import yaml_database_handler as ydh
 
-DATA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent / "data"
+DATA_PATH: Final[pathlib.Path] = pathlib.Path(__file__).parent / "data"
 
 
 @pytest.fixture(
@@ -26,9 +27,7 @@ DATA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent / "data"
         (DATA_PATH / "yaml_db", ydh.YamlDatabaseHandler),
     ]
 )
-def db_handler(
-    request, tmp_path: pathlib.Path
-) -> typing.Iterator[_db_types.DatabaseHandler]:
+def db_handler(request, tmp_path: pathlib.Path) -> Iterator[_db_types.DatabaseHandler]:
     db_loc, handler_type = request.param
     copy_loc = tmp_path / db_loc.name
 

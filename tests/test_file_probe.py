@@ -1,7 +1,6 @@
 import datetime
 import logging
 import pathlib
-import typing
 
 import pytest
 
@@ -140,6 +139,6 @@ def test_get_file_duration_error(tmp_path: pathlib.Path, caplog):
         ),
     ],
 )
-def test_bad_overdrive_media_tags(tag: str, err_type: typing.Type[Exception]) -> None:
+def test_bad_overdrive_media_tags(tag: str, err_type: type[Exception]) -> None:
     with pytest.raises(err_type):
         file_probe.OverdriveMediaMarker.from_xml(tag)

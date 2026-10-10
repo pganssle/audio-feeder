@@ -9,17 +9,10 @@ import os
 import shutil
 import subprocess
 import tempfile
-import typing
+from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from concurrent import futures
 from pathlib import Path
-from typing import (
-    Any,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Optional,
-    Sequence,
-)
+from typing import Any, Optional, cast
 
 import attrs
 
@@ -313,8 +306,8 @@ def _extract_subset(
 
     logging.info("Extracting chapter %s from %s", chapter.num, in_path)
 
-    new_tags: typing.MutableMapping[str, str] = typing.cast(
-        typing.MutableMapping[str, str], copy.copy(file_info.format_info.tags)
+    new_tags: MutableMapping[str, str] = cast(
+        MutableMapping[str, str], copy.copy(file_info.format_info.tags)
     )
     if "title" not in new_tags:
         new_tags["title"] = chapter.title or ""
@@ -449,7 +442,7 @@ def segment_files_jobs(
     out_path: Path,
     *,
     cost_func: Optional[segmenter.CostFunc] = None,
-) -> typing.Sequence[RenderJob]:
+) -> Sequence[RenderJob]:
     file_infos = {fpath: file_probe.FileInfo.from_file(fpath) for fpath in files}
 
     chapter_infos = file_probe.get_multipath_chapter_info(

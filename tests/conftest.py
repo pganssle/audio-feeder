@@ -3,7 +3,8 @@ import enum
 import os
 import pathlib
 import shutil
-import typing
+from collections.abc import Iterator
+from typing import Literal, Optional, TypeVar, Union
 
 import pytest
 
@@ -13,7 +14,7 @@ from . import utils
 
 
 @pytest.fixture(scope="session", autouse=True)
-def config_defaults(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
+def config_defaults(tmp_path_factory) -> Iterator[pathlib.Path]:
     config_dir = tmp_path_factory.mktemp("config")
     (config_dir / "database").mkdir()
 
@@ -28,16 +29,16 @@ def config_defaults(tmp_path_factory) -> typing.Iterator[pathlib.Path]:
     yield config_loc
 
 
-_OptPath = typing.TypeVar("_OptPath", bound=typing.Optional[pathlib.Path])
+_OptPath = TypeVar("_OptPath", bound=Optional[pathlib.Path])
 
 
 @contextlib.contextmanager
-def change_config_loc(new_config_loc: _OptPath = None) -> typing.Iterator[_OptPath]:
+def change_config_loc(new_config_loc: _OptPath = None) -> Iterator[_OptPath]:
     class SentinelEnum(enum.Enum):
         Sentinel = enum.auto
 
-    old_config_dir: typing.Union[str, typing.Literal[SentinelEnum.Sentinel]] = (
-        os.environ.get("AF_CONFIG_DIR", SentinelEnum.Sentinel)
+    old_config_dir: Union[str, Literal[SentinelEnum.Sentinel]] = os.environ.get(
+        "AF_CONFIG_DIR", SentinelEnum.Sentinel
     )
     try:
         if new_config_loc is None:
@@ -62,7 +63,7 @@ def default_config_locs(config_defaults: pathlib.Path) -> None:
 @pytest.fixture
 def testgen_config(
     config_defaults: pathlib.Path, tmp_path: pathlib.Path
-) -> typing.Iterator[pathlib.Path]:
+) -> Iterator[pathlib.Path]:
     cache_utils.clear_caches()
     config_loc = tmp_path / "config"
     shutil.copytree(config_defaults.parent, config_loc)

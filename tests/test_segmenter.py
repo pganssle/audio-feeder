@@ -1,24 +1,25 @@
 import functools
 import itertools
-import typing
+from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
+from typing import TypeVar
 
 import hypothesis
 import pytest
 
 from audio_feeder import segmenter
 
-Minimizer = typing.Callable[
-    [typing.Sequence[segmenter.Scorable], segmenter.CostFunc],
-    typing.Tuple[typing.Sequence[typing.Sequence[segmenter.Scorable]], float],
+Minimizer = Callable[
+    [Sequence[segmenter.Scorable], segmenter.CostFunc],
+    tuple[Sequence[Sequence[segmenter.Scorable]], float],
 ]
 
-_T = typing.TypeVar("_T")
+_T = TypeVar("_T")
 
 
 def all_segmentations(
-    arr: typing.Sequence[_T],
-) -> typing.Iterable[typing.Iterable[typing.Sequence[_T]]]:
+    arr: Sequence[_T],
+) -> Iterable[Iterable[Sequence[_T]]]:
     yield (arr,)
 
     for i in range(1, len(arr)):
@@ -29,17 +30,17 @@ def all_segmentations(
 @functools.lru_cache
 def make_segmentation_scorer(
     cost_func: segmenter.CostFunc,
-) -> typing.Callable[[typing.Iterable[typing.Sequence[float]]], float]:
-    def segmentation_scorer(segments: typing.Iterable[typing.Sequence[float]]) -> float:
+) -> Callable[[Iterable[Sequence[float]]], float]:
+    def segmentation_scorer(segments: Iterable[Sequence[float]]) -> float:
         return sum(map(cost_func, segments))
 
     return segmentation_scorer
 
 
 def brute_force_minimization(
-    arr: typing.Sequence[segmenter.Scorable],
+    arr: Sequence[segmenter.Scorable],
     cost_func: segmenter.CostFunc = segmenter.asymmetric_cost(3600),
-) -> typing.Tuple[typing.Sequence[typing.Sequence[segmenter.Scorable]], float]:
+) -> tuple[Sequence[Sequence[segmenter.Scorable]], float]:
     segmentation_scorer = make_segmentation_scorer(cost_func)
 
     best_segmentation = min(map(list, all_segmentations(arr)), key=segmentation_scorer)
@@ -48,8 +49,8 @@ def brute_force_minimization(
 
 
 def segment_with_score(
-    arr: typing.Sequence[segmenter.Scorable], cost_func: segmenter.CostFunc
-) -> typing.Tuple[typing.Sequence[typing.Sequence[segmenter.Scorable]], float]:
+    arr: Sequence[segmenter.Scorable], cost_func: segmenter.CostFunc
+) -> tuple[Sequence[Sequence[segmenter.Scorable]], float]:
     sequence = segmenter.segment(arr, cost_func)
     scorer = make_segmentation_scorer(cost_func)
     return sequence, scorer(sequence)
@@ -70,8 +71,8 @@ def segment_with_score(
 def test_algo(
     subtests,
     algo: Minimizer,
-    input: typing.Sequence[int],
-    optimal: typing.Sequence[int],
+    input: Sequence[int],
+    optimal: Sequence[int],
 ):
     cost_func = segmenter.asymmetric_cost(60)
     actual_segments, score = algo(input, cost_func)
@@ -95,7 +96,7 @@ def test_algo(
         max_size=12,
     )
 )
-def test_algo_comparison(chapters: typing.Sequence[int]) -> None:
+def test_algo_comparison(chapters: Sequence[int]) -> None:
     cost_func = segmenter.asymmetric_cost(3600.0)
     _bf_results, bf_score = brute_force_minimization(chapters, cost_func=cost_func)
     _dp_results, dp_score = segment_with_score(chapters, cost_func=cost_func)

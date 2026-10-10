@@ -3,15 +3,16 @@ Functions useful for caching.
 """
 
 import functools
-import typing
+from collections.abc import Callable, MutableMapping, MutableSequence
+from typing import Any, Optional, TypeVar
 
-_FUNCTION_CACHES: typing.MutableMapping[str, typing.MutableSequence[typing.Any]] = {}
+_FUNCTION_CACHES: MutableMapping[str, MutableSequence[Any]] = {}
 
-_T = typing.TypeVar("_T")
+_T = TypeVar("_T")
 
 
 @functools.lru_cache(None)
-def register_function_cache(cache_type: str) -> typing.Callable[[_T], _T]:
+def register_function_cache(cache_type: str) -> Callable[[_T], _T]:
     def registration_decorator(f: _T) -> _T:
         _FUNCTION_CACHES.setdefault(cache_type, []).append(f)
         return f
@@ -19,7 +20,7 @@ def register_function_cache(cache_type: str) -> typing.Callable[[_T], _T]:
     return registration_decorator
 
 
-def clear_caches(cache_type: typing.Optional[str] = None) -> None:
+def clear_caches(cache_type: Optional[str] = None) -> None:
     """Clears all caches of a given type.
 
     If cache_type is unspecified, all caches are cleared.

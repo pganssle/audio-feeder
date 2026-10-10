@@ -1,7 +1,8 @@
 import functools
 import os
 import pathlib
-import typing
+from collections.abc import Mapping
+from typing import Any, Optional
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
@@ -21,8 +22,8 @@ class Resolver:
 
     def __init__(
         self,
-        config: typing.Optional[Configuration] = None,
-        qr_generator: typing.Optional["QRGenerator"] = None,
+        config: Optional[Configuration] = None,
+        qr_generator: Optional["QRGenerator"] = None,
     ):
         if config is None:
             config = get_configuration()
@@ -41,7 +42,7 @@ class Resolver:
         if qr_generator is None:
             self.qr_generator = QRGenerator()
 
-    def resolve_rss(self, entry_obj, tail: typing.Optional[str] = None) -> FileLocation:
+    def resolve_rss(self, entry_obj, tail: Optional[str] = None) -> FileLocation:
         kwargs = dict(id=entry_obj.id, table=entry_obj.table, tail=tail or "")
 
         # In the config, the RSS feeds will be specified relative to
@@ -52,7 +53,7 @@ class Resolver:
         return FileLocation(url_tail, self.base_url, None)
 
     def resolve_qr(
-        self, e_id: int, url: str, mode: typing.Optional[str] = None
+        self, e_id: int, url: str, mode: Optional[str] = None
     ) -> FileLocation:
         # Check the QR cache - for the moment, we're going to assume that once
         # a QR code is generated, it's accurate until it's deleted. Eventually
@@ -106,9 +107,7 @@ class QRGenerator:
     Class for generating QR codes on demand
     """
 
-    def __init__(
-        self, fmt: str = "png", version: typing.Optional[int] = None, **qr_options
-    ):
+    def __init__(self, fmt: str = "png", version: Optional[int] = None, **qr_options):
         if fmt == "svg":
             image_factory = SvgPathImage
             self.extension: str = ".svg"
@@ -120,7 +119,7 @@ class QRGenerator:
         qr_options["image_factory"] = image_factory
 
         qr_options.setdefault("border", 0)
-        self.qr_options: typing.Mapping[str, typing.Any] = qr_options
+        self.qr_options: Mapping[str, Any] = qr_options
 
     def generate_qr(self, data: str, save_path: PathType) -> None:
         img = qrcode.make(data, **self.qr_options)

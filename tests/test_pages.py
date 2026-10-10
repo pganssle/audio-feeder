@@ -1,6 +1,6 @@
 """Tests for audio_feeder.pages"""
 
-import typing
+from collections.abc import Mapping
 
 import pytest
 
@@ -16,6 +16,6 @@ from audio_feeder import pages
     ],
 )
 def test_sortable_args_per_page(
-    args: typing.Mapping[str, str], expected_per_page: int
+    args: Mapping[str, str], expected_per_page: int
 ) -> None:
     assert pages.get_sortable_args(args)["perPage"] == expected_per_page

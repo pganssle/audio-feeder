@@ -1,8 +1,8 @@
 import os
 import pathlib
 import re
-import typing
 import urllib.parse
+from typing import Optional
 
 from ._useful_types import PathType
 
@@ -20,7 +20,7 @@ class FileLocation:
         self,
         rel_path: PathType,
         url_base: str,
-        path_base: typing.Optional[PathType] = None,
+        path_base: Optional[PathType] = None,
     ):
         """
         :param rel_path:
@@ -59,7 +59,7 @@ class FileLocation:
 
         if path_base is not None:
             _path_str = os.path.join(path_base, rel_path)
-            self._path: typing.Optional[pathlib.Path] = pathlib.Path(
+            self._path: Optional[pathlib.Path] = pathlib.Path(
                 os.path.normpath(_path_str)
             )
         else:
@@ -73,7 +73,7 @@ class FileLocation:
         return self._url
 
     @property
-    def path(self) -> typing.Optional[pathlib.Path]:
+    def path(self) -> Optional[pathlib.Path]:
         """
         The file location as a path on the file system.
         """

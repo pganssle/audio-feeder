@@ -1,4 +1,4 @@
 import pathlib
-import typing
+from typing import Union
 
-PathType = typing.Union[pathlib.Path, str]
+PathType = Union[pathlib.Path, str]

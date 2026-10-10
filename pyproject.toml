@@ -18,7 +18,9 @@ dependencies = [
     "Flask>=0.11.1",
     "pyyaml>=6.0",
     "qrcode>=5.3",
-    "Pillow>=3.4.2",
+    "Pillow>=3.4.2; python_version>='3.10'",
+    # 11.0.0 is the last version with wheels for PyPy 3.9
+    "Pillow>=3.4.2,<11.1; python_version<'3.10'",
     "requests>=2.12.4",
     "jinja2",
     "click>=6.0",

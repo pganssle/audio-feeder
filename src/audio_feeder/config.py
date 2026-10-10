@@ -14,12 +14,12 @@ import typing
 import warnings
 from itertools import product
 from pathlib import Path
+from typing import Self
 
 import attrs
 import yaml
 
 from . import cache_utils
-from ._compat import Self
 from ._useful_types import PathType
 from .file_location import FileLocation
 

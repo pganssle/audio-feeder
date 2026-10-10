@@ -5,8 +5,7 @@ allow typing on the generated schema types.
 """
 
 import typing
-
-from ._compat import Self
+from typing import Self
 
 ID = typing.NewType("ID", int)
 

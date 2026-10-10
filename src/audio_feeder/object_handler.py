@@ -7,12 +7,19 @@ import types
 import typing
 from concurrent import futures
 from pathlib import Path
-from typing import Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Mapping,
+    MutableMapping,
+    Optional,
+    Self,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import attrs
 
 from . import hash_utils
-from ._compat import Self
 from ._db_types import ID, TableName
 from ._object_types import SchemaType, TypeName
 from .file_probe import FileInfo

@@ -13,11 +13,10 @@ import pathlib
 import re
 import subprocess
 import typing
+from typing import Self
 
 import attrs
 import lxml.etree
-
-from ._compat import Self
 
 _SECOND = datetime.timedelta(seconds=1)
 

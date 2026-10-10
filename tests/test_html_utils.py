@@ -6,14 +6,17 @@ clean_html_data = [
     # Things that should stay
     (
         '<a href="https://www.google.com">Link</a>',
-        '<a href="https://www.google.com">Link</a>',
+        '<a href="https://www.google.com" rel="noopener noreferrer">Link</a>',
     ),
     ("<b>Bold</b>", "<b>Bold</b>"),
     ("<i>Italics</i>", "<i>Italics</i>"),
     # Things that should be deleted
-    ("<script>Delete</script>", "<div></div>"),
-    ('<img src="https://malicious.ru">', "<div></div>"),
-    ("<z>Test</z>", "<div>Test</div>"),
+    ("<script>Delete</script>", ""),
+    ('<img src="https://malicious.ru">', ""),
+    ("<z>Test</z>", "Test"),
+    ('<a href="javascript:alert(1)">Link</a>', '<a rel="noopener noreferrer">Link</a>'),
+    ('<b onclick="alert(1)">Bold</b>', "<b>Bold</b>"),
+    ('<p style="position: fixed">Text</p>', "<p>Text</p>"),
 ]
 
 
@@ -27,22 +30,22 @@ allowed_tags_data = [
     (
         ["a"],
         '<a href="https://www.example.org"><i>Example</i></a>',
-        '<a href="https://www.example.org">Example</a>',
+        '<a href="https://www.example.org" rel="noopener noreferrer">Example</a>',
     ),
     (
         ["a"],
         '<a href="https://www.example.org">Example</a>',
-        '<a href="https://www.example.org">Example</a>',
+        '<a href="https://www.example.org" rel="noopener noreferrer">Example</a>',
     ),
     (
         ["i"],
         '<a href="https://www.example.org"><i>Example</i></a>',
-        "<div><i>Example</i></div>",
+        "<i>Example</i>",
     ),
     (
         ["a", "i"],
         '<a href="https://www.example.org"><i>Example</i></a>',
-        '<a href="https://www.example.org"><i>Example</i></a>',
+        '<a href="https://www.example.org" rel="noopener noreferrer"><i>Example</i></a>',
     ),
 ]
 

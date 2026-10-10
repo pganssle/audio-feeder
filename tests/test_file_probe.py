@@ -134,6 +134,10 @@ def test_get_file_duration_error(tmp_path: pathlib.Path, caplog):
             + "<Time>00:00:00:00.000</Time></Marker></Markers>",
             ValueError,
         ),
+        (
+            "<Markers><Marker><Name>No time</Name></Marker></Markers>",
+            ValueError,
+        ),
     ],
 )
 def test_bad_overdrive_media_tags(tag: str, err_type: typing.Type[Exception]) -> None:

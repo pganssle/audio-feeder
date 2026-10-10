@@ -4,7 +4,8 @@ import functools
 import os
 import pathlib
 import shutil
-from typing import cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 import yaml
 
@@ -51,6 +52,19 @@ def _file_info_representer(
     return dumper.represent_mapping("!FileInfo", file_info.to_json())
 
 
+def _metadata_fetch_status_constructor(
+    loader: yaml.SafeLoader, node: yaml.nodes.MappingNode
+) -> oh.MetadataFetchStatus:
+    mapping = loader.construct_mapping(node, deep=True)
+    return oh.MetadataFetchStatus.from_json(cast(Mapping[str, Any], mapping))
+
+
+def _metadata_fetch_status_representer(
+    dumper: yaml.SafeDumper, status: oh.MetadataFetchStatus
+) -> yaml.nodes.MappingNode:
+    return dumper.represent_mapping("!MetadataFetchStatus", status.to_json())
+
+
 @functools.cache
 def _loader() -> type[yaml.SafeLoader]:
     class CustomSafeLoader(yaml.SafeLoader):
@@ -58,6 +72,9 @@ def _loader() -> type[yaml.SafeLoader]:
 
     CustomSafeLoader.add_constructor("!Path", _path_constructor)
     CustomSafeLoader.add_constructor("!FileInfo", _file_info_constructor)
+    CustomSafeLoader.add_constructor(
+        "!MetadataFetchStatus", _metadata_fetch_status_constructor
+    )
 
     return CustomSafeLoader
 
@@ -71,6 +88,9 @@ def _dumper() -> type[yaml.SafeDumper]:
         CustomSafeDumper.add_representer(path_type, _path_representer)
 
     CustomSafeDumper.add_representer(fp.FileInfo, _file_info_representer)
+    CustomSafeDumper.add_representer(
+        oh.MetadataFetchStatus, _metadata_fetch_status_representer
+    )
     return CustomSafeDumper
 
 

@@ -1,6 +1,8 @@
 """Filtering the list of entries."""
 
 import collections
+import datetime
+import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import PurePosixPath
 from typing import Self
@@ -8,6 +10,7 @@ from typing import Self
 import attrs
 
 from . import object_handler as oh
+from ._db_types import ID
 
 
 class InvalidFilter(ValueError):
@@ -32,6 +35,33 @@ def parse_folder(value: str | None) -> PurePosixPath | None:
         raise InvalidFilter(f"Folder may not contain '..': {value!r}")
 
     return PurePosixPath(*parts) if parts else None
+
+
+def parse_date(value: str | None) -> datetime.date | None:
+    """Parse a date from a query parameter in ``YYYY-MM-DD`` format.
+
+    :raises InvalidFilter:
+        If the date can't be parsed.
+    """
+    if value is None or not value.strip():
+        return None
+
+    try:
+        return datetime.date.fromisoformat(value.strip())
+    except ValueError as e:
+        raise InvalidFilter(f"Invalid date: {value!r}") from e
+
+
+def _parse_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.strip() or None
+
+
+def _normalize(text: str) -> str:
+    """Normalize text for case- and accent-insensitive comparison."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
 
 
 def entry_location(entry: oh.Entry) -> PurePosixPath:
@@ -103,6 +133,11 @@ class EntryFilter:
     """A set of criteria for selecting entries to display."""
 
     folder: PurePosixPath | None = None
+    tag: str | None = None
+    language: str | None = None
+    author: str | None = None
+    added_since: datetime.date | None = None
+    added_before: datetime.date | None = None
 
     @classmethod
     def from_args(cls, args: Mapping[str, str]) -> Self:
@@ -111,17 +146,104 @@ class EntryFilter:
         :raises InvalidFilter:
             If any of the parameters are invalid.
         """
-        return cls(folder=parse_folder(args.get("folder", None)))
+        tag = _parse_text(args.get("tag", None))
+        language = _parse_text(args.get("language", None))
+        return cls(
+            folder=parse_folder(args.get("folder", None)),
+            tag=tag.casefold() if tag is not None else None,
+            language=language.casefold() if language is not None else None,
+            author=_parse_text(args.get("author", None)),
+            added_since=parse_date(args.get("addedSince", None)),
+            added_before=parse_date(args.get("addedBefore", None)),
+        )
 
     def to_params(self) -> Mapping[str, str]:
         """The query parameters that represent this filter."""
-        params = {}
-        if self.folder is not None:
-            params["folder"] = self.folder.as_posix()
-        return params
+        values = {
+            "folder": self.folder.as_posix() if self.folder is not None else None,
+            "tag": self.tag,
+            "language": self.language,
+            "author": self.author,
+            "addedSince": (
+                self.added_since.isoformat() if self.added_since is not None else None
+            ),
+            "addedBefore": (
+                self.added_before.isoformat() if self.added_before is not None else None
+            ),
+        }
+        return {name: value for name, value in values.items() if value is not None}
 
-    def matches(self, entry: oh.Entry) -> bool:
-        return in_folder(entry, self.folder)
+    def matches(self, entry: oh.Entry, book: oh.Book | None) -> bool:
+        """Whether an entry (and the book it refers to) meets all the criteria.
 
-    def apply(self, entries: Iterable[oh.Entry]) -> Sequence[oh.Entry]:
-        return [entry for entry in entries if self.matches(entry)]
+        ``addedSince`` is inclusive and ``addedBefore`` is exclusive, and both
+        are compared against the UTC date the entry was added.
+        """
+        if not in_folder(entry, self.folder):
+            return False
+
+        if self.added_since is not None or self.added_before is not None:
+            if entry.date_added is None:
+                return False
+            date_added = entry.date_added.astimezone(datetime.UTC).date()
+            if self.added_since is not None and date_added < self.added_since:
+                return False
+            if self.added_before is not None and date_added >= self.added_before:
+                return False
+
+        if self.tag is None and self.language is None and self.author is None:
+            return True
+
+        if book is None:
+            return False
+
+        if self.tag is not None and self.tag not in {
+            tag.casefold() for tag in book.tags or ()
+        }:
+            return False
+
+        if self.language is not None and (book.language or "").casefold() != (
+            self.language
+        ):
+            return False
+
+        if self.author is not None:
+            author = _normalize(self.author)
+            if not any(author in _normalize(name) for name in book.authors or ()):
+                return False
+
+        return True
+
+    def apply(
+        self, entries: Iterable[oh.Entry], books: Mapping[ID, oh.Book]
+    ) -> Sequence[oh.Entry]:
+        return [
+            entry
+            for entry in entries
+            if self.matches(
+                entry, books.get(entry.data_id) if entry.data_id is not None else None
+            )
+        ]
+
+
+@attrs.frozen
+class Facets:
+    """The values available to filter on, with the number of books for each."""
+
+    tags: Sequence[tuple[str, int]]
+    languages: Sequence[tuple[str, int]]
+
+
+def facets(books: Iterable[oh.Book]) -> Facets:
+    """Count the tags and languages of ``books``, most common first."""
+    tags: collections.Counter[str] = collections.Counter()
+    languages: collections.Counter[str] = collections.Counter()
+    for book in books:
+        tags.update({tag.casefold() for tag in book.tags or ()})
+        if book.language:
+            languages[book.language.casefold()] += 1
+
+    def ordered(counter: collections.Counter[str]) -> Sequence[tuple[str, int]]:
+        return sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))
+
+    return Facets(tags=ordered(tags), languages=ordered(languages))

@@ -123,7 +123,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <div class="topnav-settings-container topnav-icon">
             <i class="fa fa-gear"></i>
             <form action="/books" class="options-dropdown">
-            {% for param_name, param_value in filter_params.items() %}
+            {% for param_name, param_value in hidden_filter_params.items() %}
             <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
             {% endfor %}
             <div class="options-line">
@@ -148,6 +148,39 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 <input type="number" class="topnav-form" style="width: 120px;"
                        id="per-page" name="perPage"
                        min="1" value="{{ sort_args["perPage"] }}">
+            </div>
+            <div class="options-line">
+                <label for="filter-tag" class="topnav-label">Tag:</label>
+                <select id="filter-tag" class="topnav-form" name="tag">
+                    <option value="">Any</option>
+                    {% for tag, count in facets.tags %}
+                    <option value="{{ tag|e }}"{{ " selected" if tag == filter_values.get("tag") else "" }}>{{ tag|e }} ({{ count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="options-line">
+                <label for="filter-language" class="topnav-label">Language:</label>
+                <select id="filter-language" class="topnav-form" name="language">
+                    <option value="">Any</option>
+                    {% for language, count in facets.languages %}
+                    <option value="{{ language|e }}"{{ " selected" if language == filter_values.get("language") else "" }}>{{ language|e }} ({{ count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="options-line">
+                <label for="filter-author" class="topnav-label">Author:</label>
+                <input type="search" class="topnav-form" id="filter-author" name="author"
+                       value="{{ filter_values.get("author", "")|e }}">
+            </div>
+            <div class="options-line">
+                <label for="filter-added-since" class="topnav-label">Added since:</label>
+                <input type="date" class="topnav-form" id="filter-added-since" name="addedSince"
+                       value="{{ filter_values.get("addedSince", "")|e }}">
+            </div>
+            <div class="options-line">
+                <label for="filter-added-before" class="topnav-label">Added before:</label>
+                <input type="date" class="topnav-form" id="filter-added-before" name="addedBefore"
+                       value="{{ filter_values.get("addedBefore", "")|e }}">
             </div>
             <div class="options-line">
                 <div></div> <!-- Spacer-->
@@ -175,6 +208,15 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
             {% endfor %}
         </div>
         {% endif %}
+    </div>
+    {% endif %}
+    {% endblock %}
+    {% block active_filters %}
+    {% if active_filters %}
+    <div class="active_filters">
+        {% for active in active_filters %}
+        <span class="active_filter">{{ active.label|e }}: {{ active.value|e }} <a class="remove_filter" href="{{ active.remove_url|e }}" title="Remove filter">&times;</a></span>
+        {% endfor %}
     </div>
     {% endif %}
     {% endblock %}

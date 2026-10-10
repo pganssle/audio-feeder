@@ -546,3 +546,31 @@ def test_updater_reload_ignores_backoff() -> None:
 
     book = _update(loader, book, reload_metadata=True)
     assert book.description == "Finally"
+
+
+@pytest.mark.parametrize(
+    "existing_tags, categories, expected_tags",
+    [
+        (None, ["Fiction", "Horror"], ["fiction", "horror"]),
+        (["classics"], ["Fiction"], ["classics", "fiction"]),
+        (["fiction"], ["Fiction"], ["fiction"]),
+        (["classics"], [], ["classics"]),
+    ],
+)
+def test_categories_added_as_tags(
+    existing_tags: list[str] | None,
+    categories: list[str],
+    expected_tags: list[str],
+) -> None:
+    volume = _volume()
+    volume["volumeInfo"]["categories"] = categories
+    loader = FakeLoader(
+        _always(
+            test_updater.FakeResponse(
+                json_contents={"totalItems": 1, "items": [volume]}
+            )
+        )
+    )
+    book = loader.update_book_info(_book(tags=existing_tags), now=NOW)
+
+    assert sorted(book.tags or []) == expected_tags

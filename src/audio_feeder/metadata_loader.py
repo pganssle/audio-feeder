@@ -499,7 +499,7 @@ class GoogleBooksLoader(BookLoader):
         new_tags = set(md["categories"]) - existing_book_tags
 
         if new_tags:
-            new_book_keys["tags"] = sorted(existing_book_tags & new_tags)
+            new_book_keys["tags"] = sorted(existing_book_tags | new_tags)
 
         cover_images: dict[str, Any] = (
             dict(copy.deepcopy(book_obj.cover_images))

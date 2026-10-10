@@ -202,7 +202,7 @@ class BookDatabaseUpdater:
             if entry_obj.type != "Book":
                 continue
 
-            if entry_obj.data_id in book_table:
+            if entry_obj.data_id is not None and entry_obj.data_id in book_table:
                 book_obj = book_table[entry_obj.data_id]
             else:
                 book_obj = self.load_book(entry_obj.path, book_table, book_id_handler)

@@ -8,7 +8,7 @@ from ._useful_types import PathType
 
 
 class _SupportsSorting(typing.Protocol):
-    def __lt__(self, other: typing.Any) -> bool:  # pragma: nocover
+    def __lt__(self, other: typing.Any, /) -> bool:  # pragma: nocover
         ...
 
 

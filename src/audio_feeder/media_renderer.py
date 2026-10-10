@@ -58,10 +58,11 @@ class Renderer:
             raise ValueError(f"Invalid entry, must have table set: {self.entry}")
         data_table = dh.get_database_table(TableName(self.entry.table))
 
-        if self.entry.data_id not in data_table:
-            raise ValueError(f"Invalid data_id in entry: {self.entry.data_id}")
+        data_id = self.entry.data_id
+        if data_id is None or data_id not in data_table:
+            raise ValueError(f"Invalid data_id in entry: {data_id}")
 
-        return data_table[self.entry.data_id]
+        return data_table[data_id]
 
     @functools.cached_property
     def executor(self):

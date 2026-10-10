@@ -1,11 +1,10 @@
-try:
-    from typing import Self  # type: ignore[attr-defined]
-except ImportError:
-    from typing_extensions import Self
+import sys
 
-try:
-    from enum import StrEnum  # type: ignore[attr-defined]
-except ImportError:
-    from backports.strenum import StrEnum  # type: ignore[import,no-redef]
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+    from typing import Self
+else:
+    from backports.strenum import StrEnum
+    from typing_extensions import Self
 
 __all__ = ("Self", "StrEnum")

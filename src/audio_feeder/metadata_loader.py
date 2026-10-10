@@ -276,20 +276,21 @@ class GoogleBooksLoader(BookLoader):
             new_book_keys["descriptions"] = {self.source_name: md["description"]}
 
         # Append any tags that aren't in there already
-        existing_book_tags = set(book_obj.tags) if book_obj.tags is not None else set()
+        existing_book_tags: set[str] = (
+            set(book_obj.tags) if book_obj.tags is not None else set()
+        )
         new_tags = set(md["categories"]) - existing_book_tags
 
         if new_tags:
             new_book_keys["tags"] = sorted(existing_book_tags & new_tags)
 
-        new_book_keys["cover_images"] = (
-            copy.deepcopy(book_obj.cover_images)
+        cover_images: typing.Dict[str, typing.Any] = (
+            dict(copy.deepcopy(book_obj.cover_images))
             if book_obj.cover_images is not None
             else {}
         )
-        new_book_keys["cover_images"].setdefault(self.source_name, {}).update(
-            md["image_link"]
-        )
+        cover_images.setdefault(self.source_name, {}).update(md["image_link"])
+        new_book_keys["cover_images"] = cover_images
 
         new_book_keys["metadata_sources"] = list(book_obj.metadata_sources)
         new_book_keys["metadata_sources"].append(self.source_name)

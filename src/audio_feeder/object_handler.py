@@ -74,7 +74,7 @@ class Entry(BaseObject):
 
     type: Optional[str] = None
     table: Optional[str] = None
-    data_id: ID = attrs.field(default=None, metadata={"required": True})
+    data_id: Optional[ID] = attrs.field(default=None, metadata={"required": True})
     hashseed: Optional[int] = None
     files: Optional[Sequence[Path]] = None
     file_metadata: Optional[Mapping[Path, FileInfo]] = None

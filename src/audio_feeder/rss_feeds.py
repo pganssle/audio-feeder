@@ -101,8 +101,11 @@ def feed_items_from_metadata(
         FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
     ],
     mode: typing.Optional[str] = None,
-    resolver=None,
+    resolver: typing.Optional[Resolver] = None,
 ) -> typing.Sequence[typing.Mapping[str, typing.Any]]:
+    if resolver is None:
+        resolver = Resolver()
+
     pub_date = entry_obj.date_added or datetime.datetime.now(datetime.timezone.utc)
 
     feed_items: typing.MutableSequence[typing.Mapping[str, typing.Any]] = []
@@ -179,7 +182,7 @@ def load_feed_items(
         raise ItemNotFoundError(f"Could not find item: {audio_dir}")
 
     table = entry_obj.table
-    assert table is not None
+    assert table is not None and entry_obj.data_id is not None
     data_obj = dh.get_database_table(TableName(table))[entry_obj.data_id]
 
     audio_files = loader.audio_files(audio_dir.path)

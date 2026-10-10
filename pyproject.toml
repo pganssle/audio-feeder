@@ -23,8 +23,7 @@ dependencies = [
     "jinja2",
     "click>=6.0",
     "progressbar2",
-    "lxml>=5.2.0",
-    "lxml_html_clean>=0.1.0",
+    "nh3>=0.2.14",
     "SQLAlchemy>=2.0",
     "attrs>=22.0",
 ]
@@ -70,7 +69,6 @@ known_third_party=[
     "flask",
     "hypothesis",
     "jinja2",
-    "lxml",
     "ruamel",
     "PIL",
     "progressbar2",

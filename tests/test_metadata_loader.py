@@ -617,3 +617,31 @@ def test_retry_config_from_configuration(monkeypatch: pytest.MonkeyPatch) -> Non
     # Other sources' settings don't apply
     monkeypatch.setattr(configuration, "metadata_retry", {"other_source": custom})
     assert FakeLoader(_always(NOT_FOUND)).retry_config == DEFAULTS
+
+
+@pytest.mark.parametrize(
+    "existing_tags, categories, expected_tags",
+    [
+        (None, ["Fiction", "Horror"], ["fiction", "horror"]),
+        (["classics"], ["Fiction"], ["classics", "fiction"]),
+        (["fiction"], ["Fiction"], ["fiction"]),
+        (["classics"], [], ["classics"]),
+    ],
+)
+def test_categories_added_as_tags(
+    existing_tags: list[str] | None,
+    categories: list[str],
+    expected_tags: list[str],
+) -> None:
+    volume = _volume()
+    volume["volumeInfo"]["categories"] = categories
+    loader = FakeLoader(
+        _always(
+            test_updater.FakeResponse(
+                json_contents={"totalItems": 1, "items": [volume]}
+            )
+        )
+    )
+    book = loader.update_book_info(_book(tags=existing_tags))
+
+    assert sorted(book.tags or []) == expected_tags

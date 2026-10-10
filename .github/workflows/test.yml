@@ -24,6 +24,13 @@ jobs:
     - uses: FedericoCarboni/setup-ffmpeg@v3
       with:
         token: ${{ github.token }}
+    # Our C extension dependencies don't ship wheels for PyPy 8.0's ABI yet,
+    # so on PyPy they have to be built from source.
+    - name: Install build dependencies
+      if: startsWith(matrix.python-version, 'pypy')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxml2-dev libxslt1-dev libjpeg-dev zlib1g-dev
     - name: Install tox
       run: uv tool install tox --with tox-uv
     - name: Run tests

@@ -349,8 +349,8 @@ class GoogleBooksLoader(BookLoader):
                 try:
                     return self._parse_volume_metadata(r_json)
                 except VolumeInformationMissing:
-                    logging.info(f"No volume with google id %s", google_id)
-                    logging.info(f"Using other information for %s - %s", authors, title)
+                    logging.info("No volume with google id %s", google_id)
+                    logging.info("Using other information for %s - %s", authors, title)
 
         # Try pulling the data based on the first existing identifier
         for id_type in ["isbn13", "isbn", "oclc", "lccn"]:

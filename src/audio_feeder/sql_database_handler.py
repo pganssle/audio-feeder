@@ -149,11 +149,11 @@ _CanonicalSequenceType = typing.get_origin(typing.Sequence[None])
 
 
 def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
-    if t == int or t == ID:
+    if t is int or t is ID:
         return sa.Integer
-    elif t == str:
+    elif t is str:
         return sa.String
-    elif t == float:
+    elif t is float:
         return sa.NUMERIC
     elif t == datetime.datetime:
         return AbsoluteDateTime
@@ -180,7 +180,7 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
                     return _FileMetadata
                 if argtypes[0] == pathlib.Path:
                     return _PathCollection
-                if argtypes[0] == str:
+                if argtypes[0] is str:
                     # This may be the problematic "cover images" type
                     nested_type_def = _parse_nested_type(argtypes[1])
                     if nested_type_def == (

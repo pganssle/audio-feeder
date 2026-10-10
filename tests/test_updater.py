@@ -10,9 +10,9 @@ from audio_feeder import metadata_loader as mdl
 from audio_feeder import updater
 
 
-def _lists_to_tuple(l: typing.List[typing.Any]) -> typing.Tuple[typing.Any]:
+def _lists_to_tuple(lst: typing.List[typing.Any]) -> typing.Tuple[typing.Any]:
     return tuple(
-        _lists_to_tuple(item) if isinstance(item, list) else item for item in l
+        _lists_to_tuple(item) if isinstance(item, list) else item for item in lst
     )
 
 

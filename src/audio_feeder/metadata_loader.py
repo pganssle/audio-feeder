@@ -137,6 +137,51 @@ class BookLoader(MetaDataLoader):
         raise NotImplementedError
 
 
+# Encodes the schema for the JSON response, found here:
+# https://developers.google.com/books/docs/v1/reference/volumes#resource
+#
+# We are (mostly) specifying just the parts we care about
+class _QueryResponse(typing.TypedDict, total=False):
+    items: typing.Sequence["_VolumeResponse"]
+    totalItems: int
+
+
+class _VolumeResponse(typing.TypedDict, total=False):
+    kind: str
+    id: str
+    etag: str
+    selfLink: str
+    volumeInfo: "_VolumeInfo"
+
+
+class _VolumeInfo(typing.TypedDict, total=False):
+    title: str
+    subtitle: str
+    authors: typing.Sequence[str]
+    industryIdentifiers: typing.Sequence["_IndustryIdentifier"]
+    publisher: str
+    publishedDate: str
+    description: str
+    pageCount: int
+    categories: typing.Sequence[str]
+    imageLinks: "_ImageLink"
+    language: str
+
+
+class _IndustryIdentifier(typing.TypedDict, total=False):
+    type: str
+    identifier: str
+
+
+class _ImageLink(typing.TypedDict, total=False):
+    smallThumbnail: str
+    thumbnail: str
+    small: str
+    medium: str
+    large: str
+    extraLarge: str
+
+
 class GoogleBooksLoader(BookLoader):
     def __init__(self, *args, **kwargs):
         if "poll_delay" not in kwargs:
@@ -283,46 +328,6 @@ class GoogleBooksLoader(BookLoader):
                 return (fl, cover_images[size], size)
 
         return None, None, None
-
-    # Encodes the schema for the JSON response, found here:
-    # https://developers.google.com/books/docs/v1/reference/volumes#resource
-    #
-    # We are (mostly) specifying just the parts we care about
-    class _QueryResponse(typing.TypedDict, total=False):
-        items: typing.Sequence["_VolumeResponse"]
-        totalItems: int
-
-    class _VolumeResponse(typing.TypedDict, total=False):
-        kind: str
-        id: str
-        etag: str
-        selfLink: str
-        volumeInfo: "_VolumeInfo"
-
-    class _VolumeInfo(typing.TypedDict, total=False):
-        title: str
-        subtitle: str
-        authors: typing.Sequence[str]
-        industryIdentifiers: typing.Sequence["_IndustryIdentifier"]
-        publisher: str
-        publishedDate: str
-        description: str
-        pageCount: int
-        categories: typing.Sequence[str]
-        imageLinks: "_ImageLink"
-        language: str
-
-    class _IndustryIdentifier(typing.TypedDict, total=False):
-        type: str
-        identifier: str
-
-    class _ImageLink(typing.TypedDict, total=False):
-        smallThumbnail: str
-        thumbnail: str
-        small: str
-        medium: str
-        large: str
-        extraLarge: str
 
     @functools.cached_property
     def _google_api_key(self) -> typing.Optional[str]:

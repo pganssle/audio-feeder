@@ -3,6 +3,8 @@ import os
 import pathlib
 import shutil
 import sqlite3
+import subprocess
+import sys
 import typing
 
 import attrs
@@ -240,3 +242,42 @@ def test_sql_migration(
     # now be the latest version.
     with subtests.test("post-save version"):
         assert _get_version(db_out_path) == sdh.DB_VERSION
+
+
+_CONCURRENT_INIT_SCRIPT = """
+import pathlib
+import sys
+import tempfile
+import threading
+
+from audio_feeder import sql_database_handler as sdh
+
+# Switch threads as often as possible to make the race likely
+sys.setswitchinterval(1e-6)
+
+db_loc = pathlib.Path(tempfile.mkdtemp()) / "db.sqlite"
+barrier = threading.Barrier(8)
+errors = []
+
+def make_handler():
+    barrier.wait()
+    try:
+        sdh.SqlDatabaseHandler(db_loc)
+    except Exception as e:
+        errors.append(e)
+
+threads = [threading.Thread(target=make_handler) for _ in range(8)]
+for thread in threads:
+    thread.start()
+for thread in threads:
+    thread.join()
+
+if errors:
+    raise errors[0]
+"""
+
+
+def test_concurrent_sql_handler_creation() -> None:
+    # The table mapping happens once per process, so this needs to be done
+    # in a new interpreter.
+    subprocess.run([sys.executable, "-c", _CONCURRENT_INIT_SCRIPT], check=True)

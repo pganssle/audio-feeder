@@ -79,6 +79,25 @@ known_third_party=[
 multi_line_output=3
 use_parentheses=true
 
+## Ruff
+# ruff is only used for linting; formatting and import sorting are done by
+# black and isort.
+[tool.ruff]
+target-version = "py39"
+extend-exclude = ["src/audio_feeder/data"]
+
+[tool.ruff.lint]
+# Start from a small set of rules (pyflakes, the pycodestyle errors and the
+# equivalents of the pylint checks we were using) rather than enabling
+# everything at once. The set is listed explicitly because ruff's default
+# selection changes between versions.
+select = [
+    "E4", "E7", "E9",  # pycodestyle errors
+    "F",       # pyflakes
+    "PLE",     # pylint errors: invalid __all__, bad format strings, etc.
+    "RET506",  # no-else-raise
+]
+
 ## Coverage
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]
@@ -113,18 +132,3 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 log_level = "DEBUG"
 xfail_strict = true
-
-## Pylint
-[tool.pylint.'MESSAGES CONTROL']
-disable="all"
-enable="""
-    unused-import,
-    unused-variable,
-    unpacking-non-sequence,
-    invalid-all-object,
-    used-before-assignment,
-    no-else-raise,
-    bad-format-character,
-    bad-format-string,
-    bare-except,
-"""

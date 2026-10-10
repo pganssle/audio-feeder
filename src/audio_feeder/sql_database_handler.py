@@ -23,7 +23,7 @@ from . import object_handler as oh
 from ._db_types import ID, Database, Table, TableName
 from ._useful_types import PathType
 
-DB_VERSION: Final[int] = 2
+DB_VERSION: Final[int] = 3
 
 
 class AbsoluteDateTime(sa.types.TypeDecorator):
@@ -52,12 +52,12 @@ class SQLPath(sa.types.TypeDecorator):
 
 class _CustomEncoder(json.JSONEncoder):
     def _is_custom_type(self, obj: Any) -> bool:
-        return isinstance(obj, (os.PathLike, fp.FileInfo))
+        return isinstance(obj, (os.PathLike, fp.FileInfo, oh.MetadataFetchStatus))
 
     def default(self, obj: Any) -> Any:
         if isinstance(obj, os.PathLike):
             return os.fspath(obj)
-        if isinstance(obj, fp.FileInfo):
+        if isinstance(obj, (fp.FileInfo, oh.MetadataFetchStatus)):
             return obj.to_json()
         return super().default(obj)
 
@@ -136,6 +136,18 @@ class _FileMetadata(_CustomJsonType):
         }
 
 
+class _MetadataFetchStatusMapping(_CustomJsonType):
+    def process_result_value(self, value: str | None, dialect):
+        json_obj = self._load_json(value)
+        if json_obj is None:
+            return None
+
+        return {
+            source: oh.MetadataFetchStatus.from_json(status)
+            for source, status in json_obj.items()
+        }
+
+
 # Either a type or (origin, (arguments...)); origins include special forms like
 # `Union`, which are not types.
 _NestedType: TypeAlias = object | tuple[object, tuple["_NestedType", ...]]
@@ -188,6 +200,8 @@ def _map_type(t: type) -> type[sa.sql.type_api.TypeEngine]:
             if type_container == _CanonicalMapType:
                 if argtypes[1] == fp.FileInfo:
                     return _FileMetadata
+                if argtypes[1] == oh.MetadataFetchStatus:
+                    return _MetadataFetchStatusMapping
                 if argtypes[0] == pathlib.Path:
                     return _PathCollection
                 if argtypes[0] is str:
@@ -290,6 +304,15 @@ class SqlDatabaseHandler:
                 sa.text("ALTER TABLE entries ADD COLUMN file_metadata JSON")
             )
             session.execute(sa.text("ALTER TABLE entries ADD COLUMN file_hashes JSON"))
+
+        if old < 3:
+            logging.info(
+                "Database version < 3, adding the metadata_fetch_status column "
+                "to the books table."
+            )
+            session.execute(
+                sa.text("ALTER TABLE books ADD COLUMN metadata_fetch_status JSON")
+            )
 
         session.execute(sa.text(f"PRAGMA user_version={DB_VERSION}"))
 

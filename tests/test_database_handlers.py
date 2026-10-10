@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import multiprocessing
 import os
 import pathlib
@@ -6,7 +7,7 @@ import shutil
 import sqlite3
 import sys
 import threading
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from concurrent import futures
 from typing import Final
 
@@ -209,6 +210,7 @@ def test_update_database_replace(db_handler: _db_types.DatabaseHandler) -> None:
     "db_relpath, expected_version",
     (
         ("db_versions/db_v0.sqlite", 0),
+        ("db_versions/db_v2.sqlite", 2),
         ("db.sqlite", sdh.DB_VERSION),
     ),
 )
@@ -288,3 +290,40 @@ def test_yaml_preserves_file_info(tmp_path: pathlib.Path) -> None:
 
     for entry_id, entry in entries_with_metadata.items():
         assert loaded_entries[entry_id].file_metadata == entry.file_metadata
+
+
+_FETCH_STATUSES: Final[Sequence[oh.MetadataFetchStatus]] = (
+    oh.MetadataFetchStatus(
+        outcome=oh.FetchOutcome.NOT_FOUND,
+        last_attempt=datetime.datetime(2026, 10, 10, 12, tzinfo=datetime.UTC),
+        query_key="0123456789abcdef",
+        failures=3,
+        retry_after=datetime.datetime(2026, 10, 14, 12, tzinfo=datetime.UTC),
+        message="No items found",
+    ),
+    oh.MetadataFetchStatus(
+        outcome=oh.FetchOutcome.UNAVAILABLE,
+        last_attempt=datetime.datetime(2026, 10, 10, 12, tzinfo=datetime.UTC),
+        query_key="0123456789abcdef",
+    ),
+)
+
+
+@pytest.mark.parametrize("status", _FETCH_STATUSES)
+def test_metadata_fetch_status_json_round_trip(status: oh.MetadataFetchStatus) -> None:
+    assert oh.MetadataFetchStatus.from_json(status.to_json()) == status
+
+
+@pytest.mark.parametrize("status", _FETCH_STATUSES)
+def test_save_metadata_fetch_status(
+    db_handler: _db_types.DatabaseHandler, status: oh.MetadataFetchStatus
+) -> None:
+    db_tables = db_handler.load_database()
+    book_id = next(iter(db_tables["books"]))
+    db_tables["books"][book_id] = attrs.evolve(
+        db_tables["books"][book_id], metadata_fetch_status={"google_books": status}
+    )
+    db_handler.save_database(db_tables)
+
+    loaded_book = db_handler.load_database()["books"][book_id]
+    assert loaded_book.metadata_fetch_status == {"google_books": status}

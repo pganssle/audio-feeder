@@ -3,6 +3,7 @@ Book handlers
 """
 
 import datetime
+import enum
 import types
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent import futures
@@ -137,6 +138,76 @@ class Entry(BaseObject):
         return self
 
 
+class FetchOutcome(enum.StrEnum):
+    """Why the most recent attempt to fetch metadata from a source failed."""
+
+    NOT_FOUND = "not_found"
+    """The source answered, but had no matching record."""
+
+    REJECTED = "rejected"
+    """The source refused this specific query (e.g. a 400 Bad Request)."""
+
+    UNAVAILABLE = "unavailable"
+    """The source could not be queried (quota, network or server errors)."""
+
+
+@attrs.frozen
+class MetadataFetchStatus:
+    """Records a failed attempt to fetch metadata for a book from one source.
+
+    Successful fetches are recorded in ``Book.metadata_sources`` instead, and
+    clear any existing failure status for that source.
+    """
+
+    outcome: FetchOutcome = attrs.field(converter=FetchOutcome)
+    last_attempt: datetime.datetime
+    query_key: str = attrs.field(
+        metadata={
+            "comment": "Fingerprint of the information used to query the source. "
+            "If it changes (e.g. the title is corrected), the failure no longer "
+            "applies."
+        }
+    )
+    failures: int = attrs.field(
+        default=0,
+        metadata={
+            "comment": "Number of consecutive NOT_FOUND or REJECTED responses "
+            "for this query_key; this determines how long to wait before retrying."
+        },
+    )
+    retry_after: datetime.datetime | None = None
+    message: str | None = None
+
+    def to_json(self) -> Mapping[str, Any]:
+        out: dict[str, Any] = {
+            "outcome": self.outcome.value,
+            "last_attempt": self.last_attempt.isoformat(),
+            "query_key": self.query_key,
+            "failures": self.failures,
+        }
+        if self.retry_after is not None:
+            out["retry_after"] = self.retry_after.isoformat()
+        if self.message is not None:
+            out["message"] = self.message
+        return out
+
+    @classmethod
+    def from_json(cls, json_obj: Mapping[str, Any]) -> Self:
+        retry_after = json_obj.get("retry_after", None)
+        return cls(
+            outcome=json_obj["outcome"],
+            last_attempt=datetime.datetime.fromisoformat(json_obj["last_attempt"]),
+            query_key=json_obj["query_key"],
+            failures=json_obj.get("failures", 0),
+            retry_after=(
+                datetime.datetime.fromisoformat(retry_after)
+                if retry_after is not None
+                else None
+            ),
+            message=json_obj.get("message", None),
+        )
+
+
 @_register_type("books")
 @attrs.define(slots=False, repr=True)
 class Book(BaseObject):
@@ -154,6 +225,10 @@ class Book(BaseObject):
     goodreads_id: str | None = None
     ASIN: str | None = None
     metadata_sources: Sequence[str] | None = None
+    metadata_fetch_status: Mapping[str, MetadataFetchStatus] | None = attrs.field(
+        default=None,
+        metadata={"comment": "Failed metadata fetch attempts, by source"},
+    )
 
     pub_date: str | None = None
     original_pub_date: str | None = None

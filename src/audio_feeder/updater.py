@@ -243,10 +243,7 @@ class BookDatabaseUpdater:
             )
             for loader in self.metadata_loaders:
                 # Skip anything that's already had metadata loaded for it.
-                if not reload_metadata and (
-                    book_obj.metadata_sources is not None
-                    and loader.source_name in book_obj.metadata_sources
-                ):
+                if not reload_metadata and not loader.needs_update(book_obj):
                     continue
 
                 book_obj = loader.update_book_info(

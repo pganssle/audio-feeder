@@ -1,0 +1,24 @@
+name: Set up ffmpeg
+description: >-
+  Install ffmpeg and ffprobe with FedericoCarboni/setup-ffmpeg, retrying if it
+  fails. On Linux, that action intermittently fails to determine the version of
+  the latest static build ("Failed to read version from readme", or "fetch
+  failed"), so we try up to three times, waiting 15 and then 60 seconds.
+runs:
+  using: composite
+  steps:
+    - uses: FedericoCarboni/setup-ffmpeg@v3
+      id: attempt-1
+      continue-on-error: true
+    - if: steps.attempt-1.outcome == 'failure'
+      shell: bash
+      run: sleep 15
+    - uses: FedericoCarboni/setup-ffmpeg@v3
+      id: attempt-2
+      if: steps.attempt-1.outcome == 'failure'
+      continue-on-error: true
+    - if: steps.attempt-2.outcome == 'failure'
+      shell: bash
+      run: sleep 60
+    - uses: FedericoCarboni/setup-ffmpeg@v3
+      if: steps.attempt-2.outcome == 'failure'

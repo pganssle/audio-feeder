@@ -21,9 +21,7 @@ jobs:
         cache-dependency-glob: |
           pyproject.toml
           tox.ini
-    - uses: FedericoCarboni/setup-ffmpeg@v3
-      with:
-        token: ${{ github.token }}
+    - uses: ./.github/actions/setup-ffmpeg
     # Our C extension dependencies don't ship wheels for PyPy 8.0's ABI yet,
     # so on PyPy they have to be built from source.
     - name: Install build dependencies

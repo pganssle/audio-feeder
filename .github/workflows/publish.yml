@@ -25,10 +25,7 @@ jobs:
     # Caching is deliberately left off here, so that a release build never
     # restores anything written by a pull request build.
     - uses: astral-sh/setup-uv@v10.3.0
-    - uses: FedericoCarboni/setup-ffmpeg@v3
-      id: setup-ffmpeg
-      with:
-        token: ${{ secrets.GH_API_TOKEN }}
+    - uses: ./.github/actions/setup-ffmpeg
     - name: Install tox
       run: uv tool install tox --with tox-uv
     - name: Create tox environments

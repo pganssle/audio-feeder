@@ -3,8 +3,6 @@ Command line scripts
 """
 
 import pathlib
-from collections.abc import Callable, Iterable
-from typing import TypeVar
 
 import click
 
@@ -111,9 +109,7 @@ def update(content_type, reload_metadata, check_hashes, path):
 
     from . import updater as afu
 
-    _T = TypeVar("_T", bound=Iterable)
-
-    def pbar(msg: str) -> Callable[[_T], _T]:
+    def pbar(msg: str) -> afu.ProgressBarFunc:
         # ProgressBar.__call__ yields from the iterable it's passed, but its type
         # hints say it returns the ProgressBar.
         return ProgressBar(widgets=[msg, " ", Bar(), " ", Timer(), " ", ETA()])  # type: ignore[return-value]

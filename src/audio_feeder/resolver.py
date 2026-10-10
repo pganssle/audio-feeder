@@ -132,7 +132,7 @@ class QRGenerator:
 ###
 # Functions
 @cache_utils.register_function_cache("config")
-@functools.lru_cache(None)
+@functools.cache
 def get_resolver() -> Resolver:
     """
     Retrieves a cached singleton Resolver object.

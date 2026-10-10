@@ -11,7 +11,7 @@ import shutil
 import threading
 from collections.abc import Mapping, Sequence
 from concurrent import futures
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Final
 
@@ -212,13 +212,13 @@ class Renderer:
                 }
             )
 
-        with open(self.media_path / ".file_metadata", "wt") as f:
+        with open(self.media_path / ".file_metadata", "w") as f:
             json.dump(json_obj, f)
 
     def read_file_metadata(
         self,
     ) -> Mapping[pathlib.Path, tuple[fp.FileInfo, str]]:
-        with open(self.media_path / ".file_metadata", "rt") as f:
+        with open(self.media_path / ".file_metadata") as f:
             json_obj = json.load(f)
 
         out = {}
@@ -239,9 +239,7 @@ class Renderer:
         return datetime.fromisoformat(last_access_path.read_text())
 
     def update_access_time(self) -> None:
-        (self.media_path / ".last_retrieved").write_text(
-            datetime.now(timezone.utc).isoformat()
-        )
+        (self.media_path / ".last_retrieved").write_text(datetime.now(UTC).isoformat())
 
     def make_hash(self, job: m4btools.RenderJob) -> str:
         # We cannot hash the file because we want to be able to generate the

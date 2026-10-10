@@ -16,7 +16,7 @@ from collections.abc import (
     Sequence,
 )
 from concurrent import futures
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from random import SystemRandom
 from typing import Any, BinaryIO, Final, TypeVar, cast
 
@@ -455,7 +455,7 @@ class BookDatabaseUpdater:
         media_path: pathlib.Path = read_from_config("media_loc").path
         abs_path = media_path / rel_path
         lmtime = os.path.getmtime(abs_path)
-        last_modified = datetime.fromtimestamp(lmtime, tz=timezone.utc)
+        last_modified = datetime.fromtimestamp(lmtime, tz=UTC)
         hashseed = _rand.randint(0, 2**32)
 
         audio_files = [
@@ -466,7 +466,7 @@ class BookDatabaseUpdater:
         entry_obj = oh.Entry(
             id=e_id,
             path=pathlib.Path(rel_path),
-            date_added=datetime.now(timezone.utc),
+            date_added=datetime.now(UTC),
             last_modified=last_modified,
             type="Book",
             table=self.BOOK_TABLE_NAME,

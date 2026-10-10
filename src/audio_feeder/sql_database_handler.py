@@ -33,10 +33,10 @@ class AbsoluteDateTime(sa.types.TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value.tzinfo is None:
             raise TypeError("Cannot bind naïve datetime to AbsoluteDateTime")
-        return value.astimezone(datetime.timezone.utc)
+        return value.astimezone(datetime.UTC)
 
     def process_result_value(self, value, dialect):
-        return value.replace(tzinfo=datetime.timezone.utc)
+        return value.replace(tzinfo=datetime.UTC)
 
 
 class SQLPath(sa.types.TypeDecorator):
@@ -219,12 +219,12 @@ def _attr_to_column(a: attrs.Attribute) -> sa.Column:
     )
 
 
-@functools.lru_cache(None)
+@functools.cache
 def _metadata_object() -> sa.MetaData:
     return sa.MetaData()
 
 
-@functools.lru_cache(None)
+@functools.cache
 def _mapper_registry() -> orm.registry:
     return orm.registry()
 
@@ -233,14 +233,14 @@ _MAP_TABLES_LOCK: Final[threading.Lock] = threading.Lock()
 
 
 def _map_tables() -> Mapping[TableName, sa.Table]:
-    # `lru_cache` doesn't prevent concurrent first calls from both running
+    # `functools.cache` doesn't prevent concurrent first calls from both running
     # the function, and mapping the tables a second time raises an error, so
     # the first call needs to happen under a lock.
     with _MAP_TABLES_LOCK:
         return _map_tables_once()
 
 
-@functools.lru_cache(None)
+@functools.cache
 def _map_tables_once() -> Mapping[TableName, sa.Table]:
     metadata_object = _metadata_object()
     mapper_registry = _mapper_registry()

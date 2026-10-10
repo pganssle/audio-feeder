@@ -9,7 +9,7 @@ from .config import read_from_config
 
 
 @cache_utils.register_function_cache("misc")
-@functools.lru_cache(None)
+@functools.cache
 def _get_handler_by_suffix(suffix: str) -> type[DatabaseHandler]:
     suffix = suffix.lstrip(".")
     if suffix in ("", "yml", "yaml"):

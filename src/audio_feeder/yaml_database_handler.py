@@ -51,7 +51,7 @@ def _file_info_representer(
     return dumper.represent_mapping("!FileInfo", file_info.to_json())
 
 
-@functools.lru_cache(None)
+@functools.cache
 def _loader() -> type[yaml.SafeLoader]:
     class CustomSafeLoader(yaml.SafeLoader):
         pass
@@ -62,7 +62,7 @@ def _loader() -> type[yaml.SafeLoader]:
     return CustomSafeLoader
 
 
-@functools.lru_cache(None)
+@functools.cache
 def _dumper() -> type[yaml.SafeDumper]:
     class CustomSafeDumper(yaml.SafeDumper):
         pass
@@ -108,7 +108,7 @@ class YamlDatabaseHandler:
         type_name = oh.TABLE_MAPPING[table_name]
         table_type = oh.TYPE_MAPPING[type_name]
         table_loc = self._get_table_loc(table_name)
-        with open(table_loc, "r") as yf:
+        with open(table_loc) as yf:
             table_file = yaml.load(yf, Loader=_loader())
 
         assert table_file["db_version"] == DB_VERSION

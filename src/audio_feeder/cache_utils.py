@@ -11,7 +11,7 @@ _FUNCTION_CACHES: MutableMapping[str, MutableSequence[Any]] = {}
 _T = TypeVar("_T")
 
 
-@functools.lru_cache(None)
+@functools.cache
 def register_function_cache(cache_type: str) -> Callable[[_T], _T]:
     def registration_decorator(f: _T) -> _T:
         _FUNCTION_CACHES.setdefault(cache_type, []).append(f)

@@ -62,9 +62,7 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
             a request is made early.
         """
         if self._last_poll is not None:
-            time_elapsed = (
-                datetime.datetime.now(datetime.timezone.utc) - self._last_poll
-            )
+            time_elapsed = datetime.datetime.now(datetime.UTC) - self._last_poll
 
             remaining_time = (self._poll_delay - time_elapsed) / _SECONDS
 
@@ -75,7 +73,7 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
                 time.sleep(remaining_time)
 
         old_poll = self._last_poll
-        self._last_poll = datetime.datetime.now(datetime.timezone.utc)
+        self._last_poll = datetime.datetime.now(datetime.UTC)
 
         try:
             return self.make_request_raw(*args, **kwargs)

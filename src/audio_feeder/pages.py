@@ -7,7 +7,7 @@ import os
 import textwrap
 import threading
 from collections.abc import Mapping, MutableSequence, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import cast
 
 import flask
@@ -44,7 +44,7 @@ def main_index():
 
 
 @cache_utils.register_function_cache("books")
-@functools.lru_cache(None)
+@functools.cache
 def _book_entry_cache():
     return {}
 
@@ -141,7 +141,7 @@ def _render_rss_feed(entry_obj: oh.Entry, data_obj: ot.SchemaObject, feed_items)
     channel_title = rendered_page["name"]
     channel_desc = rendered_page["description"]
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     build_date = rf.format_datetime(entry_obj.last_modified or now)
     pub_date = rf.format_datetime(entry_obj.date_added or now)
 
@@ -480,7 +480,7 @@ def get_entry_objects(entry_list):
 
 
 @cache_utils.register_function_cache("misc")
-@functools.lru_cache(None)
+@functools.cache
 def get_sort_options() -> Mapping[str, str]:
     return {
         "Date Added": "date_added",
@@ -607,10 +607,8 @@ def get_css_links() -> Sequence[str]:
         )
 
     css_locs.extend(
-        (
-            os.path.join(css_loc, css_file)
-            for css_file in read_from_config("extra_css_files")
-        )
+        os.path.join(css_loc, css_file)
+        for css_file in read_from_config("extra_css_files")
     )
 
     css_paths = [resolver.resolve_static(css_relpath).url for css_relpath in css_locs]

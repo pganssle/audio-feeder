@@ -35,7 +35,7 @@ class FakeResponse:
 def load_response_mapping(
     responses: pathlib.Path,
 ) -> Mapping[SessionKey, FakeResponse]:
-    with open(responses, "rt") as f:
+    with open(responses) as f:
         session_responses = json.load(f)
 
     return {

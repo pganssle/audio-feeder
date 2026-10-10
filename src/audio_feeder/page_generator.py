@@ -141,7 +141,7 @@ class EntryRenderer:
             # Load from resource
             return Template(resources.get_text_resource(resource_default, name))
         else:
-            with open(template_loc, "rt") as f:
+            with open(template_loc) as f:
                 return Template(f.read())
 
     def load_type(self, type_name):

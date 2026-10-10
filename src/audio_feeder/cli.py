@@ -168,7 +168,7 @@ def install(config_dir, config_name):
             else:
                 break
         else:
-            raise IOError("Failed to create any configuration directories.")
+            raise OSError("Failed to create any configuration directories.")
 
     config_name = config_name or config.CONFIG_NAMES[0]
     config_loc = os.path.join(config_dir, config_name)
@@ -317,7 +317,7 @@ def update_missing_books(**kwargs):
 
     input_fpath = kwargs["input"]
 
-    with open(input_fpath, "r") as f:
+    with open(input_fpath) as f:
         missing_db = yaml.safe_load(f)
 
     # Fields we're expecting to find

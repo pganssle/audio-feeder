@@ -114,7 +114,9 @@ def update(content_type, reload_metadata, check_hashes, path):
     _T = typing.TypeVar("_T", bound=typing.Iterable)
 
     def pbar(msg: str) -> typing.Callable[[_T], _T]:
-        return ProgressBar(widgets=[msg, " ", Bar(), " ", Timer(), " ", ETA()])
+        # ProgressBar.__call__ yields from the iterable it's passed, but its type
+        # hints say it returns the ProgressBar.
+        return ProgressBar(widgets=[msg, " ", Bar(), " ", Timer(), " ", ETA()])  # type: ignore[return-value]
 
     afu.update(
         content_type=content_type,

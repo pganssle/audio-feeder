@@ -420,7 +420,7 @@ class GoogleBooksLoader(BookLoader):
 
     def _retrieve_search_results(
         self, query_list: typing.Sequence[str], **params
-    ) -> _VolumeResponse:
+    ) -> _QueryResponse:
         params_base = {"orderBy": "relevance"}
         params_base.update(params)
         params = params_base

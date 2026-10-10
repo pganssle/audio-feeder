@@ -877,7 +877,8 @@ def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
     if img.mode != "RGB":
         img = img.convert("RGB")
 
-    img.thumbnail((w * scale, h * scale))
+    # Pillow floors the size anyway, but its type hints require int.
+    img.thumbnail((int(w * scale), int(h * scale)))
     img.save(thumb_loc)
 
 

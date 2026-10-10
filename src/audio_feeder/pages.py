@@ -521,7 +521,9 @@ def get_sortable_args(args):
             per_page_arg = args.get("perPage")
             per_page = int(per_page_arg)
         except ValueError:
-            logging.error("Number per page %s must be convertable to int.", perPage)
+            logging.error(
+                "Number per page %s must be convertable to int.", per_page_arg
+            )
 
     per_page = per_page or per_page_dflt
 

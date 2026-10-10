@@ -271,3 +271,20 @@ def test_concurrent_sql_handler_creation(tmp_path: pathlib.Path) -> None:
     spawn = multiprocessing.get_context("spawn")
     with futures.ProcessPoolExecutor(1, mp_context=spawn) as executor:
         executor.submit(_create_handlers_concurrently, tmp_path / "db.sqlite").result()
+
+
+def test_yaml_preserves_file_info(tmp_path: pathlib.Path) -> None:
+    db = sdh.SqlDatabaseHandler(DATA_PATH / "db.sqlite").load_database()
+    entries_with_metadata = {
+        entry_id: entry
+        for entry_id, entry in db["entries"].items()
+        if entry.file_metadata
+    }
+    assert entries_with_metadata
+
+    yaml_handler = ydh.YamlDatabaseHandler(tmp_path / "yaml_db")
+    yaml_handler.save_database(db)
+    loaded_entries = yaml_handler.load_database()["entries"]
+
+    for entry_id, entry in entries_with_metadata.items():
+        assert loaded_entries[entry_id].file_metadata == entry.file_metadata

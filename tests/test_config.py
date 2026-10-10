@@ -1,3 +1,4 @@
+import datetime
 import os
 import pathlib
 
@@ -66,3 +67,34 @@ def test_config_bad_replacement(tmp_path: pathlib.Path) -> None:
             config_loc,
             database_loc=config.TemplatePath("{{BADLOC}}", "database/db.sqlite"),
         )
+
+
+def test_metadata_retry_from_file(tmp_path: pathlib.Path) -> None:
+    config_loc = tmp_path / "config.yml"
+    config_loc.write_text(
+        "metadata_retry:\n"
+        "  google_books:\n"
+        "    quota_cooldown: {hours: 6}\n"
+        "    request_timeout: 10\n"
+        "    request_retries: 5\n"
+    )
+    conf = config.Configuration.from_file(config_loc)
+
+    assert conf.metadata_retry == {
+        "google_books": config.MetadataRetryConfig(
+            quota_cooldown=datetime.timedelta(hours=6),
+            request_timeout=datetime.timedelta(seconds=10),
+            request_retries=5,
+        )
+    }
+
+    # Settings that aren't specified keep their defaults
+    defaults = config.MetadataRetryConfig()
+    google_books = conf.metadata_retry["google_books"]
+    assert google_books.not_found_retry_base == defaults.not_found_retry_base
+
+    # The settings survive a round trip through the file
+    round_trip_loc = tmp_path / "round_trip.yml"
+    conf.to_file(round_trip_loc)
+    round_trip = config.Configuration.from_file(round_trip_loc)
+    assert round_trip.metadata_retry == conf.metadata_retry

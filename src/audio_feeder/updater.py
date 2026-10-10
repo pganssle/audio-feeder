@@ -233,6 +233,8 @@ class BookDatabaseUpdater:
 
         pbar_resolved: ProgressBarFunc = pbar if pbar is not None else _pbar_stub
 
+        skipped_unavailable: MutableMapping[str, int] = {}
+
         # Go through and try to update metadata.
         for book_id, book_obj in pbar_resolved(book_table.items()):
             logging.debug(
@@ -242,9 +244,17 @@ class BookDatabaseUpdater:
                 book_obj.title,
             )
             for loader in self.metadata_loaders:
-                # Skip anything that's already had metadata loaded for it.
+                # Skip anything that's already had metadata loaded for it, or
+                # that recently failed and is waiting to be retried.
                 if not reload_metadata and not loader.needs_update(book_obj):
                     continue
+
+                # If we've hit a quota limit or the service is down, the loader
+                # will just mark the book to be retried on the next update.
+                if not loader.available():
+                    skipped_unavailable[loader.source_name] = (
+                        skipped_unavailable.get(loader.source_name, 0) + 1
+                    )
 
                 book_obj = loader.update_book_info(
                     book_obj, overwrite_existing=reload_metadata
@@ -254,7 +264,7 @@ class BookDatabaseUpdater:
                 """
                 for entry_id in book_to_entry.get(book_id, []):
                     entry_obj = entry_table[entry_id]
-                    entry_obj.last_modified = datetime.now(timezone.utc)
+                    entry_obj.last_modified = datetime.now(UTC)
                 """
             # Try and assign priority for the descriptions
             if book_obj.descriptions is None:
@@ -274,6 +284,14 @@ class BookDatabaseUpdater:
                 book_obj.description = clean_html(book_obj.description)
 
             book_table[book_id] = book_obj
+
+        for source_name, num_skipped in skipped_unavailable.items():
+            logging.warning(
+                "%s unavailable, skipped %d books; they will be retried on the "
+                "next update.",
+                source_name,
+                num_skipped,
+            )
 
         return database
 

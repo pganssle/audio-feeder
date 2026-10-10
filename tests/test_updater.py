@@ -23,10 +23,14 @@ SessionJson: TypeAlias = Mapping[str, Any]
 
 class FakeResponse:
     def __init__(
-        self, status_code: int = 200, json_contents: SessionJson | None = None
+        self,
+        status_code: int = 200,
+        json_contents: SessionJson | None = None,
+        headers: Mapping[str, str] | None = None,
     ):
         self.status_code = status_code
         self._json_contents = json_contents
+        self.headers = headers or {}
 
     def json(self) -> SessionJson | None:
         return self._json_contents
@@ -59,7 +63,7 @@ class FakeGoogleBooksLoader(mdl.GoogleBooksLoader):
         (url,) = args
 
         params = kwargs["params"]
-        assert not (kwargs.keys() - {"params"})
+        assert not (kwargs.keys() - {"params", "timeout"})
 
         key = (url, tuple(params.items()))
 

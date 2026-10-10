@@ -3,6 +3,7 @@ Configuration manager - handles the application's global configuration.
 """
 
 import base64
+import datetime
 import functools
 import graphlib
 import hashlib
@@ -83,6 +84,113 @@ def _path_converter(s):
         raise TypeError(f"Wrong type for value: {type(s)}")
 
 
+def _duration(
+    value: datetime.timedelta | Mapping[str, float] | float,
+) -> datetime.timedelta:
+    """Convert a duration from the configuration file.
+
+    Durations are either a number of seconds, or a mapping of keyword arguments
+    to :class:`datetime.timedelta`, e.g. ``{hours: 1}``.
+    """
+    if isinstance(value, datetime.timedelta):
+        return value
+    if isinstance(value, Mapping):
+        return datetime.timedelta(**value)
+    return datetime.timedelta(seconds=value)
+
+
+@attrs.frozen
+class MetadataRetryConfig:
+    """When to retry fetching metadata from a source after a failure."""
+
+    not_found_retry_base: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(days=1),
+        converter=_duration,
+        metadata={
+            "comment": "When a source has nothing for a book (or rejects the "
+            "query), wait this long before asking again, doubling with each "
+            "consecutive failure. Changing the information used to look up the "
+            "book (e.g. fixing a typo in the title) resets this."
+        },
+    )
+    not_found_retry_max: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(days=32),
+        converter=_duration,
+        metadata={"comment": "The longest to wait before retrying a book."},
+    )
+    quota_cooldown: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(hours=1),
+        converter=_duration,
+        metadata={
+            "comment": "How long to stop querying a source after its quota is "
+            "exhausted. Books that weren't fetched are retried on the next "
+            "update after that."
+        },
+    )
+    unavailable_cooldown: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(minutes=5),
+        converter=_duration,
+        metadata={
+            "comment": "How long to stop querying a source after network or "
+            "server errors."
+        },
+    )
+    request_retries: int = attrs.field(
+        default=3,
+        metadata={
+            "comment": "How many times to retry a request after a per-minute "
+            "rate limit or a server error, before treating the source as "
+            "unavailable."
+        },
+    )
+    request_retry_base: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(seconds=2),
+        converter=_duration,
+        metadata={
+            "comment": "The delay before retrying a request, doubling with each "
+            "retry (with random jitter)."
+        },
+    )
+    request_retry_max: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(seconds=30),
+        converter=_duration,
+        metadata={
+            "comment": "The longest to wait before retrying a request. If the "
+            "source asks us to wait longer than this, it's treated as "
+            "unavailable instead."
+        },
+    )
+    request_timeout: datetime.timedelta = attrs.field(
+        default=datetime.timedelta(seconds=30),
+        converter=_duration,
+        metadata={"comment": "How long to wait for a response to a request."},
+    )
+
+    def to_yaml(self) -> Mapping[str, float | int]:
+        """This configuration in the format used by the configuration file."""
+        return {
+            field.name: (
+                value.total_seconds()
+                if isinstance(value := getattr(self, field.name), datetime.timedelta)
+                else value
+            )
+            for field in attrs.fields(type(self))
+        }
+
+
+def _metadata_retry(
+    value: Mapping[str, MetadataRetryConfig | Mapping[str, Any]],
+) -> Mapping[str, MetadataRetryConfig]:
+    return {
+        source: (
+            config
+            if isinstance(config, MetadataRetryConfig)
+            else MetadataRetryConfig(**config)
+        )
+        for source, config in value.items()
+    }
+
+
 @attrs.define(slots=False)
 class Configuration:
     config_location: Path
@@ -143,6 +251,13 @@ class Configuration:
 
     # API Keys
     google_api_key: str | None = None
+
+    # When to retry fetching metadata after failures, by source (e.g.
+    # `google_books`); see MetadataRetryConfig for the settings. Sources
+    # without an entry, and settings that aren't specified, use the defaults.
+    metadata_retry: Mapping[str, MetadataRetryConfig] = attrs.field(
+        factory=dict, converter=_metadata_retry
+    )
 
     _ReplacementsMapType = Mapping[str, str]
     REPLACEMENTS: Final[_ReplacementsMapType] = {
@@ -229,6 +344,8 @@ class Configuration:
                 value = os.fspath(value)
             elif isinstance(value, tuple):
                 value = list(value)
+            elif field.name == "metadata_retry":
+                value = {source: config.to_yaml() for source, config in value.items()}
 
             out_dict[field.name] = value
 
@@ -416,6 +533,11 @@ def get_configuration() -> Configuration:
     this returns the original configuration object.
     """
     return init_config()
+
+
+def metadata_retry_config(source_name: str) -> MetadataRetryConfig:
+    """The retry configuration for a metadata source."""
+    return read_from_config("metadata_retry").get(source_name, MetadataRetryConfig())
 
 
 def read_from_config(field: str) -> Any:

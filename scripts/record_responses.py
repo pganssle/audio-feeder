@@ -29,15 +29,19 @@ class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
         (url,) = args
 
         params = kwargs["params"]
-        assert not (kwargs.keys() - {"params"})
-
-        key = (url, tuple(params.items()))
-        if key in self._session_recording:
-            raise ValueError(f"Duplicate key: {key}")
+        assert not (kwargs.keys() - {"params", "timeout"})
 
         resp = super().make_request_raw(*args, **kwargs)
 
-        self._session_recording[key] = resp.json()
+        # Only successful responses are recorded: errors are retried, so they
+        # would be recorded for the same request as the eventual response, and
+        # error messages can include details of the Google Cloud project.
+        if resp.status_code == 200:
+            key = (url, tuple(params.items()))
+            if key in self._session_recording:
+                raise ValueError(f"Duplicate key: {key}")
+            self._session_recording[key] = resp.json()
+
         return resp
 
     @property

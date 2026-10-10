@@ -19,21 +19,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-    - uses: FedericoCarboni/setup-ffmpeg@v2
+    # Caching is deliberately left off here, so that a release build never
+    # restores anything written by a pull request build.
+    - uses: astral-sh/setup-uv@v10.3.0
+    - uses: FedericoCarboni/setup-ffmpeg@v3
       id: setup-ffmpeg
       with:
         token: ${{ secrets.GH_API_TOKEN }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -U tox
+    - name: Install tox
+      run: uv tool install tox --with tox-uv
     - name: Create tox environments
       run: |
         tox -p -e py,build,release --notest

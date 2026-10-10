@@ -5,7 +5,7 @@ Page generator
 import math
 import os
 import string
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 from jinja2 import Template
 
@@ -178,7 +178,7 @@ class NavItem:
         self.url = base_url
 
         if base_url is not None and params is not None:
-            self.url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
+            self.url += "?" + urlencode(params)
 
     def display_only(self):
         """

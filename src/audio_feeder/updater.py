@@ -18,7 +18,7 @@ from collections.abc import (
 from concurrent import futures
 from datetime import UTC, datetime
 from random import SystemRandom
-from typing import Any, BinaryIO, Final, TypeVar, cast
+from typing import Any, BinaryIO, Final, Protocol, TypeVar, cast
 
 from PIL import Image
 
@@ -36,11 +36,11 @@ from .resolver import get_resolver
 _rand = SystemRandom()
 _T = TypeVar("_T")
 
-# This technically violates PEP 484, but it works. See
-# https://github.com/python/mypy/issues/14023 for more details.
-_PBar = TypeVar(
-    "_PBar", bound=Callable[[Iterable[_T]], Iterable[_T]]  # type: ignore[valid-type]
-)
+
+class ProgressBarFunc(Protocol):
+    """A function that wraps an iterable, e.g. to display progress."""
+
+    def __call__(self, iterable: Iterable[_T], /) -> Iterable[_T]: ...
 
 
 class IDHandler:
@@ -222,7 +222,7 @@ class BookDatabaseUpdater:
     def update_book_metadata(
         self,
         database: MutableDatabase,
-        pbar: _PBar | None = None,
+        pbar: ProgressBarFunc | None = None,
         reload_metadata: bool = False,
     ) -> MutableDatabase:
         book_table = cast(MutableMapping[ID, oh.Book], database[self.table])
@@ -231,12 +231,7 @@ class BookDatabaseUpdater:
             x.source_name for x in self.metadata_loaders
         )
 
-        if pbar is None:
-            # No idea why this is necessary, but support for this sort of thing
-            # is super sketchy anyway, so 🤷
-            pbar_resolved: _PBar = cast(_PBar, _pbar_stub)
-        else:
-            pbar_resolved = pbar
+        pbar_resolved: ProgressBarFunc = pbar if pbar is not None else _pbar_stub
 
         # Go through and try to update metadata.
         for book_id, book_obj in pbar_resolved(book_table.items()):
@@ -763,7 +758,7 @@ def _clear_update_output() -> None:
 
 def _update_books(
     update_path: str,
-    progress_bar: _PBar | None = None,
+    progress_bar: ProgressBarFunc | None = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:
@@ -820,7 +815,7 @@ def _update_books(
 def update(
     content_type: str | None = None,
     path: str | None = None,
-    progress_bar: _PBar | None = None,
+    progress_bar: ProgressBarFunc | None = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:

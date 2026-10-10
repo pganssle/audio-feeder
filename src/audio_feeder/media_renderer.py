@@ -12,6 +12,7 @@ import threading
 import typing
 from concurrent import futures
 from datetime import datetime, timezone
+from enum import StrEnum
 
 from . import _object_types as ot
 from . import database_handler as dh
@@ -19,7 +20,6 @@ from . import directory_parser as dp
 from . import file_probe as fp
 from . import hash_utils, m4btools
 from . import object_handler as oh
-from ._compat import StrEnum
 from ._db_types import TableName
 from .resolver import get_resolver
 

@@ -13,14 +13,12 @@ description = """
 audio-feeder provides a server that serves your audiobooks and other audio
 content as RSS feeds, with rich metadata, and provides a web frontent for navigation."""
 license = {text = "Apache 2.0"}
-requires-python = ">= 3.9"
+requires-python = ">= 3.11"
 dependencies = [
     "Flask>=0.11.1",
     "pyyaml>=6.0",
     "qrcode>=5.3",
-    "Pillow>=3.4.2; python_version>='3.10'",
-    # 11.0.0 is the last version with wheels for PyPy 3.9
-    "Pillow>=3.4.2,<11.1; python_version<'3.10'",
+    "Pillow>=3.4.2",
     "requests>=2.12.4",
     "jinja2",
     "click>=6.0",
@@ -29,8 +27,6 @@ dependencies = [
     "lxml_html_clean>=0.1.0",
     "SQLAlchemy>=2.0",
     "attrs>=22.0",
-    "backports.strenum>=1.1.1;python_version<'3.11'",
-    "typing_extensions>=4.0.0;python_version<'3.11'",
 ]
 classifiers = [
     "Development Status :: 1 - Planning",
@@ -40,9 +36,14 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Free Threading :: 2 - Beta",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version", "readme"]
 
@@ -84,7 +85,7 @@ use_parentheses=true
 # ruff is only used for linting; formatting and import sorting are done by
 # black and isort.
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 extend-exclude = ["src/audio_feeder/data"]
 
 [tool.ruff.lint]

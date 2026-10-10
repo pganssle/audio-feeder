@@ -3,14 +3,9 @@
 import hashlib
 import importlib.resources
 import os
-import sys
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Callable, Iterable, Optional, Protocol, Union
-
-if sys.version_info >= (3, 11):
-    from importlib.resources.abc import Traversable
-else:  # pragma: nocover
-    from importlib.abc import Traversable
 
 
 class _Comparable(Protocol):

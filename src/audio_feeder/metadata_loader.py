@@ -6,11 +6,14 @@ import abc
 import copy
 import datetime
 import functools
+import hashlib
 import io
+import json
 import logging
 import os
+import random
 import time
-from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Mapping, MutableMapping, Sequence, Set
 from typing import Any, BinaryIO, Final, TypedDict
 
 import attrs
@@ -21,6 +24,29 @@ from .config import read_from_config
 
 LOCAL_DATA_SOURCE: Final[str] = "local"
 _SECONDS: Final[datetime.timedelta] = datetime.timedelta(seconds=1)
+
+# When a source says it has nothing for a book (or rejects the query), wait
+# this long before asking again, doubling with each consecutive failure up to
+# the maximum. Changing the information used to query (e.g. fixing a typo in
+# the title) resets this.
+NOT_FOUND_RETRY_BASE: Final[datetime.timedelta] = datetime.timedelta(days=1)
+NOT_FOUND_RETRY_MAX: Final[datetime.timedelta] = datetime.timedelta(days=32)
+
+# When a source is unavailable (quota exhausted, network or server errors), stop
+# querying it for this long. Books that were not fetched are retried on the
+# next update after that.
+QUOTA_COOLDOWN: Final[datetime.timedelta] = datetime.timedelta(hours=1)
+UNAVAILABLE_COOLDOWN: Final[datetime.timedelta] = datetime.timedelta(minutes=5)
+
+# Retries for an individual request (per-minute rate limits, server errors).
+REQUEST_RETRIES: Final[int] = 3
+REQUEST_RETRY_BASE: Final[datetime.timedelta] = datetime.timedelta(seconds=2)
+REQUEST_RETRY_MAX: Final[datetime.timedelta] = datetime.timedelta(seconds=30)
+REQUEST_TIMEOUT: Final[datetime.timedelta] = datetime.timedelta(seconds=30)
+
+
+def _now() -> datetime.datetime:
+    return datetime.datetime.now(datetime.UTC)
 
 
 class MetaDataLoader(metaclass=abc.ABCMeta):
@@ -38,6 +64,40 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
             datetime.timedelta(seconds=poll_delay)
             if not isinstance(poll_delay, datetime.timedelta)
             else poll_delay
+        )
+        self._unavailable_until: datetime.datetime | None = None
+        self._unavailable_reason: str | None = None
+
+    def available(self, now: datetime.datetime | None = None) -> bool:
+        """Whether this source can currently be queried.
+
+        After a quota error or repeated server / network errors, the source is
+        marked unavailable for a cooldown period so that we stop sending it
+        requests that are going to fail anyway.
+        """
+        if self._unavailable_until is None:
+            return True
+
+        return (now or _now()) >= self._unavailable_until
+
+    @property
+    def unavailable_reason(self) -> str | None:
+        """The error that made this source unavailable, if it is unavailable."""
+        if self.available():
+            return None
+        return self._unavailable_reason
+
+    def _mark_unavailable(self, error: "ServiceUnavailable") -> None:
+        cooldown = (
+            QUOTA_COOLDOWN if isinstance(error, QuotaExceeded) else UNAVAILABLE_COOLDOWN
+        )
+        self._unavailable_until = _now() + cooldown
+        self._unavailable_reason = str(error)
+        logging.warning(
+            "Not querying %s until %s: %s",
+            self.source_name,
+            self._unavailable_until.isoformat(timespec="seconds"),
+            error,
         )
 
     @property
@@ -111,23 +171,110 @@ class BookLoader(MetaDataLoader):
             "google_id",
         )
 
-    def retrieve_volume(self, google_id):
-        r = self.make_request(os.path.join(self.api_endpoint, google_id))
+    def needs_update(
+        self, book_obj: oh.Book, now: datetime.datetime | None = None
+    ) -> bool:
+        """Whether metadata should be (re-)fetched from this source.
 
-        return r.json()
+        This is false if the metadata has already been retrieved, or if a
+        recent attempt for the same query failed and we are still waiting to
+        retry it.
+        """
+        if not self._missing_metadata(book_obj):
+            return False
 
-    def needs_update(self, book_obj: oh.Book) -> bool:
-        """Whether metadata should be fetched from this source."""
-        return self._missing_metadata(book_obj)
+        status = (book_obj.metadata_fetch_status or {}).get(self.source_name, None)
+        if (
+            status is not None
+            and status.retry_after is not None
+            and status.query_key == self._query_key(book_obj)
+        ):
+            return (now or _now()) >= status.retry_after
+
+        return True
 
     def _missing_metadata(self, book_obj: oh.Book) -> bool:
         return self.source_name not in (book_obj.metadata_sources or ())
 
+    def _query_params(self, book_obj: oh.Book) -> Mapping[str, Any]:
+        """The information about a book that is used to look it up."""
+        params = {
+            k: getattr(book_obj, k, None)
+            for k in ("title", "authors", "issn") + tuple(self.valid_identifiers)
+        }
+        return {k: v for k, v in params.items() if v is not None}
+
+    def _query_key(self, book_obj: oh.Book) -> str:
+        params_json = json.dumps(self._query_params(book_obj), sort_keys=True)
+        return hashlib.sha256(params_json.encode("utf-8")).hexdigest()[0:16]
+
+    def _record_failure(
+        self,
+        book_obj: oh.Book,
+        outcome: oh.FetchOutcome,
+        message: str,
+        now: datetime.datetime,
+    ) -> oh.Book:
+        """Return a copy of ``book_obj`` with a failed fetch attempt recorded.
+
+        NOT_FOUND and REJECTED failures say something about the book (or how
+        we're looking it up), so they schedule a retry with exponential
+        backoff. UNAVAILABLE failures say nothing about the book, so they can
+        be retried as soon as the source is available again.
+        """
+        query_key = self._query_key(book_obj)
+        fetch_status = dict(book_obj.metadata_fetch_status or {})
+        previous = fetch_status.get(self.source_name, None)
+        previous_failures = (
+            previous.failures
+            if previous is not None and previous.query_key == query_key
+            else 0
+        )
+
+        if outcome == oh.FetchOutcome.UNAVAILABLE:
+            failures = previous_failures
+            retry_after = None
+        else:
+            failures = previous_failures + 1
+            retry_after = now + min(
+                NOT_FOUND_RETRY_BASE * 2 ** (failures - 1), NOT_FOUND_RETRY_MAX
+            )
+
+        fetch_status[self.source_name] = oh.MetadataFetchStatus(
+            outcome=outcome,
+            last_attempt=now,
+            query_key=query_key,
+            failures=failures,
+            retry_after=retry_after,
+            message=message,
+        )
+        return attrs.evolve(book_obj, metadata_fetch_status=fetch_status)
+
+    def _cleared_fetch_status(
+        self, book_obj: oh.Book
+    ) -> Mapping[str, oh.MetadataFetchStatus] | None:
+        if book_obj.metadata_fetch_status is None:
+            return None
+
+        return {
+            source: status
+            for source, status in book_obj.metadata_fetch_status.items()
+            if source != self.source_name
+        } or None
+
     @abc.abstractmethod
     def update_book_info(
-        self, book_obj: oh.Book, overwrite_existing: bool = False
+        self,
+        book_obj: oh.Book,
+        overwrite_existing: bool = False,
+        *,
+        now: datetime.datetime | None = None,
     ) -> oh.Book:
-        # TODO: Implement in a generic way?
+        """Fetch metadata for ``book_obj``, returning an updated copy.
+
+        If the fetch fails, the failure is recorded in the returned book's
+        ``metadata_fetch_status`` rather than raised.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -209,6 +356,53 @@ class GoogleBooksLoader(BookLoader):
 
         return super().make_request(*args, **kwargs)
 
+    def _get_json(self, url: str, params: Mapping[str, str] | None = None) -> Any:
+        """Make a request to the API and return the decoded response body.
+
+        Rate limit and server errors are retried with exponential backoff; if
+        they persist, or if the daily quota is exhausted, this source is marked
+        unavailable and :class:`ServiceUnavailable` is raised. Other errors
+        raise :class:`RequestFailed`.
+        """
+        attempt = 0
+        while True:
+            if not self.available():
+                raise ServiceUnavailable(
+                    f"{self.source_name} is unavailable: {self._unavailable_reason}"
+                )
+
+            try:
+                r = self.make_request(
+                    url,
+                    params=dict(params or {}),
+                    timeout=REQUEST_TIMEOUT / _SECONDS,
+                )
+            except requests.RequestException as e:
+                error: MetadataServiceError = ServiceUnavailable(
+                    f"Error connecting to {self.source_name}: {e}"
+                )
+            else:
+                if r.status_code == 200:
+                    return r.json()
+                error = _classify_google_error(r)
+
+            if not isinstance(error, ServiceUnavailable):
+                raise error
+
+            retry_delay = _retry_delay(error, attempt)
+            if retry_delay is None:
+                self._mark_unavailable(error)
+                raise error
+
+            logging.info(
+                "Error from %s, retrying in %0.1fs: %s",
+                self.source_name,
+                retry_delay / _SECONDS,
+                error,
+            )
+            time.sleep(retry_delay / _SECONDS)
+            attempt += 1
+
     def _missing_metadata(self, book_obj: oh.Book) -> bool:
         # A bug in earlier versions dropped the description from successful
         # fetches when a previous attempt had failed; those books have this
@@ -219,41 +413,51 @@ class GoogleBooksLoader(BookLoader):
         )
 
     def update_book_info(
-        self, book_obj: oh.Book, overwrite_existing: bool = False
+        self,
+        book_obj: oh.Book,
+        overwrite_existing: bool = False,
+        *,
+        now: datetime.datetime | None = None,
     ) -> oh.Book:
-        if not overwrite_existing and not self.needs_update(book_obj):
+        now = now or _now()
+        if not overwrite_existing and not self.needs_update(book_obj, now=now):
             return book_obj
 
-        get_volume_params = {
-            k: getattr(book_obj, k, None)
-            for k in (
-                "title",
-                "authors",
-                "isbn",
-                "isbn13",
-                "oclc",
-                "lccn",
-                "issn",
-                "google_id",
+        if not self.available():
+            return self._record_failure(
+                book_obj,
+                oh.FetchOutcome.UNAVAILABLE,
+                f"Not attempted: {self._unavailable_reason}",
+                now,
             )
-        }
 
-        get_volume_params = {
-            k: v for k, v in get_volume_params.items() if v is not None
-        }
+        authors = " & ".join(book_obj.authors) if book_obj.authors else None
+        book_desc = f"{book_obj.id}: {authors} - {book_obj.title}"
 
         try:
-            md = self._get_volume(**get_volume_params)
-            if md is None:
-                return book_obj
-        except BookNotFound:
-            logging.error(
-                "Could not load metadata for book %d: %s - %s",
-                book_obj.id,
-                " & ".join(book_obj.authors) if book_obj.authors else None,
-                book_obj.title,
+            md = self._get_volume(**self._query_params(book_obj))
+        except BookNotFound as e:
+            logging.warning(
+                "Could not find %s for book %s", self.source_name, book_desc
             )
-            return book_obj
+            return self._record_failure(
+                book_obj, oh.FetchOutcome.NOT_FOUND, str(e), now
+            )
+        except RequestFailed as e:
+            logging.error(
+                "%s rejected query for book %s: %s", self.source_name, book_desc, e
+            )
+            return self._record_failure(book_obj, oh.FetchOutcome.REJECTED, str(e), now)
+        except ServiceUnavailable as e:
+            logging.warning(
+                "Could not load metadata from %s for book %s: %s",
+                self.source_name,
+                book_desc,
+                e,
+            )
+            return self._record_failure(
+                book_obj, oh.FetchOutcome.UNAVAILABLE, str(e), now
+            )
 
         new_book_keys: MutableMapping[str, Any] = {}
 
@@ -309,6 +513,7 @@ class GoogleBooksLoader(BookLoader):
         if self.source_name not in metadata_sources:
             metadata_sources.append(self.source_name)
         new_book_keys["metadata_sources"] = metadata_sources
+        new_book_keys["metadata_fetch_status"] = self._cleared_fetch_status(book_obj)
 
         return attrs.evolve(book_obj, **new_book_keys)
 
@@ -357,11 +562,17 @@ class GoogleBooksLoader(BookLoader):
             raise TypeError(f"Unknown identifiers: {','.join(extra_identifiers)}")
 
         if (google_id := identifiers.pop("google_id", None)) is not None:
-            r_json = self.retrieve_volume(google_id)
+            volume_json: _VolumeResponse
+            try:
+                volume_json = self._get_json(os.path.join(self.api_endpoint, google_id))
+            except RequestFailed as e:
+                # Most likely a 404 because the volume no longer exists
+                logging.info("Could not retrieve google id %s: %s", google_id, e)
+                volume_json = {}
 
-            if r_json != {}:
+            if volume_json != {}:
                 try:
-                    return self._parse_volume_metadata(r_json)
+                    return self._parse_volume_metadata(volume_json)
                 except VolumeInformationMissing:
                     logging.info("No volume with google id %s", google_id)
                     logging.info("Using other information for %s - %s", authors, title)
@@ -389,6 +600,9 @@ class GoogleBooksLoader(BookLoader):
 
         if title is not None:
             query_list.append("intitle:" + title)
+
+        if not query_list:
+            raise BookNotFound("No title, authors or identifiers to search for")
 
         r_json = self._retrieve_search_results(query_list)
 
@@ -445,10 +659,132 @@ class GoogleBooksLoader(BookLoader):
         query_text = "+".join(query_list)
         params["q"] = query_text
 
-        # Not catching exceptions for the moment.
-        r = self.make_request(self.api_endpoint, params=params)
+        return self._get_json(self.api_endpoint, params=params)
 
-        return r.json()
+
+def _classify_google_error(r: requests.Response) -> "MetadataServiceError":
+    """Convert an error response from a Google API into an exception.
+
+    Google APIs return errors in this format (with ``errors`` and ``details``
+    both optional):
+
+        {"error": {"code": 429, "message": "Quota exceeded ...",
+                   "errors": [{"reason": "rateLimitExceeded", ...}],
+                   "status": "RESOURCE_EXHAUSTED",
+                   "details": [{"reason": "RATE_LIMIT_EXCEEDED",
+                                "metadata": {"quota_limit": "defaultPerDayPerProject",
+                                             ...}}]}}
+    """
+    try:
+        error_json = r.json().get("error", {})
+        if not isinstance(error_json, dict):
+            error_json = {}
+    except (ValueError, AttributeError):
+        error_json = {}
+
+    message = f"HTTP {r.status_code}: {error_json.get('message', 'unknown error')}"
+
+    reasons = {e.get("reason", "") for e in error_json.get("errors", ())}
+    quota_limits = set()
+    for detail in error_json.get("details", ()):
+        reasons.add(detail.get("reason", ""))
+        quota_limits.add(detail.get("metadata", {}).get("quota_limit", ""))
+
+    is_quota_error = (
+        r.status_code == 429
+        or error_json.get("status", None) == "RESOURCE_EXHAUSTED"
+        or bool(reasons & _GOOGLE_QUOTA_REASONS)
+    )
+
+    if is_quota_error:
+        daily = "dailyLimitExceeded" in reasons or any(
+            "perday" in limit.lower() for limit in quota_limits
+        )
+        return QuotaExceeded(
+            message, daily=daily, retry_after=_parse_retry_after(r.headers)
+        )
+
+    if r.status_code in (408, 500, 502, 503, 504):
+        return ServiceUnavailable(message, retry_after=_parse_retry_after(r.headers))
+
+    return RequestFailed(message, status_code=r.status_code)
+
+
+_GOOGLE_QUOTA_REASONS: Final[Set[str]] = frozenset(
+    (
+        "dailyLimitExceeded",
+        "quotaExceeded",
+        "rateLimitExceeded",
+        "userRateLimitExceeded",
+        "RATE_LIMIT_EXCEEDED",
+        "RESOURCE_EXHAUSTED",
+    )
+)
+
+
+def _parse_retry_after(
+    headers: Mapping[str, str],
+) -> datetime.timedelta | None:
+    # Retry-After may also be an HTTP date, but Google uses seconds.
+    try:
+        return datetime.timedelta(seconds=int(headers["Retry-After"]))
+    except (KeyError, ValueError):
+        return None
+
+
+def _retry_delay(
+    error: "ServiceUnavailable", attempt: int
+) -> datetime.timedelta | None:
+    """How long to wait before retrying a request, or None to give up."""
+    if attempt >= REQUEST_RETRIES:
+        return None
+
+    if isinstance(error, QuotaExceeded) and error.daily:
+        # No point retrying until tomorrow
+        return None
+
+    if error.retry_after is not None:
+        if error.retry_after > REQUEST_RETRY_MAX:
+            return None
+        return error.retry_after
+
+    # Exponential backoff with "full jitter"
+    return random.uniform(0, 1) * min(
+        REQUEST_RETRY_BASE * 2**attempt, REQUEST_RETRY_MAX
+    )
+
+
+class MetadataServiceError(Exception):
+    """Base class for errors from a metadata service."""
+
+
+class ServiceUnavailable(MetadataServiceError):
+    """The service cannot currently be queried; this is not specific to a book."""
+
+    def __init__(self, *args, retry_after: datetime.timedelta | None = None) -> None:
+        super().__init__(*args)
+        self.retry_after = retry_after
+
+
+class QuotaExceeded(ServiceUnavailable):
+    """The API quota has been exhausted."""
+
+    def __init__(
+        self,
+        *args,
+        daily: bool = False,
+        retry_after: datetime.timedelta | None = None,
+    ) -> None:
+        super().__init__(*args, retry_after=retry_after)
+        self.daily = daily
+
+
+class RequestFailed(MetadataServiceError):
+    """The service rejected a specific request."""
+
+    def __init__(self, *args, status_code: int) -> None:
+        super().__init__(*args)
+        self.status_code = status_code
 
 
 class PollDelayIncomplete(Exception):

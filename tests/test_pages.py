@@ -1,6 +1,9 @@
 """Tests for audio_feeder.pages"""
 
+import datetime
+import html
 import pathlib
+import re
 import threading
 from collections.abc import Iterator, Mapping
 from urllib.parse import urlencode
@@ -9,6 +12,7 @@ import flask.testing
 import pytest
 
 from audio_feeder import app as af_app
+from audio_feeder import database_handler as dh
 from audio_feeder import pages, updater
 
 from . import test_updater
@@ -56,10 +60,21 @@ def _books(client: flask.testing.FlaskClient, **params: str) -> str:
     return response.get_data(as_text=True)
 
 
+def _listed(page: str) -> set[str]:
+    """The titles of the books listed on a page.
+
+    This looks at the entry titles rather than the whole page, since
+    descriptions can mention other books' titles.
+    """
+    return {
+        html.unescape(title)
+        for title in re.findall(r'<span class="book_title">([^<]*)</span>', page)
+    }
+
+
 def test_books_unfiltered(client: flask.testing.FlaskClient) -> None:
     page = _books(client)
-    for title in FICTION + NONFICTION:
-        assert title in page
+    assert _listed(page) == set(FICTION + NONFICTION)
 
     # Every book is below audiobooks/, so the top level offers its subfolders
     assert 'Fiction <span class="subfolder_count">(5)</span>' in page
@@ -67,26 +82,20 @@ def test_books_unfiltered(client: flask.testing.FlaskClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "folder, included, excluded",
+    "folder, expected",
     [
-        ("audiobooks/Fiction", FICTION, NONFICTION),
-        ("audiobooks/Nonfiction", NONFICTION, FICTION),
-        ("/audiobooks/Nonfiction/", NONFICTION, FICTION),
-        ("audiobooks", FICTION + NONFICTION, ()),
-        ("Nonexistent", (), FICTION + NONFICTION),
+        ("audiobooks/Fiction", FICTION),
+        ("audiobooks/Nonfiction", NONFICTION),
+        ("/audiobooks/Nonfiction/", NONFICTION),
+        ("audiobooks", FICTION + NONFICTION),
+        ("Nonexistent", ()),
     ],
 )
 def test_books_filtered_by_folder(
-    client: flask.testing.FlaskClient,
-    folder: str,
-    included: tuple[str, ...],
-    excluded: tuple[str, ...],
+    client: flask.testing.FlaskClient, folder: str, expected: tuple[str, ...]
 ) -> None:
     page = _books(client, folder=folder)
-    for title in included:
-        assert title in page
-    for title in excluded:
-        assert title not in page
+    assert _listed(page) == set(expected)
 
 
 def test_books_folder_navigation(client: flask.testing.FlaskClient) -> None:
@@ -114,5 +123,77 @@ def test_books_pagination_keeps_folder(client: flask.testing.FlaskClient) -> Non
 
 def test_books_invalid_folder_is_ignored(client: flask.testing.FlaskClient) -> None:
     page = _books(client, folder="../secrets")
-    for title in FICTION + NONFICTION:
-        assert title in page
+    assert _listed(page) == set(FICTION + NONFICTION)
+
+
+def _titles_by_tag() -> dict[str, set[str]]:
+    books = dh.get_database()["books"].values()
+    by_tag: dict[str, set[str]] = {}
+    for book in books:
+        for tag in book.tags or ():
+            by_tag.setdefault(tag.casefold(), set()).add(book.title)
+    return by_tag
+
+
+def test_books_filtered_by_author(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, author="ALCOTT")
+    assert _listed(page) == {"Little Women", "Little Men"}
+
+    assert "Author: ALCOTT" in page
+
+
+def test_books_filtered_by_tag(client: flask.testing.FlaskClient) -> None:
+    by_tag = _titles_by_tag()
+    # Google Books categories from the recorded responses become tags
+    assert by_tag
+
+    for tag, titles in by_tag.items():
+        page = _books(client, tag=tag, perPage="100")
+        assert _listed(page) == titles, tag
+
+
+def test_books_filtered_by_date_added(client: flask.testing.FlaskClient) -> None:
+    tomorrow = (datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=1)).date()
+
+    page = _books(client, addedSince=tomorrow.isoformat())
+    assert not _listed(page)
+
+    page = _books(client, addedBefore=tomorrow.isoformat())
+    assert _listed(page) == set(FICTION + NONFICTION)
+
+
+def test_books_invalid_date_is_ignored(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, addedSince="not-a-date")
+    assert _listed(page) == set(FICTION + NONFICTION)
+
+
+def test_filters_combine_with_folder(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, folder="audiobooks/Fiction", author="alcott")
+
+    # Removing the author filter keeps the folder
+    remove_link = re.search(r'class="remove_filter" href="([^"]*)"', page)
+    assert remove_link is not None
+    remove_url = html.unescape(remove_link.group(1))
+    assert "folder=audiobooks%2FFiction" in remove_url
+    assert "author" not in remove_url
+
+    # The form keeps the folder as a hidden field and shows the author
+    assert '<input type="hidden" name="folder" value="audiobooks/Fiction">' in page
+    assert 'name="author"\n                       value="alcott"' in page
+
+
+def test_folder_counts_respect_other_filters(
+    client: flask.testing.FlaskClient,
+) -> None:
+    # Without other filters, the top level offers Fiction (5) and Nonfiction (3)
+    page = _books(client, author="e")
+    counts = dict(
+        re.findall(r'>([^<>]+) <span class="subfolder_count">\((\d+)\)', page)
+    )
+    expected_fiction = len(
+        {"Dracula", "The Invisible Man", "Little Women", "Little Men", "Frankenstein"}
+        & _listed(_books(client, author="e", folder="audiobooks/Fiction"))
+    )
+    assert counts.get("Fiction") == str(expected_fiction)
+    # Every Alcott book is in Fiction, so there's nothing to navigate into
+    assert 'class="subfolder"' not in _books(client, author="alcott")

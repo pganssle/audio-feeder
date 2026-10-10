@@ -91,9 +91,22 @@ def books():
     else:
         entries = entry_cache["base"]
 
-    all_entries = entries
-    if entry_filter not in entry_cache:
-        entry_cache[entry_filter] = entry_filter.apply(entries)
+    books_table = cast(Mapping[ID, oh.Book], dh.get_database_table(TableName("books")))
+    if "facets" not in entry_cache:
+        entry_cache["facets"] = ef.facets(
+            books_table[entry.data_id]
+            for entry in entries
+            if entry.data_id in books_table
+        )
+    facets = entry_cache["facets"]
+
+    # The folder navigation counts books matching the other filters, so that
+    # the counts match what you get when you navigate to a folder.
+    unfoldered_filter = attrs.evolve(entry_filter, folder=None)
+    for cache_filter in (unfoldered_filter, entry_filter):
+        if cache_filter not in entry_cache:
+            entry_cache[cache_filter] = cache_filter.apply(entries, books_table)
+    unfoldered_entries = entry_cache[unfoldered_filter]
     entries = entry_cache[entry_filter]
 
     nav_generator = _book_nav_generator(len(entries), request.endpoint)
@@ -145,8 +158,14 @@ def books():
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
         "sort_options": get_sort_options(),
         "sort_args": sort_args,
-        "filter_params": filter_params,
-        "folder_nav": _folder_navigation(all_entries, entry_filter, sort_args),
+        # The other filters have their own fields in the options form
+        "hidden_filter_params": {
+            k: v for k, v in filter_params.items() if k == "folder"
+        },
+        "filter_values": filter_params,
+        "facets": facets,
+        "active_filters": _active_filters(entry_filter, sort_args),
+        "folder_nav": _folder_navigation(unfoldered_entries, entry_filter, sort_args),
         "stylesheet_links": get_css_links(),
         "favicon": None,
     }
@@ -422,18 +441,53 @@ def version() -> str:
 
 ###
 # Functions (probably want to move most of these to page_generator)
+_FILTER_LABELS: Mapping[str, str] = {
+    "tag": "Tag",
+    "language": "Language",
+    "author": "Author",
+    "added_since": "Added since",
+    "added_before": "Added before",
+}
+
+
+def _books_url(entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]) -> str:
+    """The URL for the first page of books with a given filter and sort order."""
+    link_args = {k: v for k, v in sort_args.items() if k != "page"}
+    params = {**entry_filter.to_params(), **link_args}
+    return flask.url_for("root.books") + "?" + urlencode(params)
+
+
+def _active_filters(
+    entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]
+) -> Sequence[Mapping[str, str]]:
+    """Each active (non-folder) filter, with a link that removes it."""
+    active = []
+    for field, label in _FILTER_LABELS.items():
+        value = getattr(entry_filter, field)
+        if value is not None:
+            active.append(
+                {
+                    "label": label,
+                    "value": str(value),
+                    "remove_url": _books_url(
+                        attrs.evolve(entry_filter, **{field: None}), sort_args
+                    ),
+                }
+            )
+    return active
+
+
 def _folder_navigation(
     entries: Sequence[oh.Entry],
     entry_filter: ef.EntryFilter,
     sort_args: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     """Breadcrumbs and subfolder links for the folder filter."""
-    # Changing folders keeps the sort settings but goes back to the first page
-    link_args = {k: v for k, v in sort_args.items() if k != "page"}
 
+    # Changing folders keeps the other filters and sort settings, but goes
+    # back to the first page.
     def folder_url(folder: PurePosixPath | None) -> str:
-        params = attrs.evolve(entry_filter, folder=folder).to_params()
-        return flask.url_for("root.books") + "?" + urlencode({**params, **link_args})
+        return _books_url(attrs.evolve(entry_filter, folder=folder), sort_args)
 
     current = entry_filter.folder
     crumbs = [{"name": "All", "url": folder_url(None) if current else None}]

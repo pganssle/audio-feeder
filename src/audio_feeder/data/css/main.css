@@ -226,6 +226,29 @@ span.subfolder_count {
     color: #777777;
 }
 
+/* Active filters */
+div.active_filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 5% 10px 5%;
+}
+
+span.active_filter {
+    padding: 2px 10px;
+    border-radius: 12px;
+    background-color: #353535;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+a.remove_filter {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 4px;
+}
+
 /* Top nav bar */
 div.topnav {
     position: relative;

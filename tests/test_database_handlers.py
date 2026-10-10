@@ -1,11 +1,13 @@
 import contextlib
+import multiprocessing
 import os
 import pathlib
 import shutil
 import sqlite3
-import subprocess
 import sys
+import threading
 import typing
+from concurrent import futures
 
 import attrs
 import pytest
@@ -244,40 +246,29 @@ def test_sql_migration(
         assert _get_version(db_out_path) == sdh.DB_VERSION
 
 
-_CONCURRENT_INIT_SCRIPT = """
-import pathlib
-import sys
-import tempfile
-import threading
+def _create_handlers_concurrently(db_loc: pathlib.Path) -> None:
+    # Switch threads as often as possible to make the race likely
+    sys.setswitchinterval(1e-6)
 
-from audio_feeder import sql_database_handler as sdh
+    num_threads = 8
+    barrier = threading.Barrier(num_threads)
 
-# Switch threads as often as possible to make the race likely
-sys.setswitchinterval(1e-6)
-
-db_loc = pathlib.Path(tempfile.mkdtemp()) / "db.sqlite"
-barrier = threading.Barrier(8)
-errors = []
-
-def make_handler():
-    barrier.wait()
-    try:
+    def make_handler() -> None:
+        barrier.wait()
         sdh.SqlDatabaseHandler(db_loc)
-    except Exception as e:
-        errors.append(e)
 
-threads = [threading.Thread(target=make_handler) for _ in range(8)]
-for thread in threads:
-    thread.start()
-for thread in threads:
-    thread.join()
+    with futures.ThreadPoolExecutor(num_threads) as executor:
+        results = [executor.submit(make_handler) for _ in range(num_threads)]
 
-if errors:
-    raise errors[0]
-"""
+    # Re-raise the first exception, if any
+    for result in results:
+        result.result()
 
 
-def test_concurrent_sql_handler_creation() -> None:
+@pytest.mark.subprocess
+def test_concurrent_sql_handler_creation(tmp_path: pathlib.Path) -> None:
     # The table mapping happens once per process, so this needs to be done
     # in a new interpreter.
-    subprocess.run([sys.executable, "-c", _CONCURRENT_INIT_SCRIPT], check=True)
+    spawn = multiprocessing.get_context("spawn")
+    with futures.ProcessPoolExecutor(1, mp_context=spawn) as executor:
+        executor.submit(_create_handlers_concurrently, tmp_path / "db.sqlite").result()

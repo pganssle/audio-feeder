@@ -6,7 +6,7 @@ import bisect
 import io
 from html.parser import HTMLParser
 
-from lxml.html import clean as lxclean
+import lxml_html_clean as lxclean
 
 
 class TagStripper(HTMLParser):
@@ -111,7 +111,7 @@ ALLOWED_TAGS = [
 def clean_html(in_str, tag_whitelist=ALLOWED_TAGS):
     """
     Sanitize input HTML. Currently this is a wrapper around
-    :func:`lxml.html.clean_html`.
+    :func:`lxml_html_clean.clean_html`.
 
     :param in_str:
         HTML string the sanitize.
@@ -125,7 +125,7 @@ def clean_html(in_str, tag_whitelist=ALLOWED_TAGS):
     """
     cleaner = lxclean.Cleaner(allow_tags=tag_whitelist, remove_unknown_tags=False)
 
-    # For the moment this is just a wrapper around lxml.html.clean_html
+    # For the moment this is just a wrapper around lxml_html_clean.clean_html
     out_str = cleaner.clean_html(in_str)
 
     return out_str

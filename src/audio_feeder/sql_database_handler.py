@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import pathlib
+import threading
 import typing
 from collections import abc
 
@@ -219,8 +220,19 @@ def _mapper_registry() -> orm.registry:
     return orm.registry()
 
 
-@functools.lru_cache(None)
+_MAP_TABLES_LOCK: typing.Final[threading.Lock] = threading.Lock()
+
+
 def _map_tables() -> typing.Mapping[TableName, sa.Table]:
+    # `lru_cache` doesn't prevent concurrent first calls from both running
+    # the function, and mapping the tables a second time raises an error, so
+    # the first call needs to happen under a lock.
+    with _MAP_TABLES_LOCK:
+        return _map_tables_once()
+
+
+@functools.lru_cache(None)
+def _map_tables_once() -> typing.Mapping[TableName, sa.Table]:
     metadata_object = _metadata_object()
     mapper_registry = _mapper_registry()
     table_mapping: typing.Dict[TableName, sa.Table] = {}

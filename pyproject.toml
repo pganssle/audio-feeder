@@ -113,29 +113,20 @@ source = ["src", ".tox/*/site-packages"]
 show_missing = true
 skip_covered = true
 
-## Mypy
-[tool.mypy]
-exclude = ["data/"]
-show_error_codes = true
-
-[[tool.mypy.overrides]]
-module = "qrcode.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "progressbar.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "dotenv.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "werkzeug.*"
-ignore_missing_imports = true
-
-
 ## Pytest
 [tool.pytest.ini_options]
 log_level = "DEBUG"
 xfail_strict = true
+
+## Pyrefly
+[tool.pyrefly]
+project-includes = ["scripts", "src"]
+project-excludes = ["**/data/"]
+search-path = ["src", "."]
+preset = "legacy"
+ignore-missing-imports = [
+    "qrcode.*",
+    "progressbar.*",
+    "dotenv.*",
+    "werkzeug.*",
+]

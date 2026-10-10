@@ -6,8 +6,9 @@ import logging
 import os
 import textwrap
 import threading
-import typing
+from collections.abc import Mapping, MutableSequence, Sequence
 from datetime import datetime, timezone
+from typing import Optional, cast
 
 import flask
 from flask import Blueprint, Response, request
@@ -278,7 +279,7 @@ def chapter_data(e_id: int, guid: str) -> Response:
         logging.error("ID not in entry table: %s", e_id)
         flask.abort(404)
 
-    entry_obj = typing.cast(oh.Entry, entry_table[ID(e_id)])
+    entry_obj = cast(oh.Entry, entry_table[ID(e_id)])
     if mode is not None:
         render_mode = mr.RenderModes(mode.upper())
         media_loc = resolver.resolve_media_cache(f"{e_id}-{render_mode.lower()}")
@@ -480,7 +481,7 @@ def get_entry_objects(entry_list):
 
 @cache_utils.register_function_cache("misc")
 @functools.lru_cache(None)
-def get_sort_options() -> typing.Mapping[str, str]:
+def get_sort_options() -> Mapping[str, str]:
     return {
         "Date Added": "date_added",
         "Author": "author",
@@ -561,7 +562,7 @@ def get_feed_template() -> Template:
 
 
 def _get_template(
-    loc_entry: str, template_name: str, resource_default: typing.Optional[str] = None
+    loc_entry: str, template_name: str, resource_default: Optional[str] = None
 ) -> Template:
     template_loc = read_from_config(loc_entry) / template_name
 
@@ -590,10 +591,10 @@ def get_renderer(rss_renderer=False):
 
 
 @functools.cache
-def get_css_links() -> typing.Sequence[str]:
+def get_css_links() -> Sequence[str]:
     resolver = get_resolver()
     css_loc = read_from_config("css_loc")
-    css_locs: typing.MutableSequence[str] = []
+    css_locs: MutableSequence[str] = []
     if not read_from_config("disable_default_css"):
         static_path = read_from_config("static_media_path")
         default_loc = resolver.resolve_static(css_loc)

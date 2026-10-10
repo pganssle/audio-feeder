@@ -10,11 +10,11 @@ import logging
 import os
 import pathlib
 import re
-import typing
 import warnings
+from collections.abc import Mapping, MutableMapping, Sequence
 from itertools import product
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Any, Final, Optional, Self, Union, overload
 
 import attrs
 import yaml
@@ -23,14 +23,14 @@ from . import cache_utils
 from ._useful_types import PathType
 from .file_location import FileLocation
 
-CONFIG_NAMES: typing.Final[typing.Sequence[str]] = ["config.yml"]
-DEFAULT_CONFIG_LOCS: typing.Final[typing.Sequence[str]] = [
+CONFIG_NAMES: Final[Sequence[str]] = ["config.yml"]
+DEFAULT_CONFIG_LOCS: Final[Sequence[str]] = [
     "/etc/audio_feeder",
     "~/.config/audio_feeder",
 ]
 
 
-def config_dirs(with_pwd=True) -> typing.Sequence[pathlib.Path]:
+def config_dirs(with_pwd=True) -> Sequence[pathlib.Path]:
     if (config_env_var := os.environ.get("AF_CONFIG_DIR", None)) is not None:
         return (pathlib.Path(config_env_var),)
 
@@ -43,13 +43,13 @@ def config_dirs(with_pwd=True) -> typing.Sequence[pathlib.Path]:
     return out
 
 
-def config_locations(with_pwd=True) -> typing.Sequence[pathlib.Path]:
+def config_locations(with_pwd=True) -> Sequence[pathlib.Path]:
     return [
         (bdir / cfile) for bdir, cfile in product(config_dirs(with_pwd), CONFIG_NAMES)
     ]
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
 
     class TemplatePath(Path):
         pass
@@ -64,12 +64,12 @@ class TemplateStr(str):
     pass
 
 
-@typing.overload
-def _path_converter(s: typing.Union[TemplatePath, TemplateStr]) -> TemplatePath: ...
+@overload
+def _path_converter(s: Union[TemplatePath, TemplateStr]) -> TemplatePath: ...
 
 
-@typing.overload
-def _path_converter(s: typing.Union[str, Path]) -> Path: ...
+@overload
+def _path_converter(s: Union[str, Path]) -> Path: ...
 
 
 def _path_converter(s):
@@ -134,18 +134,18 @@ class Configuration:
     rss_feed_urls: str = "rss/{id}.xml"
 
     # Relative to others
-    main_css_files: typing.Sequence[str] = ()  # Deprecated, no longer used
-    extra_css_files: typing.Sequence[str] = ()
-    thumb_max: typing.Tuple[int, int] = (200, 400)  # width, height
+    main_css_files: Sequence[str] = ()  # Deprecated, no longer used
+    extra_css_files: Sequence[str] = ()
+    thumb_max: tuple[int, int] = (200, 400)  # width, height
     base_protocol: str = "http"
     base_host: str = "localhost"
-    base_port: typing.Optional[int] = 9090
+    base_port: Optional[int] = 9090
 
     # API Keys
-    google_api_key: typing.Optional[str] = None
+    google_api_key: Optional[str] = None
 
-    _ReplacementsMapType = typing.Mapping[str, str]
-    REPLACEMENTS: typing.Final[_ReplacementsMapType] = {
+    _ReplacementsMapType = Mapping[str, str]
+    REPLACEMENTS: Final[_ReplacementsMapType] = {
         "{{CONFIG}}": "config_directory",
         "{{TEMPLATES}}": "templates_base_loc",
         "{{STATIC}}": "static_media_path",
@@ -153,9 +153,7 @@ class Configuration:
     }
 
     def __attrs_post_init__(self) -> None:
-        self._attr_templates: typing.MutableMapping[
-            str, typing.Union[TemplateStr, TemplatePath]
-        ] = {}
+        self._attr_templates: MutableMapping[str, Union[TemplateStr, TemplatePath]] = {}
         self._make_replacements()
 
     def __getitem__(self, key):
@@ -185,7 +183,7 @@ class Configuration:
         return self.hash_encode(self.base_url)
 
     @classmethod
-    def from_file(cls: typing.Type[Self], file_loc: Path, **kwargs) -> Self:
+    def from_file(cls: type[Self], file_loc: Path, **kwargs) -> Self:
         if not file_loc.exists():
             raise IOError(f"File not found: {file_loc}")
 
@@ -255,7 +253,7 @@ class Configuration:
     # Template replacement logic
     @functools.cached_property
     def _replacements(self) -> _ReplacementsMapType:
-        def find_requirements(attr_name: str) -> typing.Sequence[str]:
+        def find_requirements(attr_name: str) -> Sequence[str]:
             attr_value = getattr(self, attr_name)
             if isinstance(attr_value, TemplatePath):
                 s = os.fspath(attr_value)
@@ -273,7 +271,7 @@ class Configuration:
 
         sort_order = graphlib.TopologicalSorter(resolution_graph).static_order()
 
-        replacements_mapping: typing.MutableMapping[str, str] = {}
+        replacements_mapping: MutableMapping[str, str] = {}
         for replacement_str in sort_order:
             attr_value = getattr(self, self.REPLACEMENTS[replacement_str])
             replaced_str = self._make_single_replacement(
@@ -284,15 +282,15 @@ class Configuration:
 
         return replacements_mapping
 
-    @typing.overload
+    @overload
     def _make_single_replacement(
-        self, value: typing.Union[str, TemplateStr], replacements: _ReplacementsMapType
+        self, value: Union[str, TemplateStr], replacements: _ReplacementsMapType
     ) -> str: ...
 
-    @typing.overload
+    @overload
     def _make_single_replacement(
         self,
-        value: typing.Union[Path, TemplatePath],
+        value: Union[Path, TemplatePath],
         replacements: _ReplacementsMapType,
     ) -> Path: ...
 
@@ -338,7 +336,7 @@ class Configuration:
 
 
 def init_config(
-    config_loc: typing.Optional[PathType] = None,
+    config_loc: Optional[PathType] = None,
     config_loc_must_exist: bool = False,
     **kwargs,
 ):
@@ -347,7 +345,7 @@ def init_config(
     configuration location.
     """
 
-    config_location: typing.Union[pathlib.Path, None] = None
+    config_location: Union[pathlib.Path, None] = None
     if config_loc is not None:
         if not os.path.exists(config_loc):
             if config_loc_must_exist:
@@ -420,7 +418,7 @@ def get_configuration() -> Configuration:
     return init_config()
 
 
-def read_from_config(field: str) -> typing.Any:
+def read_from_config(field: str) -> Any:
     """
     Convenience method for accessing specific fields from the configuration
     object.

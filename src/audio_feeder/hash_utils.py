@@ -3,10 +3,11 @@ import math
 import os
 import pathlib
 import random
-import typing
+from collections.abc import Callable, Sequence
+from typing import Protocol
 
 
-class _Hash(typing.Protocol):
+class _Hash(Protocol):
     def update(self, data: bytes, /) -> None: ...
 
     def hexdigest(self) -> str: ...
@@ -14,7 +15,7 @@ class _Hash(typing.Protocol):
     def digest(self) -> bytes: ...
 
 
-_HashFunc = typing.Callable[[], _Hash]
+_HashFunc = Callable[[], _Hash]
 
 
 def hash_random(
@@ -63,7 +64,7 @@ def hash_random(
 
     file_size = os.path.getsize(fpath)
     num_blocks = int(math.ceil(file_size / block_size))
-    range_sample: typing.Sequence[int] = range(0, num_blocks)
+    range_sample: Sequence[int] = range(0, num_blocks)
     if file_size < hash_amt:
         file_sample = range_sample
     else:

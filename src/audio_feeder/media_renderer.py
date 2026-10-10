@@ -9,10 +9,11 @@ import pathlib
 import re
 import shutil
 import threading
-import typing
+from collections.abc import Mapping, Sequence
 from concurrent import futures
 from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Final, Optional
 
 from . import _object_types as ot
 from . import database_handler as dh
@@ -23,9 +24,9 @@ from . import object_handler as oh
 from ._db_types import TableName
 from .resolver import get_resolver
 
-ACTIVE_JOBS: typing.Set[pathlib.Path] = set()
+ACTIVE_JOBS: set[pathlib.Path] = set()
 JOB_LOCK: threading.Lock = threading.Lock()
-RENDER_POOL: typing.Final[futures.Executor] = futures.ThreadPoolExecutor(
+RENDER_POOL: Final[futures.Executor] = futures.ThreadPoolExecutor(
     thread_name_prefix="af-media-renderer"
 )
 
@@ -44,12 +45,12 @@ class Renderer:
         mode: RenderModes,
         *,
         loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
-        executor: typing.Optional[futures.Executor] = None,
+        executor: Optional[futures.Executor] = None,
     ):
-        self.media_path: typing.Final[pathlib.Path] = media_path
-        self.entry: typing.Final[oh.Entry] = entry
-        self.mode: typing.Final[RenderModes] = mode
-        self.data_obj: typing.Final[ot.SchemaObject] = self._get_data_obj()
+        self.media_path: Final[pathlib.Path] = media_path
+        self.entry: Final[oh.Entry] = entry
+        self.mode: Final[RenderModes] = mode
+        self.data_obj: Final[ot.SchemaObject] = self._get_data_obj()
         self._loader = loader
         self._executor = executor
 
@@ -90,7 +91,7 @@ class Renderer:
         (self.media_path / fname).touch()
 
     def render_complete_callback(
-        self, rendering_futures: typing.Sequence[futures.Future]
+        self, rendering_futures: Sequence[futures.Future]
     ) -> None:
         try:
             exception_found = False
@@ -142,7 +143,7 @@ class Renderer:
             assert file_base is not None
 
             if self.entry.files:
-                files: typing.Sequence[pathlib.Path] = [
+                files: Sequence[pathlib.Path] = [
                     file_base / file for file in self.entry.files
                 ]
             else:
@@ -199,7 +200,7 @@ class Renderer:
 
     def write_file_metadata(
         self,
-        file_infos: typing.Mapping[pathlib.Path, typing.Tuple[fp.FileInfo, str]],
+        file_infos: Mapping[pathlib.Path, tuple[fp.FileInfo, str]],
     ) -> None:
         json_obj = []
         for file_path, (file_info, file_hash) in file_infos.items():
@@ -216,7 +217,7 @@ class Renderer:
 
     def read_file_metadata(
         self,
-    ) -> typing.Mapping[pathlib.Path, typing.Tuple[fp.FileInfo, str]]:
+    ) -> Mapping[pathlib.Path, tuple[fp.FileInfo, str]]:
         with open(self.media_path / ".file_metadata", "rt") as f:
             json_obj = json.load(f)
 
@@ -230,7 +231,7 @@ class Renderer:
 
         return out
 
-    def read_access_time(self) -> typing.Optional[datetime]:
+    def read_access_time(self) -> Optional[datetime]:
         last_access_path = self.media_path / ".last_retrieved"
         if not last_access_path.exists():
             return None

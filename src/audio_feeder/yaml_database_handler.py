@@ -4,7 +4,7 @@ import functools
 import os
 import pathlib
 import shutil
-import typing
+from typing import cast
 
 import yaml
 
@@ -42,7 +42,7 @@ def _file_info_constructor(
     loader: yaml.SafeLoader, node: yaml.nodes.MappingNode
 ) -> fp.FileInfo:
     mapping = loader.construct_mapping(node)
-    return fp.FileInfo.from_json(typing.cast(fp.FFProbeReturnJSON, mapping))
+    return fp.FileInfo.from_json(cast(fp.FFProbeReturnJSON, mapping))
 
 
 def _file_info_representer(
@@ -52,7 +52,7 @@ def _file_info_representer(
 
 
 @functools.lru_cache(None)
-def _loader() -> typing.Type[yaml.SafeLoader]:
+def _loader() -> type[yaml.SafeLoader]:
     class CustomSafeLoader(yaml.SafeLoader):
         pass
 
@@ -63,7 +63,7 @@ def _loader() -> typing.Type[yaml.SafeLoader]:
 
 
 @functools.lru_cache(None)
-def _dumper() -> typing.Type[yaml.SafeDumper]:
+def _dumper() -> type[yaml.SafeDumper]:
     class CustomSafeDumper(yaml.SafeDumper):
         pass
 
@@ -152,7 +152,5 @@ class YamlDatabaseHandler:
             if not table_loc.exists():
                 tables[table_name] = {}
             else:
-                tables[table_name] = typing.cast(
-                    MutableTable, self.load_table(table_name)
-                )
+                tables[table_name] = cast(MutableTable, self.load_table(table_name))
         return tables

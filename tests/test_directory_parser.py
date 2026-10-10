@@ -1,5 +1,5 @@
 import itertools
-import typing
+from collections.abc import Sequence
 
 import hypothesis
 import pytest
@@ -70,7 +70,7 @@ def test_ab_loader_audio_info(path, exp_audio_info):
         ("", "456"),
     ],
 )
-def test_natural_sort(sorted_str_list: typing.Sequence[str], subtests) -> None:
+def test_natural_sort(sorted_str_list: Sequence[str], subtests) -> None:
     """Test that all permutations of already sorted strings remain storted."""
     for permutation in itertools.permutations(sorted_str_list):
         with subtests.test(permutation=permutation):
@@ -80,7 +80,7 @@ def test_natural_sort(sorted_str_list: typing.Sequence[str], subtests) -> None:
 
 
 @hypothesis.given(strs=st.lists(st.text(), max_size=100))
-def test_natural_sort_noerror(strs: typing.Sequence[str]) -> None:
+def test_natural_sort_noerror(strs: Sequence[str]) -> None:
     """Ensure that there is no error sorting randomly drawn strings."""
     sorted_strs = sorted(strs, key=dp.BaseAudioLoader.natural_sort_key)
     assert len(strs) == len(sorted_strs)

@@ -7,9 +7,10 @@ import functools
 import json
 import os
 import re
-import typing
+from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from concurrent import futures
 from datetime import timedelta
+from typing import Any, Optional, TypedDict, TypeVar, cast
 from urllib.parse import urljoin
 from xml.sax import saxutils
 
@@ -23,13 +24,13 @@ from .file_location import FileLocation
 from .hash_utils import hash_random
 from .resolver import Resolver
 
-_T = typing.TypeVar("_T")
+_T = TypeVar("_T")
 
 
-class _JSONChapter(typing.TypedDict, total=False):
+class _JSONChapter(TypedDict, total=False):
     startTime: float
     endTime: float
-    title: typing.Optional[str]
+    title: Optional[str]
 
 
 def _make_chapter_json(chapter: fp.ChapterInfo) -> _JSONChapter:
@@ -44,7 +45,7 @@ def _make_chapter_json(chapter: fp.ChapterInfo) -> _JSONChapter:
     return out
 
 
-def generate_chapter_json(chapter_infos: typing.Sequence[fp.ChapterInfo]) -> str:
+def generate_chapter_json(chapter_infos: Sequence[fp.ChapterInfo]) -> str:
     """Generate JSON files in the JSON Chapters format.
 
     For more details, see:
@@ -97,20 +98,18 @@ def feed_items_from_metadata(
     entry_obj: oh.Entry,
     data_obj: ot.SchemaObject,
     audio_dir: FileLocation,
-    file_metadata: typing.Mapping[
-        FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
-    ],
-    mode: typing.Optional[str] = None,
-    resolver: typing.Optional[Resolver] = None,
-) -> typing.Sequence[typing.Mapping[str, typing.Any]]:
+    file_metadata: Mapping[FileLocation, tuple[fp.FileInfo, Optional[str]]],
+    mode: Optional[str] = None,
+    resolver: Optional[Resolver] = None,
+) -> Sequence[Mapping[str, Any]]:
     if resolver is None:
         resolver = Resolver()
 
     pub_date = entry_obj.date_added or datetime.datetime.now(datetime.timezone.utc)
 
-    feed_items: typing.MutableSequence[typing.Mapping[str, typing.Any]] = []
+    feed_items: MutableSequence[Mapping[str, Any]] = []
     for ii, (file, (file_info, file_hash)) in enumerate(file_metadata.items()):
-        feed_item: typing.MutableMapping[str, typing.Any] = {}
+        feed_item: MutableMapping[str, Any] = {}
 
         url = file.url
         fpath = file.path
@@ -151,7 +150,7 @@ def feed_items_from_metadata(
 
 def load_feed_items(
     entry_obj: oh.Entry,
-    resolver: typing.Optional[Resolver] = None,
+    resolver: Optional[Resolver] = None,
     loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
 ):
     """
@@ -191,12 +190,10 @@ def load_feed_items(
     def _executor() -> futures.Executor:
         return futures.ThreadPoolExecutor()
 
-    metadata_futures: typing.MutableSequence[
-        futures.Future[typing.Tuple[FileLocation, fp.FileInfo, typing.Optional[str]]]
+    metadata_futures: MutableSequence[
+        futures.Future[tuple[FileLocation, fp.FileInfo, Optional[str]]]
     ] = []
-    file_metadata: typing.MutableMapping[
-        FileLocation, typing.Tuple[fp.FileInfo, typing.Optional[str]]
-    ] = {}
+    file_metadata: MutableMapping[FileLocation, tuple[fp.FileInfo, Optional[str]]] = {}
     for file in audio_files:
         fname = file.relative_to(audio_dir.path)
 
@@ -206,7 +203,7 @@ def load_feed_items(
 
         m_rel_path = file.relative_to(media_path)
         if entry_obj.file_hashes and m_rel_path in entry_obj.file_hashes:
-            file_hash: typing.Optional[str] = entry_obj.file_hashes[m_rel_path]
+            file_hash: Optional[str] = entry_obj.file_hashes[m_rel_path]
         else:
             file_hash = None
 
@@ -258,7 +255,7 @@ def wrap_field(field: _T) -> _T:
         out = saxutils.escape(unescaped)
 
     # This is a bug in mypy: https://github.com/python/cpython/issues/99272
-    return typing.cast(_T, out)
+    return cast(_T, out)
 
 
 def _urljoin_dir(dir_, fragment):

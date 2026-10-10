@@ -10,7 +10,8 @@ import io
 import logging
 import os
 import time
-import typing
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from typing import Any, BinaryIO, Final, Optional, TypedDict, Union
 
 import attrs
 import requests
@@ -18,8 +19,8 @@ import requests
 from . import object_handler as oh
 from .config import read_from_config
 
-LOCAL_DATA_SOURCE: typing.Final[str] = "local"
-_SECONDS: typing.Final[datetime.timedelta] = datetime.timedelta(seconds=1)
+LOCAL_DATA_SOURCE: Final[str] = "local"
+_SECONDS: Final[datetime.timedelta] = datetime.timedelta(seconds=1)
 
 
 class MetaDataLoader(metaclass=abc.ABCMeta):
@@ -30,9 +31,9 @@ class MetaDataLoader(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        poll_delay: typing.Union[float, datetime.timedelta] = 0.2,
+        poll_delay: Union[float, datetime.timedelta] = 0.2,
     ):
-        self._last_poll: typing.Optional[datetime.datetime] = None
+        self._last_poll: Optional[datetime.datetime] = None
         self._poll_delay = (
             datetime.timedelta(seconds=poll_delay)
             if not isinstance(poll_delay, datetime.timedelta)
@@ -95,14 +96,14 @@ class BookLoader(MetaDataLoader):
     def __init__(
         self,
         *args,
-        valid_identifiers: typing.Sequence[str] = (),
+        valid_identifiers: Sequence[str] = (),
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._valid_identifiers = frozenset(valid_identifiers)
 
     @functools.cached_property
-    def valid_identifiers(self) -> typing.Collection[str]:
+    def valid_identifiers(self) -> Collection[str]:
         return (
             "isbn",
             "isbn13",
@@ -126,10 +127,8 @@ class BookLoader(MetaDataLoader):
 
     @abc.abstractmethod
     def retrieve_best_image(
-        self, cover_images: typing.Mapping[str, str]
-    ) -> typing.Union[
-        typing.Tuple[typing.BinaryIO, str, str], typing.Tuple[None, None, None]
-    ]:
+        self, cover_images: Mapping[str, str]
+    ) -> Union[tuple[BinaryIO, str, str], tuple[None, None, None]]:
         """
         Given a dictionary of cover image URLs, this retrieves the largest
         available image.
@@ -141,12 +140,12 @@ class BookLoader(MetaDataLoader):
 # https://developers.google.com/books/docs/v1/reference/volumes#resource
 #
 # We are (mostly) specifying just the parts we care about
-class _QueryResponse(typing.TypedDict, total=False):
-    items: typing.Sequence["_VolumeResponse"]
+class _QueryResponse(TypedDict, total=False):
+    items: Sequence["_VolumeResponse"]
     totalItems: int
 
 
-class _VolumeResponse(typing.TypedDict, total=False):
+class _VolumeResponse(TypedDict, total=False):
     kind: str
     id: str
     etag: str
@@ -154,26 +153,26 @@ class _VolumeResponse(typing.TypedDict, total=False):
     volumeInfo: "_VolumeInfo"
 
 
-class _VolumeInfo(typing.TypedDict, total=False):
+class _VolumeInfo(TypedDict, total=False):
     title: str
     subtitle: str
-    authors: typing.Sequence[str]
-    industryIdentifiers: typing.Sequence["_IndustryIdentifier"]
+    authors: Sequence[str]
+    industryIdentifiers: Sequence["_IndustryIdentifier"]
     publisher: str
     publishedDate: str
     description: str
     pageCount: int
-    categories: typing.Sequence[str]
+    categories: Sequence[str]
     imageLinks: "_ImageLink"
     language: str
 
 
-class _IndustryIdentifier(typing.TypedDict, total=False):
+class _IndustryIdentifier(TypedDict, total=False):
     type: str
     identifier: str
 
 
-class _ImageLink(typing.TypedDict, total=False):
+class _ImageLink(TypedDict, total=False):
     smallThumbnail: str
     thumbnail: str
     small: str
@@ -245,7 +244,7 @@ class GoogleBooksLoader(BookLoader):
             )
             return book_obj
 
-        new_book_keys: typing.MutableMapping[str, typing.Any] = {}
+        new_book_keys: MutableMapping[str, Any] = {}
 
         # These are keys where the value is set only if it didn't exist before.
         keep_existing_keys = (
@@ -284,7 +283,7 @@ class GoogleBooksLoader(BookLoader):
         if new_tags:
             new_book_keys["tags"] = sorted(existing_book_tags & new_tags)
 
-        cover_images: typing.Dict[str, typing.Any] = (
+        cover_images: dict[str, Any] = (
             dict(copy.deepcopy(book_obj.cover_images))
             if book_obj.cover_images is not None
             else {}
@@ -298,10 +297,8 @@ class GoogleBooksLoader(BookLoader):
         return attrs.evolve(book_obj, **new_book_keys)
 
     def retrieve_best_image(
-        self, cover_images: typing.Mapping[str, str]
-    ) -> typing.Union[
-        typing.Tuple[typing.BinaryIO, str, str], typing.Tuple[None, None, None]
-    ]:
+        self, cover_images: Mapping[str, str]
+    ) -> Union[tuple[BinaryIO, str, str], tuple[None, None, None]]:
         """
         Given a dictionary of cover image URLs, this retrieves the largest
         available image.
@@ -331,15 +328,15 @@ class GoogleBooksLoader(BookLoader):
         return None, None, None
 
     @functools.cached_property
-    def _google_api_key(self) -> typing.Optional[str]:
+    def _google_api_key(self) -> Optional[str]:
         return read_from_config("google_api_key")
 
     def _get_volume(
         self,
-        authors: typing.Optional[typing.Sequence[str]] = None,
-        title: typing.Optional[str] = None,
-        **identifiers: typing.Optional[str],
-    ) -> typing.Mapping[str, typing.Any]:
+        authors: Optional[Sequence[str]] = None,
+        title: Optional[str] = None,
+        **identifiers: Optional[str],
+    ) -> Mapping[str, Any]:
         if extra_identifiers := identifiers.keys() - self.valid_identifiers:
             raise TypeError(f"Unknown identifiers: {','.join(extra_identifiers)}")
 
@@ -360,7 +357,7 @@ class GoogleBooksLoader(BookLoader):
                 if id_type == "isbn13":
                     id_type = "isbn"
 
-                query_list: typing.List[str] = [f"{id_type}:{identifier}"]
+                query_list: list[str] = [f"{id_type}:{identifier}"]
 
                 r_json = self._retrieve_search_results(query_list)
                 total_items = r_json.get("totalItems", 0)
@@ -385,13 +382,11 @@ class GoogleBooksLoader(BookLoader):
 
         raise BookNotFound("No items found")
 
-    def _parse_volume_metadata(
-        self, j_item: _VolumeResponse
-    ) -> typing.Mapping[str, typing.Any]:
+    def _parse_volume_metadata(self, j_item: _VolumeResponse) -> Mapping[str, Any]:
         """
         Parse the volume metadata from the response JSON.
         """
-        out: typing.MutableMapping[str, typing.Any] = {}
+        out: MutableMapping[str, Any] = {}
         try:
             v_info = j_item["volumeInfo"]
         except KeyError as e:
@@ -425,7 +420,7 @@ class GoogleBooksLoader(BookLoader):
         return out
 
     def _retrieve_search_results(
-        self, query_list: typing.Sequence[str], **params
+        self, query_list: Sequence[str], **params
     ) -> _QueryResponse:
         params_base = {"orderBy": "relevance"}
         params_base.update(params)

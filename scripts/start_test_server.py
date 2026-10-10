@@ -4,20 +4,19 @@ import pathlib
 import shutil
 import subprocess
 import tempfile
-import typing
+from collections.abc import Iterator
+from typing import Final, Optional
 
 import click
 
 from . import utils
 
-TEMP_DIR_NAME: typing.Final[str] = "audio_feeder_test_server"
-TEMP_LOC: typing.Final[pathlib.Path] = (
-    pathlib.Path(tempfile.gettempdir()) / TEMP_DIR_NAME
-)
+TEMP_DIR_NAME: Final[str] = "audio_feeder_test_server"
+TEMP_LOC: Final[pathlib.Path] = pathlib.Path(tempfile.gettempdir()) / TEMP_DIR_NAME
 
 
 @contextlib.contextmanager
-def cwd(new_dir: pathlib.Path) -> typing.Iterator[None]:
+def cwd(new_dir: pathlib.Path) -> Iterator[None]:
     old_dir = pathlib.Path.cwd()
     try:
         os.chdir(new_dir)
@@ -66,7 +65,7 @@ def start_server(config_dir: pathlib.Path, profile: bool = False) -> None:
     ),
     help="Use the specified directory instead of the default one.",
 )
-def main(fresh_dir: bool, config_dir: typing.Optional[pathlib.Path]) -> None:
+def main(fresh_dir: bool, config_dir: Optional[pathlib.Path]) -> None:
     if fresh_dir and config_dir is not None:
         raise ValueError("Cannot specify both --config-dir and --fresh_dir")
 

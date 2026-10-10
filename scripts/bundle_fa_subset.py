@@ -9,14 +9,15 @@ import pathlib
 import re
 import sys
 import tempfile
-import typing
 import urllib.parse
+from collections.abc import Mapping, Sequence
+from typing import Final, NoReturn
 
 import click
 import fontTools.merge  # type: ignore
 import fontTools.subset  # type: ignore
 
-DESIRED_ICONS: typing.Sequence[str] = [
+DESIRED_ICONS: Sequence[str] = [
     "angle-double-left",
     "angle-left",
     "angle-double-right",
@@ -30,9 +31,9 @@ DESIRED_ICONS: typing.Sequence[str] = [
     "square-rss",
 ]
 
-FONT_FAMILY: typing.Final[str] = "FontAwesomeSubset"
+FONT_FAMILY: Final[str] = "FontAwesomeSubset"
 
-FONT_DEFINITION: typing.Final[
+FONT_DEFINITION: Final[
     str
 ] = f"""@font-face {{{{
   font-family: '{FONT_FAMILY}';
@@ -41,7 +42,7 @@ FONT_DEFINITION: typing.Final[
 }}}}
 """
 
-CSS_START: typing.Final[
+CSS_START: Final[
     str
 ] = """.fa,
 .fas,
@@ -58,7 +59,7 @@ CSS_START: typing.Final[
   font-family: 'FontAwesomeSubset'; }
 """
 
-CSS_BASE: typing.Final[
+CSS_BASE: Final[
     str
 ] = """.fa-{icon}:before {{
     content: "\\{codepoint}"; }}
@@ -85,8 +86,8 @@ def extract_font_awesome(icon: str, css: str) -> str:
 
 
 def load_codepoints(
-    css_file: pathlib.Path, icons: typing.Sequence[str] = DESIRED_ICONS
-) -> typing.Mapping[str, str]:
+    css_file: pathlib.Path, icons: Sequence[str] = DESIRED_ICONS
+) -> Mapping[str, str]:
     with open(css_file, "r") as f:
         css = f.read()
         codepoints = {icon: extract_font_awesome(icon, css) for icon in icons}
@@ -100,8 +101,8 @@ def load_codepoints(
 
 
 def generate_css(
-    codepoints: typing.Mapping[str, str],
-    font_flavors: typing.Sequence[tuple[str, str]],
+    codepoints: Mapping[str, str],
+    font_flavors: Sequence[tuple[str, str]],
     font_locs: pathlib.Path = pathlib.Path("../fonts/"),
 ) -> str:
     font_flavors_in = [
@@ -126,11 +127,11 @@ def generate_css(
 
 
 def generate_subset_font(
-    input_fonts: typing.Sequence[pathlib.Path],
-    codepoints: typing.Mapping[str, str],
+    input_fonts: Sequence[pathlib.Path],
+    codepoints: Mapping[str, str],
     output_loc: pathlib.Path,
-    flavors: typing.Sequence[str] = ("woff2", "woff"),
-) -> typing.Sequence[tuple[str, str]]:
+    flavors: Sequence[str] = ("woff2", "woff"),
+) -> Sequence[tuple[str, str]]:
     codepoints_str = ",".join(("U+" + cp) for cp in codepoints.values())
 
     with tempfile.TemporaryDirectory() as tdir_s:
@@ -165,7 +166,7 @@ def generate_subset_font(
         return flavors_out
 
 
-def bad_options(message: str) -> typing.NoReturn:
+def bad_options(message: str) -> NoReturn:
     print(message)
     sys.exit(1)
 
@@ -176,10 +177,10 @@ ExistingDir = click.Path(
 ExistingFileOrDir = click.Path(
     dir_okay=True, file_okay=True, exists=True, path_type=pathlib.Path
 )  # type: ignore
-FA_VERSION_TEMPLATE: typing.Final[str] = (
+FA_VERSION_TEMPLATE: Final[str] = (
     "https://use.fontawesome.com/releases/v{version}/fontawesome-free-{version}-web.zip"
 )
-LATEST_FA_VERSION: typing.Final[str] = "6.2.0"
+LATEST_FA_VERSION: Final[str] = "6.2.0"
 
 
 @click.command()

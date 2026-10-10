@@ -7,8 +7,9 @@ import logging
 import os
 import pathlib
 import threading
-import typing
 from collections import abc
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, Final, Optional, Union, get_args, get_origin
 
 import attrs
 import sqlalchemy as sa
@@ -21,7 +22,7 @@ from . import object_handler as oh
 from ._db_types import ID, Database, Table, TableName
 from ._useful_types import PathType
 
-DB_VERSION: typing.Final[int] = 2
+DB_VERSION: Final[int] = 2
 
 
 class AbsoluteDateTime(sa.types.TypeDecorator):
@@ -49,17 +50,17 @@ class SQLPath(sa.types.TypeDecorator):
 
 
 class _CustomEncoder(json.JSONEncoder):
-    def _is_custom_type(self, obj: typing.Any) -> bool:
+    def _is_custom_type(self, obj: Any) -> bool:
         return isinstance(obj, (os.PathLike, fp.FileInfo))
 
-    def default(self, obj: typing.Any) -> typing.Any:
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, os.PathLike):
             return os.fspath(obj)
         if isinstance(obj, fp.FileInfo):
             return obj.to_json()
         return super().default(obj)
 
-    def encode(self, obj: typing.Any) -> str:
+    def encode(self, obj: Any) -> str:
         if isinstance(obj, abc.Mapping):
             # Apparently implementing `default()` doesn't work when the object
             # is a dictionary key, but calling `default()` on an already-supported
@@ -79,7 +80,7 @@ class _CustomJsonType(sa.types.TypeDecorator):
     impl = sa.types.String
     cache_ok = True
 
-    def _load_json(self, value: typing.Optional[str]) -> typing.Any:
+    def _load_json(self, value: Optional[str]) -> Any:
         if value is None:
             return None
 
@@ -91,21 +92,21 @@ class _CustomJsonType(sa.types.TypeDecorator):
 
 
 class _PathCollection(_CustomJsonType):
-    def process_result_value(self, value: typing.Optional[str], dialect):
+    def process_result_value(self, value: Optional[str], dialect):
         json_obj = self._load_json(value)
         if json_obj is None:
             return None
 
-        if isinstance(json_obj, typing.Sequence):
+        if isinstance(json_obj, Sequence):
             return list(map(pathlib.Path, json_obj))
-        elif isinstance(json_obj, typing.Mapping):
+        elif isinstance(json_obj, Mapping):
             return {pathlib.Path(key): value for key, value in json_obj.items()}
         else:
             return json_obj
 
 
 class _CoverImages(_CustomJsonType):
-    def process_result_value(self, value: typing.Optional[str], dialect):
+    def process_result_value(self, value: Optional[str], dialect):
         json_obj = self._load_json(value)
 
         if json_obj is None:
@@ -113,9 +114,9 @@ class _CoverImages(_CustomJsonType):
 
         # This is Mapping[str, Union[pathlib.Path, Mapping[str, str]]], so each
         # sub-directory is either a dict or a path
-        out: typing.Dict[typing.Any, typing.Any] = {}
+        out: dict[Any, Any] = {}
         for key, value in json_obj.items():
-            if isinstance(value, typing.Mapping):
+            if isinstance(value, Mapping):
                 out[key] = value
             else:
                 out[key] = pathlib.Path(value)
@@ -123,7 +124,7 @@ class _CoverImages(_CustomJsonType):
 
 
 class _FileMetadata(_CustomJsonType):
-    def process_result_value(self, value: typing.Optional[str], dialect):
+    def process_result_value(self, value: Optional[str], dialect):
         json_obj = self._load_json(value)
         if json_obj is None:
             return None
@@ -134,22 +135,22 @@ class _FileMetadata(_CustomJsonType):
         }
 
 
-_NestedType = typing.Union[type, typing.Tuple["_NestedType", ...]]
+_NestedType = Union[type, tuple["_NestedType", ...]]
 
 
 def _parse_nested_type(t: type) -> _NestedType:
-    container_type: typing.Optional[type] = typing.get_origin(t)
+    container_type: Optional[type] = get_origin(t)
     if container_type is None:
         return t
 
-    return (container_type, tuple(map(_parse_nested_type, typing.get_args(t))))
+    return (container_type, tuple(map(_parse_nested_type, get_args(t))))
 
 
-_CanonicalMapType = typing.get_origin(typing.Mapping[None, None])
-_CanonicalSequenceType = typing.get_origin(typing.Sequence[None])
+_CanonicalMapType = get_origin(Mapping[None, None])
+_CanonicalSequenceType = get_origin(Sequence[None])
 
 
-def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
+def _map_type(t: type) -> type[sa.sql.type_api.TypeEngine]:
     if t is int or t is ID:
         return sa.Integer
     elif t is str:
@@ -163,11 +164,9 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
     elif t == pathlib.Path:
         return SQLPath
     else:
-        type_container = typing.get_origin(t)
-        argtypes = [
-            argtype for argtype in typing.get_args(t) if argtype is not type(None)
-        ]
-        if type_container == typing.Union:
+        type_container = get_origin(t)
+        argtypes = [argtype for argtype in get_args(t) if argtype is not type(None)]
+        if type_container == Union:
             if len(argtypes) != 1:
                 raise ValueError(
                     f"Unions other than (type | None) not supported, got: {t}"
@@ -185,7 +184,7 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
                     # This may be the problematic "cover images" type
                     nested_type_def = _parse_nested_type(argtypes[1])
                     if nested_type_def == (
-                        typing.Union,
+                        Union,
                         (pathlib.Path, (_CanonicalMapType, (str, str))),
                     ):
                         return _CoverImages
@@ -197,7 +196,7 @@ def _map_type(t: type) -> typing.Type[sa.sql.type_api.TypeEngine]:
 def _attr_to_column(a: attrs.Attribute) -> sa.Column:
     name = a.name
     assert a.type is not None
-    args: typing.Tuple[typing.Any, ...] = (_map_type(a.type),)
+    args: tuple[Any, ...] = (_map_type(a.type),)
     primary_key = a.metadata.get("primary_key", False)
     nullable = not a.metadata.get("required", False)
     # TODO: Implement foreign key relationships
@@ -220,10 +219,10 @@ def _mapper_registry() -> orm.registry:
     return orm.registry()
 
 
-_MAP_TABLES_LOCK: typing.Final[threading.Lock] = threading.Lock()
+_MAP_TABLES_LOCK: Final[threading.Lock] = threading.Lock()
 
 
-def _map_tables() -> typing.Mapping[TableName, sa.Table]:
+def _map_tables() -> Mapping[TableName, sa.Table]:
     # `lru_cache` doesn't prevent concurrent first calls from both running
     # the function, and mapping the tables a second time raises an error, so
     # the first call needs to happen under a lock.
@@ -232,10 +231,10 @@ def _map_tables() -> typing.Mapping[TableName, sa.Table]:
 
 
 @functools.lru_cache(None)
-def _map_tables_once() -> typing.Mapping[TableName, sa.Table]:
+def _map_tables_once() -> Mapping[TableName, sa.Table]:
     metadata_object = _metadata_object()
     mapper_registry = _mapper_registry()
-    table_mapping: typing.Dict[TableName, sa.Table] = {}
+    table_mapping: dict[TableName, sa.Table] = {}
 
     for table_name, type_name in oh.TABLE_MAPPING.items():
         base_type = oh.TYPE_MAPPING[type_name]
@@ -326,8 +325,8 @@ class SqlDatabaseHandler:
         # Find all the objects that have been modified, either by mutating them
         # in-place, replacing them with a new schema object or because they
         # are new to the table.
-        to_update: typing.MutableMapping[ID, ot.SchemaObject] = {}
-        to_replace: typing.MutableMapping[ID, ot.SchemaObject] = {}
+        to_update: MutableMapping[ID, ot.SchemaObject] = {}
+        to_replace: MutableMapping[ID, ot.SchemaObject] = {}
 
         for key, obj in table_contents.items():
             insp = sa.inspect(obj)
@@ -376,7 +375,7 @@ class SqlDatabaseHandler:
 
     def load_database(self) -> Database:
         self._initialize_db()
-        out: typing.Dict[TableName, Table] = {}
+        out: dict[TableName, Table] = {}
         with self.session() as session:
             for table_name, type_name in oh.TABLE_MAPPING.items():
                 table_type = oh.TYPE_MAPPING[type_name]

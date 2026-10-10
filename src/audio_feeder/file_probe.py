@@ -12,9 +12,15 @@ import os
 import pathlib
 import re
 import subprocess
-import typing
 import xml.etree.ElementTree as ET
-from typing import Self
+from collections.abc import (
+    Callable,
+    Iterable,
+    Mapping,
+    MutableSequence,
+    Sequence,
+)
+from typing import Any, Optional, Self, TypedDict, cast
 
 import attrs
 
@@ -35,14 +41,14 @@ def _parse_time(s: str) -> float:
 
 
 # There are other keys in these results, but we aren't using them yet.
-class JSONChapterType(typing.TypedDict, total=False):
+class JSONChapterType(TypedDict, total=False):
     id: int
     start_time: str
     end_time: str
-    tags: typing.Mapping[str, str]
+    tags: Mapping[str, str]
 
 
-class JSONFormatType(typing.TypedDict, total=False):
+class JSONFormatType(TypedDict, total=False):
     filename: str
     format_name: str
     format_long_name: str
@@ -50,28 +56,28 @@ class JSONFormatType(typing.TypedDict, total=False):
     duration: str
     size: str
     bit_rate: str
-    tags: typing.Mapping[str, str]
+    tags: Mapping[str, str]
 
 
-class FFProbeReturnJSON(typing.TypedDict, total=False):
-    chapters: typing.Sequence[JSONChapterType]
+class FFProbeReturnJSON(TypedDict, total=False):
+    chapters: Sequence[JSONChapterType]
     format: JSONFormatType
 
 
 @attrs.frozen(order=True)
 class OverdriveMediaMarker:
     time: float
-    name: typing.Optional[str] = attrs.field(default=None, order=False)
+    name: Optional[str] = attrs.field(default=None, order=False)
 
     @classmethod
-    def from_xml(cls, xml: str) -> typing.Sequence[Self]:
+    def from_xml(cls, xml: str) -> Sequence[Self]:
         root = ET.fromstring(xml)
         if root.tag != "Markers":
             raise ValueError(
                 f"Unknown media marker tag: {root.tag}. " + "Should be 'Markers'"
             )
 
-        out: typing.MutableSequence[Self] = []
+        out: MutableSequence[Self] = []
         for marker_element in root:
             name_tag = marker_element.find("Name")
             name = name_tag.text if name_tag is not None else None
@@ -85,12 +91,12 @@ class OverdriveMediaMarker:
         return out
 
 
-def _filter_sparse(_: attrs.Attribute, value: typing.Any) -> bool:
+def _filter_sparse(_: attrs.Attribute, value: Any) -> bool:
     return value is not None
 
 
 # TODO: Switch to using attrs.AttrsInstance after attrs > 22.1 is released.
-def _to_dict_sparse(attrs_instance: typing.Any) -> typing.Mapping[str, typing.Any]:
+def _to_dict_sparse(attrs_instance: Any) -> Mapping[str, Any]:
     return attrs.asdict(attrs_instance, filter=_filter_sparse)
 
 
@@ -99,8 +105,8 @@ class ChapterInfo:
     num: int
     start_time: float
     end_time: float
-    title: typing.Optional[str] = None
-    tags: typing.Mapping[str, str] = attrs.field(factory=dict)
+    title: Optional[str] = None
+    tags: Mapping[str, str] = attrs.field(factory=dict)
 
     @property
     def duration(self) -> float:
@@ -121,7 +127,7 @@ class ChapterInfo:
     @classmethod
     def from_json(cls, chapter: JSONChapterType) -> Self:
         if "tags" in chapter:
-            tags: typing.Mapping[str, str] = chapter["tags"]
+            tags: Mapping[str, str] = chapter["tags"]
         else:
             tags = {}
 
@@ -139,26 +145,24 @@ class ChapterInfo:
 
 @attrs.frozen
 class FormatInfo:
-    filename: typing.Optional[str] = attrs.field(default=None)
-    format_name: typing.Optional[str] = attrs.field(default=None)
-    format_long_name: typing.Optional[str] = attrs.field(default=None)
-    start_time: typing.Optional[float] = attrs.field(default=None)
-    duration: typing.Optional[float] = attrs.field(default=None)
-    size: typing.Optional[int] = attrs.field(default=None)  # Bytes
-    bit_rate: typing.Optional[int] = attrs.field(default=None)
-    tags: typing.Mapping[str, str] = attrs.field(factory=dict)
+    filename: Optional[str] = attrs.field(default=None)
+    format_name: Optional[str] = attrs.field(default=None)
+    format_long_name: Optional[str] = attrs.field(default=None)
+    start_time: Optional[float] = attrs.field(default=None)
+    duration: Optional[float] = attrs.field(default=None)
+    size: Optional[int] = attrs.field(default=None)  # Bytes
+    bit_rate: Optional[int] = attrs.field(default=None)
+    tags: Mapping[str, str] = attrs.field(factory=dict)
 
     def to_json(self) -> JSONFormatType:
-        return typing.cast(JSONFormatType, _to_dict_sparse(self))
+        return cast(JSONFormatType, _to_dict_sparse(self))
 
     @classmethod
     def from_json(cls, json_dict: JSONFormatType) -> Self:
         def identity(x: str) -> str:
             return x
 
-        component_conversion: typing.Mapping[
-            str, typing.Callable[[str], typing.Any]
-        ] = {
+        component_conversion: Mapping[str, Callable[[str], Any]] = {
             "filename": identity,
             "format_name": identity,
             "format_long_name": identity,
@@ -169,7 +173,7 @@ class FormatInfo:
             "tags": identity,
         }
 
-        kwargs: typing.Dict[str, typing.Any] = {}
+        kwargs: dict[str, Any] = {}
         for comp, converter in component_conversion.items():
             if comp in json_dict:
                 kwargs[comp] = converter(json_dict[comp])  # type: ignore[literal-required]
@@ -180,7 +184,7 @@ class FormatInfo:
 @attrs.frozen
 class FileInfo:
     format_info: FormatInfo
-    chapters: typing.Optional[typing.Sequence[ChapterInfo]] = attrs.field(default=None)
+    chapters: Optional[Sequence[ChapterInfo]] = attrs.field(default=None)
 
     @classmethod
     def from_json(cls, json_dict: FFProbeReturnJSON) -> Self:
@@ -292,13 +296,13 @@ def _read_file_info(fpath: pathlib.Path) -> FFProbeReturnJSON:
 
 
 def get_multipath_chapter_info(
-    fpaths: typing.Iterable[pathlib.Path],
+    fpaths: Iterable[pathlib.Path],
     /,
     fall_back_to_durations: bool = False,
-    file_infos: typing.Optional[typing.Mapping[pathlib.Path, FileInfo]] = None,
-) -> typing.Sequence[typing.Tuple[pathlib.Path, ChapterInfo]]:
-    out: typing.MutableSequence[typing.Tuple[pathlib.Path, ChapterInfo]] = []
-    chapter_num: typing.Optional[int] = None
+    file_infos: Optional[Mapping[pathlib.Path, FileInfo]] = None,
+) -> Sequence[tuple[pathlib.Path, ChapterInfo]]:
+    out: MutableSequence[tuple[pathlib.Path, ChapterInfo]] = []
+    chapter_num: Optional[int] = None
     if file_infos is None:
         file_infos = {}
 
@@ -352,7 +356,7 @@ def get_multipath_chapter_info(
     return out
 
 
-def get_file_duration(fpath: pathlib.Path) -> typing.Optional[datetime.timedelta]:
+def get_file_duration(fpath: pathlib.Path) -> Optional[datetime.timedelta]:
     p = subprocess.run(
         [
             "ffprobe",

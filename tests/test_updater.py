@@ -3,37 +3,38 @@
 import contextlib
 import json
 import pathlib
-import typing
+from collections.abc import Iterator, Mapping, Sequence
+from typing import Any, Optional
 from unittest import mock
 
 from audio_feeder import metadata_loader as mdl
 from audio_feeder import updater
 
 
-def _lists_to_tuple(lst: typing.List[typing.Any]) -> typing.Tuple[typing.Any]:
+def _lists_to_tuple(lst: list[Any]) -> tuple[Any]:
     return tuple(
         _lists_to_tuple(item) if isinstance(item, list) else item for item in lst
     )
 
 
-SessionKey = typing.Tuple[str, typing.Sequence[typing.Tuple[str, str]]]
-SessionJson = typing.Mapping[str, typing.Any]
+SessionKey = tuple[str, Sequence[tuple[str, str]]]
+SessionJson = Mapping[str, Any]
 
 
 class FakeResponse:
     def __init__(
-        self, status_code: int = 200, json_contents: typing.Optional[SessionJson] = None
+        self, status_code: int = 200, json_contents: Optional[SessionJson] = None
     ):
         self.status_code = status_code
         self._json_contents = json_contents
 
-    def json(self) -> typing.Optional[SessionJson]:
+    def json(self) -> Optional[SessionJson]:
         return self._json_contents
 
 
 def load_response_mapping(
     responses: pathlib.Path,
-) -> typing.Mapping[SessionKey, FakeResponse]:
+) -> Mapping[SessionKey, FakeResponse]:
     with open(responses, "rt") as f:
         session_responses = json.load(f)
 
@@ -47,7 +48,7 @@ def load_response_mapping(
 
 class FakeGoogleBooksLoader(mdl.GoogleBooksLoader):
     def __init__(
-        self, *args, _response_map: typing.Mapping[SessionKey, FakeResponse], **kwargs
+        self, *args, _response_map: Mapping[SessionKey, FakeResponse], **kwargs
     ):
         kwargs["poll_delay"] = kwargs.pop("poll_delay", 0)
         self._response_map = _response_map
@@ -82,7 +83,7 @@ class FakeBookUpdater(updater.BookDatabaseUpdater):
 
 
 @contextlib.contextmanager
-def patch_book_updater() -> typing.Iterator[None]:
+def patch_book_updater() -> Iterator[None]:
     old_book_updater = updater.BookDatabaseUpdater
     try:
         updater.BookDatabaseUpdater = FakeBookUpdater

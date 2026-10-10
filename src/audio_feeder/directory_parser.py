@@ -2,13 +2,14 @@ import itertools
 import os
 import pathlib
 import re
-import typing
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, Final, Optional, Protocol
 
 from ._useful_types import PathType
 
 
-class _SupportsSorting(typing.Protocol):
-    def __lt__(self, other: typing.Any, /) -> bool:  # pragma: nocover
+class _SupportsSorting(Protocol):
+    def __lt__(self, other: Any, /) -> bool:  # pragma: nocover
         ...
 
 
@@ -24,25 +25,23 @@ class BaseAudioLoader:
     @classmethod
     def audio_files(
         cls, dir_loc: PathType
-    ) -> typing.Sequence[pathlib.Path]:  # pragma: nocover
+    ) -> Sequence[pathlib.Path]:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes.")
 
     @classmethod
     def audio_cover(
         cls, dir_loc: PathType
-    ) -> typing.Optional[pathlib.Path]:  # pragma: nocover
+    ) -> Optional[pathlib.Path]:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes.")
 
     @classmethod
-    def parse_creator_names(
-        cls, creators: str
-    ) -> typing.Sequence[str]:  # pragma: nocover
+    def parse_creator_names(cls, creators: str) -> Sequence[str]:  # pragma: nocover
         raise NotImplementedError("Function must be defined in child classes")
 
     @classmethod
     def parse_audio_info(
         cls, dir_path: PathType
-    ) -> typing.Mapping[str, typing.Any]:  # pragma: nocover
+    ) -> Mapping[str, Any]:  # pragma: nocover
         raise NotImplementedError("Function must be implemented in child classes")
 
     @classmethod
@@ -69,7 +68,7 @@ class BaseAudioLoader:
 
         # First we break the string up into groups by number and string, so:
         # "ab12q" ⇒ ((True, ("a", "b")), (False, ("1", "2")), (True, ("q",)))
-        o: typing.Iterable = itertools.groupby(value, key=str.isdecimal)
+        o: Iterable = itertools.groupby(value, key=str.isdecimal)
 
         # Next we re-stringify the iterables in each group, so:
         # ((True, "ab"), (False, "12"), (True, "q"))
@@ -87,7 +86,7 @@ class AudiobookLoader(BaseAudioLoader):
     This is a more or less static class that can be used to load audiobooks.
     """
 
-    AUDIO_EXTENSIONS: typing.Final[typing.Sequence[str]] = (
+    AUDIO_EXTENSIONS: Final[Sequence[str]] = (
         ".mp3",
         ".mp4",
         ".ogg",
@@ -97,7 +96,7 @@ class AudiobookLoader(BaseAudioLoader):
         ".m4a",
     )
 
-    COVER_EXTENSIONS: typing.Final[typing.Sequence[str]] = (
+    COVER_EXTENSIONS: Final[Sequence[str]] = (
         ".png",
         ".jpg",
         ".svg",
@@ -106,7 +105,7 @@ class AudiobookLoader(BaseAudioLoader):
         ".bmp",
     )
 
-    COVER_PATTERNS: typing.Final[typing.Sequence[re.Pattern]] = [
+    COVER_PATTERNS: Final[Sequence[re.Pattern]] = [
         re.compile(r"$.*-Cover^", re.IGNORECASE),
         re.compile("cover", re.IGNORECASE),
     ]
@@ -142,7 +141,7 @@ class AudiobookLoader(BaseAudioLoader):
         return False
 
     @classmethod
-    def audio_files(cls, dir_loc: PathType) -> typing.Sequence[pathlib.Path]:
+    def audio_files(cls, dir_loc: PathType) -> Sequence[pathlib.Path]:
         """
         Load all audiobook files and sort them appropriately.
 
@@ -162,7 +161,7 @@ class AudiobookLoader(BaseAudioLoader):
         return list(map(pathlib.Path, sorted(o, key=cls.natural_sort_key)))
 
     @classmethod
-    def audio_cover(cls, dir_loc: PathType) -> typing.Optional[pathlib.Path]:
+    def audio_cover(cls, dir_loc: PathType) -> Optional[pathlib.Path]:
         """
         Retrieve the best candidate for an audiobook cover.
 
@@ -198,7 +197,7 @@ class AudiobookLoader(BaseAudioLoader):
         return pathlib.Path(cover_loc)
 
     @classmethod
-    def parse_creator_names(cls, creators: str) -> typing.Sequence[str]:
+    def parse_creator_names(cls, creators: str) -> Sequence[str]:
         """
         Splits author names by ',', '&' and 'and'
 
@@ -208,14 +207,14 @@ class AudiobookLoader(BaseAudioLoader):
         :return:
             Returns a :py:object:`list` of authors.
         """
-        o: typing.Iterable[str] = creators.split(" & ")
+        o: Iterable[str] = creators.split(" & ")
         o = itertools.chain.from_iterable(x.split(" and ") for x in o)
         o = itertools.chain.from_iterable(x.split(", ") for x in o)
 
         return list(o)
 
     @classmethod
-    def parse_audio_info(cls, dir_path: PathType) -> typing.Mapping[str, typing.Any]:
+    def parse_audio_info(cls, dir_path: PathType) -> Mapping[str, Any]:
         """
         Try to parse audiobook information the directory name.
         """
@@ -245,9 +244,9 @@ class AudiobookLoader(BaseAudioLoader):
 def load_all_audio(
     base_dir: PathType,
     *,
-    visited_dirs: typing.Optional[typing.Set[pathlib.Path]] = None,
-    audio_loader_class: typing.Type[BaseAudioLoader] = AudiobookLoader,
-) -> typing.Sequence[pathlib.Path]:
+    visited_dirs: Optional[set[pathlib.Path]] = None,
+    audio_loader_class: type[BaseAudioLoader] = AudiobookLoader,
+) -> Sequence[pathlib.Path]:
     """
     Traverse a directory and find all the directories that contain an
     audiobook (as returned by is_audiobook)

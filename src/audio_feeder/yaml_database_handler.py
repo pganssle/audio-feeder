@@ -41,7 +41,7 @@ def _path_representer(
 def _file_info_constructor(
     loader: yaml.SafeLoader, node: yaml.nodes.MappingNode
 ) -> fp.FileInfo:
-    mapping = loader.construct_mapping(node)
+    mapping = loader.construct_mapping(node, deep=True)
     return fp.FileInfo.from_json(cast(fp.FFProbeReturnJSON, mapping))
 
 

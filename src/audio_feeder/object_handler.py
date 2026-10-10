@@ -48,7 +48,8 @@ class BaseObject:
         return attrs.asdict(self)  # type: ignore[arg-type]
 
     def to_dict_sparse(self, *, _filter=_filter_sparse) -> Mapping[str, Any]:
-        return attrs.asdict(self, filter=_filter)  # type: ignore[arg-type]
+        # Nested attrs classes (e.g. FileInfo) are left for the serializer.
+        return attrs.asdict(self, filter=_filter, recurse=False)  # type: ignore[arg-type]
 
     def copy(self: Self) -> Self:
         """Make a new copy of this object."""

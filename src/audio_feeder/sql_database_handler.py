@@ -281,7 +281,9 @@ class SqlDatabaseHandler:
         else:
             with self.session() as session:
                 assert session is not None
-                db_version: int = session.execute(sa.text("PRAGMA user_version")).first()[0]  # type: ignore[index,assignment]
+                db_version: int = session.execute(
+                    sa.text("PRAGMA user_version")
+                ).scalar_one()
                 if db_version < DB_VERSION:
                     logging.info(
                         "Upgrading database from %s to %s", db_version, DB_VERSION

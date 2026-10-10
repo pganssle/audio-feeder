@@ -87,6 +87,13 @@ target-version = "py39"
 extend-exclude = ["src/audio_feeder/data"]
 
 [tool.ruff.lint]
+# Preview mode is needed for suppression comments that use rule names, e.g.
+# `# ruff: ignore[module-import-not-at-top-of-file]`, which should be used in
+# preference to `noqa` comments with rule codes. `explicit-preview-rules`
+# keeps preview from enabling unstable rules in the selected groups.
+preview = true
+explicit-preview-rules = true
+
 # Start from a small set of rules (pyflakes, the pycodestyle errors and the
 # equivalents of the pylint checks we were using) rather than enabling
 # everything at once. The set is listed explicitly because ruff's default

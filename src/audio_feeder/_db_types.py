@@ -4,16 +4,16 @@ This exists for compatibility while the old database_handler code still exists.
 """
 
 from collections.abc import Mapping, MutableMapping
-from typing import NewType, Protocol
+from typing import NewType, Protocol, TypeAlias
 
 from ._object_types import ID, SchemaObject
 from ._useful_types import PathType
 
 TableName = NewType("TableName", str)
-Table = Mapping[ID, SchemaObject]
-MutableTable = MutableMapping[ID, SchemaObject]
-Database = Mapping[TableName, Table]
-MutableDatabase = MutableMapping[TableName, MutableTable]
+Table: TypeAlias = Mapping[ID, SchemaObject]
+MutableTable: TypeAlias = MutableMapping[ID, SchemaObject]
+Database: TypeAlias = Mapping[TableName, Table]
+MutableDatabase: TypeAlias = MutableMapping[TableName, MutableTable]
 
 
 # pragma: nocover

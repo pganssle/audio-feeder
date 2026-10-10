@@ -2,7 +2,7 @@ import functools
 import os
 import pathlib
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
@@ -22,8 +22,8 @@ class Resolver:
 
     def __init__(
         self,
-        config: Optional[Configuration] = None,
-        qr_generator: Optional["QRGenerator"] = None,
+        config: Configuration | None = None,
+        qr_generator: "QRGenerator | None" = None,
     ):
         if config is None:
             config = get_configuration()
@@ -42,7 +42,7 @@ class Resolver:
         if qr_generator is None:
             self.qr_generator = QRGenerator()
 
-    def resolve_rss(self, entry_obj, tail: Optional[str] = None) -> FileLocation:
+    def resolve_rss(self, entry_obj, tail: str | None = None) -> FileLocation:
         kwargs = dict(id=entry_obj.id, table=entry_obj.table, tail=tail or "")
 
         # In the config, the RSS feeds will be specified relative to
@@ -52,9 +52,7 @@ class Resolver:
         # Doesn't represent a location on disk, so base_path is None
         return FileLocation(url_tail, self.base_url, None)
 
-    def resolve_qr(
-        self, e_id: int, url: str, mode: Optional[str] = None
-    ) -> FileLocation:
+    def resolve_qr(self, e_id: int, url: str, mode: str | None = None) -> FileLocation:
         # Check the QR cache - for the moment, we're going to assume that once
         # a QR code is generated, it's accurate until it's deleted. Eventually
         # it might be nice to allow multiple caches.
@@ -107,7 +105,7 @@ class QRGenerator:
     Class for generating QR codes on demand
     """
 
-    def __init__(self, fmt: str = "png", version: Optional[int] = None, **qr_options):
+    def __init__(self, fmt: str = "png", version: int | None = None, **qr_options):
         if fmt == "svg":
             image_factory = SvgPathImage
             self.extension: str = ".svg"

@@ -10,7 +10,7 @@ import re
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from concurrent import futures
 from datetime import timedelta
-from typing import Any, Optional, TypedDict, TypeVar, cast
+from typing import Any, TypedDict, TypeVar, cast
 from urllib.parse import urljoin
 from xml.sax import saxutils
 
@@ -30,7 +30,7 @@ _T = TypeVar("_T")
 class _JSONChapter(TypedDict, total=False):
     startTime: float
     endTime: float
-    title: Optional[str]
+    title: str | None
 
 
 def _make_chapter_json(chapter: fp.ChapterInfo) -> _JSONChapter:
@@ -98,9 +98,9 @@ def feed_items_from_metadata(
     entry_obj: oh.Entry,
     data_obj: ot.SchemaObject,
     audio_dir: FileLocation,
-    file_metadata: Mapping[FileLocation, tuple[fp.FileInfo, Optional[str]]],
-    mode: Optional[str] = None,
-    resolver: Optional[Resolver] = None,
+    file_metadata: Mapping[FileLocation, tuple[fp.FileInfo, str | None]],
+    mode: str | None = None,
+    resolver: Resolver | None = None,
 ) -> Sequence[Mapping[str, Any]]:
     if resolver is None:
         resolver = Resolver()
@@ -150,7 +150,7 @@ def feed_items_from_metadata(
 
 def load_feed_items(
     entry_obj: oh.Entry,
-    resolver: Optional[Resolver] = None,
+    resolver: Resolver | None = None,
     loader: dp.BaseAudioLoader = dp.AudiobookLoader(),
 ):
     """
@@ -191,9 +191,9 @@ def load_feed_items(
         return futures.ThreadPoolExecutor()
 
     metadata_futures: MutableSequence[
-        futures.Future[tuple[FileLocation, fp.FileInfo, Optional[str]]]
+        futures.Future[tuple[FileLocation, fp.FileInfo, str | None]]
     ] = []
-    file_metadata: MutableMapping[FileLocation, tuple[fp.FileInfo, Optional[str]]] = {}
+    file_metadata: MutableMapping[FileLocation, tuple[fp.FileInfo, str | None]] = {}
     for file in audio_files:
         fname = file.relative_to(audio_dir.path)
 
@@ -203,7 +203,7 @@ def load_feed_items(
 
         m_rel_path = file.relative_to(media_path)
         if entry_obj.file_hashes and m_rel_path in entry_obj.file_hashes:
-            file_hash: Optional[str] = entry_obj.file_hashes[m_rel_path]
+            file_hash: str | None = entry_obj.file_hashes[m_rel_path]
         else:
             file_hash = None
 

@@ -14,7 +14,7 @@ import warnings
 from collections.abc import Mapping, MutableMapping, Sequence
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final, Optional, Self, Union, overload
+from typing import TYPE_CHECKING, Any, Final, Self, overload
 
 import attrs
 import yaml
@@ -65,11 +65,11 @@ class TemplateStr(str):
 
 
 @overload
-def _path_converter(s: Union[TemplatePath, TemplateStr]) -> TemplatePath: ...
+def _path_converter(s: TemplatePath | TemplateStr) -> TemplatePath: ...
 
 
 @overload
-def _path_converter(s: Union[str, Path]) -> Path: ...
+def _path_converter(s: str | Path) -> Path: ...
 
 
 def _path_converter(s):
@@ -139,10 +139,10 @@ class Configuration:
     thumb_max: tuple[int, int] = (200, 400)  # width, height
     base_protocol: str = "http"
     base_host: str = "localhost"
-    base_port: Optional[int] = 9090
+    base_port: int | None = 9090
 
     # API Keys
-    google_api_key: Optional[str] = None
+    google_api_key: str | None = None
 
     _ReplacementsMapType = Mapping[str, str]
     REPLACEMENTS: Final[_ReplacementsMapType] = {
@@ -153,7 +153,7 @@ class Configuration:
     }
 
     def __attrs_post_init__(self) -> None:
-        self._attr_templates: MutableMapping[str, Union[TemplateStr, TemplatePath]] = {}
+        self._attr_templates: MutableMapping[str, TemplateStr | TemplatePath] = {}
         self._make_replacements()
 
     def __getitem__(self, key):
@@ -284,13 +284,13 @@ class Configuration:
 
     @overload
     def _make_single_replacement(
-        self, value: Union[str, TemplateStr], replacements: _ReplacementsMapType
+        self, value: str | TemplateStr, replacements: _ReplacementsMapType
     ) -> str: ...
 
     @overload
     def _make_single_replacement(
         self,
-        value: Union[Path, TemplatePath],
+        value: Path | TemplatePath,
         replacements: _ReplacementsMapType,
     ) -> Path: ...
 
@@ -336,7 +336,7 @@ class Configuration:
 
 
 def init_config(
-    config_loc: Optional[PathType] = None,
+    config_loc: PathType | None = None,
     config_loc_must_exist: bool = False,
     **kwargs,
 ):
@@ -345,7 +345,7 @@ def init_config(
     configuration location.
     """
 
-    config_location: Union[pathlib.Path, None] = None
+    config_location: pathlib.Path | None = None
     if config_loc is not None:
         if not os.path.exists(config_loc):
             if config_loc_must_exist:

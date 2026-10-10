@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Iterator
-from typing import Final, Optional
+from typing import Final
 
 import click
 
@@ -65,7 +65,7 @@ def start_server(config_dir: pathlib.Path, profile: bool = False) -> None:
     ),
     help="Use the specified directory instead of the default one.",
 )
-def main(fresh_dir: bool, config_dir: Optional[pathlib.Path]) -> None:
+def main(fresh_dir: bool, config_dir: pathlib.Path | None) -> None:
     if fresh_dir and config_dir is not None:
         raise ValueError("Cannot specify both --config-dir and --fresh_dir")
 

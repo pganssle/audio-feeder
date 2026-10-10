@@ -1,4 +1,4 @@
 import pathlib
-from typing import Union
+from typing import TypeAlias
 
-PathType = Union[pathlib.Path, str]
+PathType: TypeAlias = pathlib.Path | str

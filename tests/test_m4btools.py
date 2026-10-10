@@ -12,7 +12,7 @@ from collections.abc import (
     Sequence,
 )
 from concurrent import futures
-from typing import Final, Optional
+from typing import Final
 from unittest import mock
 
 import attrs
@@ -228,7 +228,7 @@ def test_merge_durations(
     subtests,
     caplog,
     dracula_files: pathlib.Path,
-    chapter_infos: Optional[Mapping[pathlib.Path, file_probe.ChapterInfo]],
+    chapter_infos: Mapping[pathlib.Path, file_probe.ChapterInfo] | None,
     tmp_path: pathlib.Path,
 ) -> None:
     out_path = tmp_path / "Dracula.m4b"
@@ -949,7 +949,7 @@ def test_merge_covers(
         [Sequence[pathlib.Path], pathlib.Path],
         Sequence[m4btools.RenderJob],
     ],
-    output_filename: Optional[str],
+    output_filename: str | None,
     m4bs_with_cover: tuple[pathlib.Path, pathlib.Path],
     tmp_path: pathlib.Path,
 ) -> None:

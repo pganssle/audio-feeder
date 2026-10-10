@@ -18,7 +18,7 @@ from collections.abc import (
 from concurrent import futures
 from datetime import datetime, timezone
 from random import SystemRandom
-from typing import Any, BinaryIO, Final, Optional, TypeVar, cast
+from typing import Any, BinaryIO, Final, TypeVar, cast
 
 from PIL import Image
 
@@ -48,7 +48,7 @@ class IDHandler:
     This is a class for handling the assignment of new IDs.
     """
 
-    def __init__(self, invalid_ids: Optional[Iterable[ID]] = None):
+    def __init__(self, invalid_ids: Iterable[ID] | None = None):
         if invalid_ids is None:
             invalid_ids = set()
         else:
@@ -85,11 +85,11 @@ class BookDatabaseUpdater:
         books_location: PathType,
         *,
         entry_table: TableName = TableName("entries"),
-        table: Optional[TableName] = None,
+        table: TableName | None = None,
         book_loader: type[dp.BaseAudioLoader] = dp.AudiobookLoader,
         metadata_loaders: Sequence[mdl.BookLoader] = (mdl.GoogleBooksLoader(),),
         id_handler: type[IDHandler] = IDHandler,
-        executor: Optional[futures.Executor] = None,
+        executor: futures.Executor | None = None,
     ):
         self.table = table or self.BOOK_TABLE_NAME
         self.entry_table = entry_table
@@ -222,7 +222,7 @@ class BookDatabaseUpdater:
     def update_book_metadata(
         self,
         database: MutableDatabase,
-        pbar: Optional[_PBar] = None,
+        pbar: _PBar | None = None,
         reload_metadata: bool = False,
     ) -> MutableDatabase:
         book_table = cast(MutableMapping[ID, oh.Book], database[self.table])
@@ -639,7 +639,7 @@ class BookDatabaseUpdater:
         # Construct a lookup mapping author name to author id if it isn't
         # already cached.
         if at_id not in cached_author_ids_cache or at_id not in authors_by_name_cache:
-            authors_by_name: dict[Optional[str], MutableSequence[ID]] = {}
+            authors_by_name: dict[str | None, MutableSequence[ID]] = {}
             cached_author_ids: set[ID] = set()
 
             cached_author_ids_cache[at_id] = cached_author_ids
@@ -683,7 +683,7 @@ class BookDatabaseUpdater:
         return disamb_func(author_list)
 
     @classmethod
-    def author_sort(cls, author_name: str) -> Optional[str]:
+    def author_sort(cls, author_name: str) -> str | None:
         """
         Takes the author name and returns a plausible sort name.
 
@@ -763,7 +763,7 @@ def _clear_update_output() -> None:
 
 def _update_books(
     update_path: str,
-    progress_bar: Optional[_PBar] = None,
+    progress_bar: _PBar | None = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:
@@ -818,9 +818,9 @@ def _update_books(
 
 
 def update(
-    content_type: Optional[str] = None,
-    path: Optional[str] = None,
-    progress_bar: Optional[_PBar] = None,
+    content_type: str | None = None,
+    path: str | None = None,
+    progress_bar: _PBar | None = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
 ) -> None:

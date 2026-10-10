@@ -4,7 +4,7 @@ import os
 import pathlib
 import random
 from collections.abc import Callable, Sequence
-from typing import Protocol
+from typing import Protocol, TypeAlias
 
 
 class _Hash(Protocol):
@@ -15,7 +15,7 @@ class _Hash(Protocol):
     def digest(self) -> bytes: ...
 
 
-_HashFunc = Callable[[], _Hash]
+_HashFunc: TypeAlias = Callable[[], _Hash]
 
 
 def hash_random(

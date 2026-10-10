@@ -2,14 +2,14 @@ import functools
 import itertools
 from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
-from typing import TypeVar
+from typing import TypeAlias, TypeVar
 
 import hypothesis
 import pytest
 
 from audio_feeder import segmenter
 
-Minimizer = Callable[
+Minimizer: TypeAlias = Callable[
     [Sequence[segmenter.Scorable], segmenter.CostFunc],
     tuple[Sequence[Sequence[segmenter.Scorable]], float],
 ]

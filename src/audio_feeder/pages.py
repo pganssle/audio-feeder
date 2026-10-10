@@ -8,7 +8,7 @@ import textwrap
 import threading
 from collections.abc import Mapping, MutableSequence, Sequence
 from datetime import datetime, timezone
-from typing import Optional, cast
+from typing import cast
 
 import flask
 from flask import Blueprint, Response, request
@@ -562,7 +562,7 @@ def get_feed_template() -> Template:
 
 
 def _get_template(
-    loc_entry: str, template_name: str, resource_default: Optional[str] = None
+    loc_entry: str, template_name: str, resource_default: str | None = None
 ) -> Template:
     template_loc = read_from_config(loc_entry) / template_name
 

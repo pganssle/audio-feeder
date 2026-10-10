@@ -4,7 +4,7 @@ import contextlib
 import json
 import pathlib
 from collections.abc import Iterator, Mapping, Sequence
-from typing import Any, Optional
+from typing import Any, TypeAlias
 from unittest import mock
 
 from audio_feeder import metadata_loader as mdl
@@ -17,18 +17,18 @@ def _lists_to_tuple(lst: list[Any]) -> tuple[Any]:
     )
 
 
-SessionKey = tuple[str, Sequence[tuple[str, str]]]
-SessionJson = Mapping[str, Any]
+SessionKey: TypeAlias = tuple[str, Sequence[tuple[str, str]]]
+SessionJson: TypeAlias = Mapping[str, Any]
 
 
 class FakeResponse:
     def __init__(
-        self, status_code: int = 200, json_contents: Optional[SessionJson] = None
+        self, status_code: int = 200, json_contents: SessionJson | None = None
     ):
         self.status_code = status_code
         self._json_contents = json_contents
 
-    def json(self) -> Optional[SessionJson]:
+    def json(self) -> SessionJson | None:
         return self._json_contents
 
 

@@ -105,7 +105,7 @@ def feed_items_from_metadata(
     if resolver is None:
         resolver = Resolver()
 
-    pub_date = entry_obj.date_added or datetime.datetime.now(datetime.timezone.utc)
+    pub_date = entry_obj.date_added or datetime.datetime.now(datetime.UTC)
 
     feed_items: MutableSequence[Mapping[str, Any]] = []
     for ii, (file, (file_info, file_hash)) in enumerate(file_metadata.items()):

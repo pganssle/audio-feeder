@@ -183,11 +183,11 @@ class Configuration:
         return self.hash_encode(self.base_url)
 
     @classmethod
-    def from_file(cls: type[Self], file_loc: Path, **kwargs) -> Self:
+    def from_file(cls, file_loc: Path, **kwargs) -> Self:
         if not file_loc.exists():
-            raise IOError(f"File not found: {file_loc}")
+            raise OSError(f"File not found: {file_loc}")
 
-        with open(file_loc, "r") as yf:
+        with open(file_loc) as yf:
             config = yaml.safe_load(yf)
 
         template_types = {
@@ -409,7 +409,7 @@ def init_config(
 
 
 @cache_utils.register_function_cache("config")
-@functools.lru_cache(None)
+@functools.cache
 def get_configuration() -> Configuration:
     """
     On first call, this loads the configuration object, on subsequent calls,

@@ -234,7 +234,7 @@ def _try_video_variations(
 
         if proc.returncode != 0:
             if error is None:
-                error = IOError(f"ffmpeg failed with exit code: {proc.returncode}")
+                error = OSError(f"ffmpeg failed with exit code: {proc.returncode}")
 
             if not out_path_existed and out_path.exists():
                 out_path.unlink()

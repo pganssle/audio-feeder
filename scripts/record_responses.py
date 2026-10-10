@@ -46,7 +46,7 @@ class RecordingGoogleBooksLoader(mdl.GoogleBooksLoader):
 
     def write_session_recording(self, out_path: pathlib.Path) -> None:
         serializable = list(self.session_recording.items())
-        with open(out_path, "wt") as f:
+        with open(out_path, "w") as f:
             json.dump(serializable, f, sort_keys=True, indent=2)
 
 

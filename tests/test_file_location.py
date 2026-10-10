@@ -98,8 +98,8 @@ file_location_test_data = [
 def test_file_location_basic(args, exp_url, exp_path):
     fl = afl.FileLocation(*args)
 
-    assert fl.url == exp_url, "Non-matching url: {}".format(fl.url)
-    assert fl.path == exp_path, "Non-matching path: {}".format(fl.path)
+    assert fl.url == exp_url, f"Non-matching url: {fl.url}"
+    assert fl.path == exp_path, f"Non-matching path: {fl.path}"
 
 
 def test_file_location_invalid_url():

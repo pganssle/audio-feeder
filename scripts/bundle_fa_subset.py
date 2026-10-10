@@ -88,7 +88,7 @@ def extract_font_awesome(icon: str, css: str) -> str:
 def load_codepoints(
     css_file: pathlib.Path, icons: Sequence[str] = DESIRED_ICONS
 ) -> Mapping[str, str]:
-    with open(css_file, "r") as f:
+    with open(css_file) as f:
         css = f.read()
         codepoints = {icon: extract_font_awesome(icon, css) for icon in icons}
 

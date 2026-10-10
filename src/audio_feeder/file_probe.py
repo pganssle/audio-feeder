@@ -13,10 +13,10 @@ import pathlib
 import re
 import subprocess
 import typing
+import xml.etree.ElementTree as ET
 from typing import Self
 
 import attrs
-import lxml.etree
 
 _SECOND = datetime.timedelta(seconds=1)
 
@@ -65,24 +65,22 @@ class OverdriveMediaMarker:
 
     @classmethod
     def from_xml(cls, xml: str) -> typing.Sequence[Self]:
-        root = lxml.etree.fromstring(xml)
-        assert isinstance(root.tag, str)
+        root = ET.fromstring(xml)
         if root.tag != "Markers":
             raise ValueError(
                 f"Unknown media marker tag: {root.tag}. " + "Should be 'Markers'"
             )
 
         out: typing.MutableSequence[Self] = []
-        for marker_element in root.iterchildren():
-            kwargs = {}
-            name_tags = marker_element.xpath("Name")
-            if len(name_tags):
-                kwargs["name"] = name_tags[0].text
+        for marker_element in root:
+            name_tag = marker_element.find("Name")
+            name = name_tag.text if name_tag is not None else None
 
-            time_tags = marker_element.xpath("Time")
-            kwargs["time"] = _parse_time(time_tags[0].text)
+            time_tag = marker_element.find("Time")
+            if time_tag is None or time_tag.text is None:
+                raise ValueError("Media marker is missing a time")
 
-            out.append(cls(**kwargs))
+            out.append(cls(time=_parse_time(time_tag.text), name=name))
 
         return out
 

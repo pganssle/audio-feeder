@@ -116,6 +116,13 @@ class BookLoader(MetaDataLoader):
 
         return r.json()
 
+    def needs_update(self, book_obj: oh.Book) -> bool:
+        """Whether metadata should be fetched from this source."""
+        return self._missing_metadata(book_obj)
+
+    def _missing_metadata(self, book_obj: oh.Book) -> bool:
+        return self.source_name not in (book_obj.metadata_sources or ())
+
     @abc.abstractmethod
     def update_book_info(
         self, book_obj: oh.Book, overwrite_existing: bool = False
@@ -202,13 +209,19 @@ class GoogleBooksLoader(BookLoader):
 
         return super().make_request(*args, **kwargs)
 
+    def _missing_metadata(self, book_obj: oh.Book) -> bool:
+        # A bug in earlier versions dropped the description from successful
+        # fetches when a previous attempt had failed; those books have this
+        # source in `metadata_sources`, but no entry in `descriptions`.
+        # Successful fetches always record a description (even if it's None).
+        return super()._missing_metadata(book_obj) or (
+            self.source_name not in (book_obj.descriptions or {})
+        )
+
     def update_book_info(
         self, book_obj: oh.Book, overwrite_existing: bool = False
     ) -> oh.Book:
-        if book_obj.metadata_sources is None:
-            book_obj.metadata_sources = []
-
-        if not overwrite_existing and self.source_name in book_obj.metadata_sources:
+        if not overwrite_existing and not self.needs_update(book_obj):
             return book_obj
 
         get_volume_params = {
@@ -268,9 +281,12 @@ class GoogleBooksLoader(BookLoader):
             if new_val is not None:
                 new_book_keys[key] = new_val
 
-        # Add a Google Books description if it doesn't exist already.
-        if book_obj.descriptions is None and "descriptions" not in new_book_keys:
-            new_book_keys["descriptions"] = {self.source_name: md["description"]}
+        # Record the Google Books description, even if it is None, so that we
+        # know it has been retrieved.
+        descriptions = dict(book_obj.descriptions or {})
+        if overwrite_existing or self.source_name not in descriptions:
+            descriptions[self.source_name] = md["description"]
+        new_book_keys["descriptions"] = descriptions
 
         # Append any tags that aren't in there already
         existing_book_tags: set[str] = (
@@ -289,8 +305,10 @@ class GoogleBooksLoader(BookLoader):
         cover_images.setdefault(self.source_name, {}).update(md["image_link"])
         new_book_keys["cover_images"] = cover_images
 
-        new_book_keys["metadata_sources"] = list(book_obj.metadata_sources)
-        new_book_keys["metadata_sources"].append(self.source_name)
+        metadata_sources = list(book_obj.metadata_sources or ())
+        if self.source_name not in metadata_sources:
+            metadata_sources.append(self.source_name)
+        new_book_keys["metadata_sources"] = metadata_sources
 
         return attrs.evolve(book_obj, **new_book_keys)
 

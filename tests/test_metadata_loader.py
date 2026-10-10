@@ -3,8 +3,6 @@
 from collections.abc import Callable, Mapping, MutableSequence
 from typing import Any, Final, TypeAlias
 
-import pytest
-
 from audio_feeder import metadata_loader as mdl
 from audio_feeder import object_handler as oh
 from audio_feeder import updater
@@ -99,7 +97,6 @@ def test_successful_fetch_without_description() -> None:
     assert len(loader.requests) == 1
 
 
-@pytest.mark.xfail(reason="Description dropped when an earlier fetch failed")
 def test_success_after_failure_records_description() -> None:
     """A failed fetch should not prevent storing the description later.
 
@@ -115,7 +112,6 @@ def test_success_after_failure_records_description() -> None:
     assert book.descriptions == {"google_books": "The description"}
 
 
-@pytest.mark.xfail(reason="Description dropped when an earlier fetch failed")
 def test_success_preserves_other_descriptions() -> None:
     loader = FakeLoader(_always(_found("Google's description")))
     book = _update(loader, _book(descriptions={"local": "My description"}))
@@ -127,7 +123,6 @@ def test_success_preserves_other_descriptions() -> None:
     assert book.description == "My description"
 
 
-@pytest.mark.xfail(reason="Books fetched without a description are never repaired")
 def test_repairs_books_fetched_without_description() -> None:
     """Books affected by the dropped-description bug are re-fetched by ID."""
     loader = FakeLoader(
@@ -145,7 +140,6 @@ def test_repairs_books_fetched_without_description() -> None:
     assert loader.requests == [(f"{VOLUMES_URL}/abc123", {})]
 
 
-@pytest.mark.xfail(reason="Reloading metadata does not replace the description")
 def test_reload_replaces_description() -> None:
     loader = FakeLoader(_always(_found("New description")))
     book = _book(

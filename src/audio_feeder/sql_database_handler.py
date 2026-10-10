@@ -78,7 +78,7 @@ class _CustomJsonType(sa.types.TypeDecorator):
     impl = sa.types.String
     cache_ok = True
 
-    def _load_json(self, value: str) -> typing.Any:
+    def _load_json(self, value: typing.Optional[str]) -> typing.Any:
         if value is None:
             return None
 
@@ -90,7 +90,7 @@ class _CustomJsonType(sa.types.TypeDecorator):
 
 
 class _PathCollection(_CustomJsonType):
-    def process_result_value(self, value: str, dialect):
+    def process_result_value(self, value: typing.Optional[str], dialect):
         json_obj = self._load_json(value)
         if json_obj is None:
             return None
@@ -104,7 +104,7 @@ class _PathCollection(_CustomJsonType):
 
 
 class _CoverImages(_CustomJsonType):
-    def process_result_value(self, value: str, dialect):
+    def process_result_value(self, value: typing.Optional[str], dialect):
         json_obj = self._load_json(value)
 
         if json_obj is None:
@@ -122,7 +122,7 @@ class _CoverImages(_CustomJsonType):
 
 
 class _FileMetadata(_CustomJsonType):
-    def process_result_value(self, value: str, dialect):
+    def process_result_value(self, value: typing.Optional[str], dialect):
         json_obj = self._load_json(value)
         if json_obj is None:
             return None
@@ -264,22 +264,24 @@ class SqlDatabaseHandler:
                 "Database version < 2, adding the files, file_metadata "
                 "and file_hashes columns to the entries table."
             )
-            session.execute("ALTER TABLE entries ADD COLUMN files JSON")
-            session.execute("ALTER TABLE entries ADD COLUMN file_metadata JSON")
-            session.execute("ALTER TABLE entries ADD COLUMN file_hashes JSON")
+            session.execute(sa.text("ALTER TABLE entries ADD COLUMN files JSON"))
+            session.execute(
+                sa.text("ALTER TABLE entries ADD COLUMN file_metadata JSON")
+            )
+            session.execute(sa.text("ALTER TABLE entries ADD COLUMN file_hashes JSON"))
 
-        session.execute(f"PRAGMA user_version={DB_VERSION}")
+        session.execute(sa.text(f"PRAGMA user_version={DB_VERSION}"))
 
     def _initialize_db(self) -> None:
         if not self._db.exists():
             _metadata_object().create_all(self.engine)
             with self.session() as session:
                 assert session is not None
-                session.execute(f"PRAGMA user_version={DB_VERSION}")
+                session.execute(sa.text(f"PRAGMA user_version={DB_VERSION}"))
         else:
             with self.session() as session:
                 assert session is not None
-                db_version: int = session.execute("PRAGMA user_version").first()[0]  # type: ignore[index,assignment]
+                db_version: int = session.execute(sa.text("PRAGMA user_version")).first()[0]  # type: ignore[index,assignment]
                 if db_version < DB_VERSION:
                     logging.info(
                         "Upgrading database from %s to %s", db_version, DB_VERSION
@@ -315,6 +317,8 @@ class SqlDatabaseHandler:
 
         for key, obj in table_contents.items():
             insp = sa.inspect(obj)
+            # inspect raises rather than returning None for unmapped objects
+            assert insp is not None
             if insp.modified:
                 if insp.has_identity:
                     # These objects already exist in the table

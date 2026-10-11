@@ -279,20 +279,11 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
 {% endblock %}
     <div class='maintable'>
     {% block breadcrumbs %}
-    {% if folder_nav.breadcrumbs|length > 1 %}
-    <div class="folder_nav breadcrumbs">
-        {% for crumb in folder_nav.breadcrumbs %}
+    {% if breadcrumbs %}
+    <div class="breadcrumbs">
+        {% for crumb in breadcrumbs %}
             {% if not crumb.url is sameas none %}<a class="breadcrumb" href="{{ crumb.url|e }}">{{ crumb.name|e }}</a>{% else %}<span class="breadcrumb current_folder">{{ crumb.name|e }}</span>{% endif %}
             {% if not loop.last %}<span class="breadcrumb_separator">&rsaquo;</span>{% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
-    {% endblock %}
-    {% block active_filters %}
-    {% if active_filters %}
-    <div class="active_filters">
-        {% for active in active_filters %}
-        <span class="active_filter{{ " excluded" if active.excluded else "" }}">{{ active.label|e }}: {{ active.value|e }} <a class="remove_filter" href="{{ active.remove_url|e }}" title="Remove filter">&times;</a></span>
         {% endfor %}
     </div>
     {% endif %}
@@ -348,15 +339,6 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
         </div>
     {% endfor %}
     <div class="qr_holder" id="qr_container"></div>
-    {% endblock %}
-    {% block subfolders %}
-    {% if folder_nav.subfolders %}
-    <div class="folder_nav subfolders">
-        {% for subfolder in folder_nav.subfolders %}
-        <a class="subfolder" href="{{ subfolder.url|e }}">{{ subfolder.name|e }} <span class="subfolder_count">({{ subfolder.count }})</span></a>
-        {% endfor %}
-    </div>
-    {% endif %}
     {% endblock %}
     {{ self.navbar() }}
     </div>

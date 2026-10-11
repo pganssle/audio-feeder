@@ -292,6 +292,27 @@ class EntryFilter:
         }
         return {name: value for name, value in values.items() if value}
 
+    def criteria_count(self) -> int:
+        """The number of criteria in this filter.
+
+        Each included or excluded folder or tag counts separately.
+        """
+        return (
+            len(self.folders)
+            + len(self.not_folders)
+            + len(self.tags)
+            + len(self.not_tags)
+            + sum(
+                value is not None
+                for value in (
+                    self.language,
+                    self.author,
+                    self.added_since,
+                    self.added_before,
+                )
+            )
+        )
+
     def without_folders(self) -> Self:
         """This filter, without the folder criteria."""
         return attrs.evolve(self, folders=(), not_folders=())

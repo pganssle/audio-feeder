@@ -9,7 +9,7 @@ import threading
 from collections.abc import Mapping, MutableSequence, Sequence
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 from urllib.parse import urlencode
 
 import attrs
@@ -34,8 +34,6 @@ from . import cache_utils, updater
 from ._db_types import ID, TableName
 
 root = Blueprint("root", __name__)
-
-_T = TypeVar("_T")
 
 ###
 # Pages
@@ -110,16 +108,13 @@ def books():
         )
     facets = entry_cache["facets"]
 
-    # The folder navigation counts books matching the other filters, so that
-    # the counts match what you get when you navigate to a folder. The folder
-    # tree in the browse drawer is used to choose both included and excluded
-    # folders, so it ignores them both.
-    unfoldered_filter = attrs.evolve(entry_filter, folders=())
+    # The folder tree in the browse drawer counts the books matching the
+    # other filters. It's used to choose both included and excluded folders,
+    # so it ignores them both.
     tree_filter = entry_filter.without_folders()
-    for cache_filter in (unfoldered_filter, tree_filter, entry_filter):
+    for cache_filter in (tree_filter, entry_filter):
         if cache_filter not in entry_cache:
             entry_cache[cache_filter] = cache_filter.apply(entries, books_table)
-    unfoldered_entries = entry_cache[unfoldered_filter]
     tree_key = ("folder_tree", tree_filter)
     if tree_key not in entry_cache:
         entry_cache[tree_key] = ef.folder_tree(entry_cache[tree_filter])
@@ -158,7 +153,6 @@ def books():
 
     resolver = get_resolver()
     site_images = resolver.resolve_static(read_from_config("site_images_loc"))
-    active_filters = _active_filters(entry_filter, sort_args)
 
     page_data = {
         "entries": get_rendered_entries(entry_page),
@@ -198,9 +192,8 @@ def books():
         },
         "tag_choices": _tag_choices(facets, entry_filter),
         "clear_filters_url": _books_url(ef.EntryFilter(), sort_args),
-        "active_filters": active_filters,
-        "filter_count": len(active_filters) + (len(entry_filter.folders) == 1),
-        "folder_nav": _folder_navigation(unfoldered_entries, entry_filter, sort_args),
+        "filter_count": entry_filter.criteria_count(),
+        "breadcrumbs": _breadcrumbs(entry_filter, sort_args),
         "stylesheet_links": get_css_links(),
         "favicon": None,
     }
@@ -538,99 +531,15 @@ def _tag_choices(
     ]
 
 
-def _active_filters(
+def _breadcrumbs(
     entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]
-) -> Sequence[Mapping[str, Any]]:
-    """Each active filter, with a link that removes it.
+) -> Sequence[Mapping[str, str | None]]:
+    """Links to the folders above the included folder.
 
-    A single included folder is shown by the folder navigation instead.
+    These are only shown when exactly one folder is included.
     """
-    active = []
-
-    def add(label: str, value: str, without: ef.EntryFilter, excluded: bool = False):
-        active.append(
-            {
-                "label": label,
-                "value": value,
-                "remove_url": _books_url(without, sort_args),
-                "excluded": excluded,
-            }
-        )
-
-    def without(values: tuple[_T, ...], value: _T) -> tuple[_T, ...]:
-        return tuple(v for v in values if v != value)
-
-    folders = entry_filter.folders
-    if len(folders) > 1:
-        for folder in folders:
-            add(
-                "Folder",
-                folder.as_posix(),
-                attrs.evolve(entry_filter, folders=without(folders, folder)),
-            )
-
-    not_folders = entry_filter.not_folders
-    for folder in not_folders:
-        add(
-            "Not in folder",
-            folder.as_posix(),
-            attrs.evolve(entry_filter, not_folders=without(not_folders, folder)),
-            excluded=True,
-        )
-
-    tags = entry_filter.tags
-    for tag in tags:
-        add("Tag", tag, attrs.evolve(entry_filter, tags=without(tags, tag)))
-
-    if len(tags) > 1 and entry_filter.tag_match is ef.TagMatch.ALL:
-        add(
-            "Tags",
-            "must match all",
-            attrs.evolve(entry_filter, tag_match=ef.TagMatch.ANY),
-        )
-
-    not_tags = entry_filter.not_tags
-    for tag in not_tags:
-        add(
-            "Not tag",
-            tag,
-            attrs.evolve(entry_filter, not_tags=without(not_tags, tag)),
-            excluded=True,
-        )
-
-    if entry_filter.language is not None:
-        add(
-            "Language", entry_filter.language, attrs.evolve(entry_filter, language=None)
-        )
-    if entry_filter.author is not None:
-        add("Author", entry_filter.author, attrs.evolve(entry_filter, author=None))
-    if entry_filter.added_since is not None:
-        add(
-            "Added since",
-            entry_filter.added_since.isoformat(),
-            attrs.evolve(entry_filter, added_since=None),
-        )
-    if entry_filter.added_before is not None:
-        add(
-            "Added before",
-            entry_filter.added_before.isoformat(),
-            attrs.evolve(entry_filter, added_before=None),
-        )
-
-    return active
-
-
-def _folder_navigation(
-    entries: Sequence[oh.Entry],
-    entry_filter: ef.EntryFilter,
-    sort_args: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    """Breadcrumbs and subfolder links for the folder filter.
-
-    These are only shown when at most one folder is included.
-    """
-    if len(entry_filter.folders) > 1:
-        return {"breadcrumbs": [], "subfolders": []}
+    if len(entry_filter.folders) != 1:
+        return []
 
     # Changing folders keeps the other filters and sort settings, but goes
     # back to the first page.
@@ -638,8 +547,8 @@ def _folder_navigation(
         folders = (folder,) if folder is not None else ()
         return _books_url(attrs.evolve(entry_filter, folders=folders), sort_args)
 
-    current = entry_filter.folders[0] if entry_filter.folders else None
-    crumbs = [{"name": "All", "url": folder_url(None) if current else None}]
+    (current,) = entry_filter.folders
+    crumbs: list[Mapping[str, str | None]] = [{"name": "All", "url": folder_url(None)}]
     for folder in ef.breadcrumbs(current):
         crumbs.append(
             {
@@ -647,13 +556,7 @@ def _folder_navigation(
                 "url": folder_url(folder) if folder != current else None,
             }
         )
-
-    subfolders = [
-        {"name": sub.name, "count": sub.count, "url": folder_url(sub.folder)}
-        for sub in ef.subfolders(entries, current)
-    ]
-
-    return {"breadcrumbs": crumbs, "subfolders": subfolders}
+    return crumbs
 
 
 def get_rendered_entries(entry_list):

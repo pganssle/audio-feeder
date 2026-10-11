@@ -150,7 +150,10 @@ def test_books_folder_navigation(client: flask.testing.FlaskClient) -> None:
     # Breadcrumbs link back up, and the current folder isn't a link
     assert '<span class="breadcrumb current_folder">Fiction</span>' in page
     assert ">All</a>" in page
-    assert ">audiobooks</a>" in page
+
+    # Every book is below audiobooks/, so it's left out
+    assert ">audiobooks</a>" not in page
+    assert "<title>Books: Fiction: Page 0 of 0</title>" in page
 
     # The browse drawer keeps the folder filter
     assert _checked(page, "folder") == {"audiobooks/Fiction"}
@@ -442,3 +445,19 @@ def test_no_results_clear_filters_link(client: flask.testing.FlaskClient) -> Non
 
 def test_no_results_title(client: flask.testing.FlaskClient) -> None:
     assert "Page 0 of 0</title>" in _books(client, folder="Nonexistent")
+
+
+def test_library_root_has_no_breadcrumbs(client: flask.testing.FlaskClient) -> None:
+    # Every book is in audiobooks/, so selecting it is the same as selecting
+    # everything
+    assert 'class="breadcrumb' not in _books(client, folder="audiobooks")
+
+
+def test_extra_folders_relative_to_library_root(
+    client: flask.testing.FlaskClient,
+) -> None:
+    # Every Alcott book is in Fiction, so the tree collapses past it and it's
+    # listed separately
+    page = _books(client, folder="audiobooks/Fiction", author="alcott")
+    assert _checked(page, "folder") == {"audiobooks/Fiction"}
+    assert '<span class="row_name">Fiction</span>' in page

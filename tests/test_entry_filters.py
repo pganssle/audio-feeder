@@ -442,3 +442,35 @@ def test_facets() -> None:
 )
 def test_criteria_count(entry_filter: ef.EntryFilter, expected: int) -> None:
     assert entry_filter.criteria_count() == expected
+
+
+@pytest.mark.parametrize(
+    "paths, expected",
+    [
+        (PATHS, "audiobooks"),
+        ([], None),
+        # An entry's own directory isn't a folder containing it
+        (["a/Book"], "a"),
+        (["Book"], None),
+        (["a/b/One", "a/b/c/Two"], "a/b"),
+        (["a/b/One", "a/c/Two"], "a"),
+        (["a/One", "b/Two"], None),
+    ],
+)
+def test_library_root(paths: Sequence[str], expected: str | None) -> None:
+    assert ef.library_root(_entries(paths)) == _folder(expected)
+
+
+@pytest.mark.parametrize(
+    "folder, root, expected",
+    [
+        ("audiobooks/Fiction", "audiobooks", "Fiction"),
+        ("audiobooks/Fiction/Fantasy", "audiobooks", "Fiction/Fantasy"),
+        ("audiobooks/Fiction", None, "audiobooks/Fiction"),
+        # Folders that aren't below the root are shown in full
+        ("audiobooks", "audiobooks", "audiobooks"),
+        ("other/Fiction", "audiobooks", "other/Fiction"),
+    ],
+)
+def test_folder_label(folder: str, root: str | None, expected: str) -> None:
+    assert ef.folder_label(PurePosixPath(folder), _folder(root)) == expected

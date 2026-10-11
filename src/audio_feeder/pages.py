@@ -177,6 +177,14 @@ def books():
         "sort_options": get_sort_options(),
         "sort_args": sort_args,
         "entry_filter": entry_filter,
+        # The browse drawer and the sort menu are separate forms, so each
+        # passes on the other's settings as hidden fields.
+        "filter_param_pairs": _param_pairs(filter_params),
+        "sort_params": [
+            ("orderBy", sort_args["orderBy"]),
+            ("sortAscending", str(sort_args["sortAscending"])),
+            ("perPage", str(sort_args["perPage"])),
+        ],
         "filter_values": filter_params,
         "facets": facets,
         "folder_tree": folder_tree,
@@ -473,6 +481,17 @@ def _books_url(entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]) -> st
     link_args = {k: v for k, v in sort_args.items() if k != "page"}
     params = {**entry_filter.to_params(), **link_args}
     return flask.url_for("root.books") + "?" + urlencode(params, doseq=True)
+
+
+def _param_pairs(
+    params: Mapping[str, str | tuple[str, ...]],
+) -> Sequence[tuple[str, str]]:
+    """Query parameters as (name, value) pairs, with repeated names."""
+    pairs = []
+    for name, value in params.items():
+        values = (value,) if isinstance(value, str) else value
+        pairs.extend((name, v) for v in values)
+    return pairs
 
 
 def _extra_folders(

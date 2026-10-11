@@ -123,7 +123,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <button type="button" class="topnav-icon topnav-button" popovertarget="options-dropdown"
             title="Options" aria-label="Options"><i class="fa fa-gear"></i></button>
     <form action="/books" class="options-dropdown" id="options-dropdown" popover>
-            {% for param_name, param_value in hidden_filter_params.items() %}
+            {% for param_name, param_value in hidden_filter_params %}
             <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
             {% endfor %}
             <div class="options-line">
@@ -154,7 +154,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 <select id="filter-tag" class="topnav-form" name="tag">
                     <option value="">Any</option>
                     {% for tag, count in facets.tags %}
-                    <option value="{{ tag|e }}"{{ " selected" if tag == filter_values.get("tag") else "" }}>{{ tag|e }} ({{ count }})</option>
+                    <option value="{{ tag|e }}"{{ " selected" if tag in filter_values.get("tag", ()) else "" }}>{{ tag|e }} ({{ count }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -213,7 +213,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     {% if active_filters %}
     <div class="active_filters">
         {% for active in active_filters %}
-        <span class="active_filter">{{ active.label|e }}: {{ active.value|e }} <a class="remove_filter" href="{{ active.remove_url|e }}" title="Remove filter">&times;</a></span>
+        <span class="active_filter{{ " excluded" if active.excluded else "" }}">{{ active.label|e }}: {{ active.value|e }} <a class="remove_filter" href="{{ active.remove_url|e }}" title="Remove filter">&times;</a></span>
         {% endfor %}
     </div>
     {% endif %}

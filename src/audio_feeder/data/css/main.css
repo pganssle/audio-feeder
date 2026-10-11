@@ -242,6 +242,10 @@ span.active_filter {
     white-space: nowrap;
 }
 
+span.active_filter.excluded {
+    background-color: #7a2e0e;
+}
+
 a.remove_filter {
     color: #ffffff;
     text-decoration: none;

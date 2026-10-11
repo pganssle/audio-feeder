@@ -1,0 +1,1 @@
+- The book list can now be filtered by several folders or tags at once, and folders and tags can be excluded. Folders and tags are included by repeating the ``folder`` or ``tag`` query parameters, and excluded with ``notFolder`` and ``notTag``. By default, a book is shown if it has any of the included tags; ``tagMatch=all`` shows only books that have all of them.

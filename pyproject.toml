@@ -106,6 +106,15 @@ select = [
     "RET506",  # no-else-raise
 ]
 
+## Scriv
+# Changelog entries are written as fragments in `changelog.d/` (created with
+# `tox -e changelog`) and collected into CHANGELOG.rst when making a release
+# (`tox -e changelog -- collect --version <version>`).
+[tool.scriv]
+format = "rst"
+categories = ""
+entry_title_template = "Version {{ version }}"
+
 ## Coverage
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]

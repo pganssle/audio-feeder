@@ -308,21 +308,227 @@ div.topnav-icons {
     cursor: pointer;
 }
 
-/* The dropdown is a popover, so it opens and closes when the button is
-   clicked, and closes on Escape or a click outside of it. */
-.options-dropdown {
+.topnav-menu {
+    position: relative;
+    margin-left: 0;
+    margin-right: auto;
+}
+
+span.filter_count {
+    position: absolute;
+    top: -2px;
+    right: -10px;
+    min-width: 1.2rem;
+    padding: 0 3px;
+    border-radius: 0.6rem;
+    background-color: #005A78;
+    color: #fff;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 0.8rem;
+    font-weight: bold;
+    line-height: 1.2rem;
+}
+
+/* The browse drawer is a popover, so it opens and closes when the menu
+   button is clicked, and closes on Escape or a click outside of it. */
+.browse_drawer {
     position: fixed;
-    inset: auto;
-    top: 3.5rem;
+    inset: 0 auto 0 0;
+    width: min(32rem, 100vw);
+    height: 100%;
+    max-height: none;
     margin: 0;
+    padding: 0;
+    border: none;
+    border-right: 1px solid #000;
     background-color: #fff;
     color: #000;
-    min-height:50px;
-    min-width: 20%;
-    right: 5%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #000;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.browse_drawer:popover-open {
+    display: flex;
+    flex-direction: column;
+}
+
+.browse_drawer::backdrop {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.drawer_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 15px;
+    background-color: #353535;
+    color: #fff;
+}
+
+.drawer_header h2 {
+    margin: 0;
+}
+
+.drawer_close {
+    color: #fff;
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.drawer_section > summary {
+    padding: 10px 15px;
+    border-bottom: 1px solid #cccccc;
+    font-size: 1.3rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.drawer_section_body {
+    padding: 10px 15px;
+}
+
+.drawer_section_body .options-line {
+    margin-top: 8px;
+}
+
+.drawer_fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.tag_match {
+    margin: 5px 0;
+}
+
+ul.folder_tree,
+ul.folder_tree ul,
+ul.tag_list {
+    list-style: none;
+    margin: 0;
+}
+
+ul.tag_list {
+    padding-left: 0;
+}
+
+ul.folder_tree ul {
+    padding-left: 1.5rem;
+}
+
+.drawer_row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 2rem;
+    font-size: 1.1rem;
+}
+
+/* Folders with subfolders are <summary> rows, with an arrow in place of
+   the usual disclosure marker (which doesn't work with flex layout), so
+   the folders without subfolders are indented to line up with them. */
+summary.drawer_row {
+    list-style: none;
+    cursor: pointer;
+}
+
+summary.drawer_row::-webkit-details-marker {
+    display: none;
+}
+
+summary.drawer_row::before {
+    content: "\25B8";
+    width: 1rem;
+}
+
+details[open] > summary.drawer_row::before {
+    content: "\25BE";
+}
+
+ul.folder_tree .drawer_row.leaf {
+    padding-left: calc(1rem + 8px);
+}
+
+.row_name {
+    margin-right: 8px;
+}
+
+.row_name {
+    flex-grow: 1;
+}
+
+.drawer_row:has(.exclude input:checked) > .row_name {
+    text-decoration: line-through;
+}
+
+.row_count {
+    color: #777777;
+}
+
+.toggle_pair {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    background-color: #f4f4f4;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.toggle.include:has(input:checked) {
+    border-color: #005A78;
+    background-color: #005A78;
+    color: #fff;
+}
+
+.toggle.exclude:has(input:checked) {
+    border-color: #7a2e0e;
+    background-color: #7a2e0e;
+    color: #fff;
+}
+
+.toggle:has(input:focus-visible) {
+    outline: 2px solid #005A78;
+    outline-offset: 1px;
+}
+
+.toggle input,
+.visually_hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.more_tags > summary {
+    margin-top: 5px;
+    color: #005A78;
+    cursor: pointer;
+}
+
+.drawer_footer {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 10px 15px;
+    border-top: 1px solid #cccccc;
+    background-color: #fff;
 }
 
 .options-line {

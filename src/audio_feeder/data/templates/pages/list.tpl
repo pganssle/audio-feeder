@@ -28,6 +28,16 @@ function init_elements() {
 
 window.onload = init_elements;
 
+/* Including and excluding the same folder or tag are mutually exclusive */
+document.addEventListener("change", (event) => {
+    const pair = event.target.closest(".toggle_pair");
+    if (pair !== null && event.target.checked) {
+        for (const box of pair.querySelectorAll("input")) {
+            box.checked = box === event.target;
+        }
+    }
+});
+
 function toggle_hidden(entry_id) {
     target = document.querySelector("a.read_more_link#e" + entry_id);
     selection_query = "span.hidden_description_section#e" + entry_id;
@@ -116,76 +126,143 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
 </script>
 
 {% block topnav %}
+{% macro toggle_pair(include_name, exclude_name, value, label, included, excluded) -%}
+<span class="toggle_pair">
+    <label class="toggle include" title="Include {{ label|e }}"><input type="checkbox" name="{{ include_name }}" value="{{ value|e }}"{{ " checked" if included else "" }}><span aria-hidden="true">+</span><span class="visually_hidden">Include {{ label|e }}</span></label>
+    <label class="toggle exclude" title="Exclude {{ label|e }}"><input type="checkbox" name="{{ exclude_name }}" value="{{ value|e }}"{{ " checked" if excluded else "" }}><span aria-hidden="true">&minus;</span><span class="visually_hidden">Exclude {{ label|e }}</span></label>
+</span>
+{%- endmacro %}
+{% macro tag_row(tag, count) -%}
+<li class="drawer_row">
+    {{ toggle_pair("tag", "notTag", tag, tag, tag in entry_filter.tags, tag in entry_filter.not_tags) }}
+    <span class="row_name">{{ tag|e }}</span>
+    <span class="row_count">{{ count }}</span>
+</li>
+{%- endmacro %}
 <div class="topnav">
     <!-- TODO: Implement login
     <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
     -->
-    <button type="button" class="topnav-icon topnav-button" popovertarget="options-dropdown"
-            title="Options" aria-label="Options"><i class="fa fa-gear"></i></button>
-    <form action="/books" class="options-dropdown" id="options-dropdown" popover>
-            {% for param_name, param_value in hidden_filter_params %}
-            <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
+    <button type="button" class="topnav-icon topnav-button topnav-menu" popovertarget="browse-drawer"
+            title="Browse, filter and sort" aria-label="Browse, filter and sort"><i class="fa fa-bars"></i>{% if filter_count %}<span class="filter_count">{{ filter_count }}</span>{% endif %}</button>
+    <form action="/books" class="browse_drawer" id="browse-drawer" popover>
+        <div class="drawer_header">
+            <h2>Browse</h2>
+            <button type="button" class="topnav-button drawer_close" popovertarget="browse-drawer"
+                    popovertargetaction="hide" title="Close" aria-label="Close">&times;</button>
+        </div>
+        {% if folder_tree or extra_folders %}
+        <details class="drawer_section" open>
+            <summary>Folders</summary>
+            <ul class="folder_tree drawer_section_body">
+            {% for extra in extra_folders %}
+                <li>
+                    <div class="drawer_row leaf">{{ toggle_pair("folder", "notFolder", extra.folder.as_posix(), extra.folder.as_posix(), extra.folder in entry_filter.folders, extra.folder in entry_filter.not_folders) }}<span class="row_name">{{ extra.folder.as_posix()|e }}</span><span class="row_count">{{ extra.count }}</span></div>
+                </li>
             {% endfor %}
-            <div class="options-line">
-                <label for="sort-dropdown" class="topnav-label">Sort order:</label>
-                <select id="sort-dropdown" class="topnav-form" name="orderBy">
-                    {% for sort_label, sort_value in sort_options.items() %}
-                    <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
-                        {{ sort_label }}
-                     </option>
+            {% for node in folder_tree recursive %}
+                <li>
+                {% set toggles = toggle_pair("folder", "notFolder", node.folder.as_posix(), node.folder.as_posix(), node.folder in entry_filter.folders, node.folder in entry_filter.not_folders) %}
+                {% if node.children %}
+                    <details{{ " open" if node.folder in open_folders else "" }}>
+                        <summary class="drawer_row">{{ toggles }}<span class="row_name">{{ node.label|e }}</span><span class="row_count">{{ node.count }}</span></summary>
+                        <ul>{{ loop(node.children) }}</ul>
+                    </details>
+                {% else %}
+                    <div class="drawer_row leaf">{{ toggles }}<span class="row_name">{{ node.label|e }}</span><span class="row_count">{{ node.count }}</span></div>
+                {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+        <details class="drawer_section" open>
+            <summary>Filters</summary>
+            <div class="drawer_section_body">
+                {% if tag_choices %}
+                <fieldset class="drawer_fieldset">
+                    <legend class="topnav-label">Tags</legend>
+                    <div class="tag_match">
+                        Show books with
+                        <label><input type="radio" name="tagMatch" value=""{{ " checked" if entry_filter.tag_match == "any" else "" }}> any</label>
+                        <label><input type="radio" name="tagMatch" value="all"{{ " checked" if entry_filter.tag_match == "all" else "" }}> all</label>
+                        of the included tags
+                    </div>
+                    <ul class="tag_list">
+                    {% for tag, count in tag_choices[:15] %}
+                        {{ tag_row(tag, count) }}
                     {% endfor %}
-                </select>
+                    </ul>
+                    {% if tag_choices|length > 15 %}
+                    <details class="more_tags">
+                        <summary>All {{ tag_choices|length }} tags</summary>
+                        <ul class="tag_list">
+                        {% for tag, count in tag_choices[15:] %}
+                            {{ tag_row(tag, count) }}
+                        {% endfor %}
+                        </ul>
+                    </details>
+                    {% endif %}
+                </fieldset>
+                {% endif %}
+                <div class="options-line">
+                    <label for="filter-language" class="topnav-label">Language:</label>
+                    <select id="filter-language" class="topnav-form" name="language">
+                        <option value="">Any</option>
+                        {% for language, count in facets.languages %}
+                        <option value="{{ language|e }}"{{ " selected" if language == entry_filter.language else "" }}>{{ language|e }} ({{ count }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="options-line">
+                    <label for="filter-author" class="topnav-label">Author:</label>
+                    <input type="search" class="topnav-form" id="filter-author" name="author"
+                           value="{{ filter_values.get("author", "")|e }}">
+                </div>
+                <div class="options-line">
+                    <label for="filter-added-since" class="topnav-label">Added since:</label>
+                    <input type="date" class="topnav-form" id="filter-added-since" name="addedSince"
+                           value="{{ filter_values.get("addedSince", "")|e }}">
+                </div>
+                <div class="options-line">
+                    <label for="filter-added-before" class="topnav-label">Added before:</label>
+                    <input type="date" class="topnav-form" id="filter-added-before" name="addedBefore"
+                           value="{{ filter_values.get("addedBefore", "")|e }}">
+                </div>
             </div>
-            <div class="options-line">
-                <label for="sort-ascending" class="topnav-label">Direction:</label>
-                <select id="sort-ascending" name="sortAscending" class="topnav-form">
-                    <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
-                    <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
-                </select>
+        </details>
+        <details class="drawer_section">
+            <summary>Sort</summary>
+            <div class="drawer_section_body">
+                <div class="options-line">
+                    <label for="sort-dropdown" class="topnav-label">Sort order:</label>
+                    <select id="sort-dropdown" class="topnav-form" name="orderBy">
+                        {% for sort_label, sort_value in sort_options.items() %}
+                        <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
+                            {{ sort_label }}
+                         </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="options-line">
+                    <label for="sort-ascending" class="topnav-label">Direction:</label>
+                    <select id="sort-ascending" name="sortAscending" class="topnav-form">
+                        <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
+                        <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
+                    </select>
+                </div>
+                <div class="options-line">
+                    <label for="per-page" class="topnav-label">Items per page:</label>
+                    <input type="number" class="topnav-form" style="width: 120px;"
+                           id="per-page" name="perPage"
+                           min="1" value="{{ sort_args["perPage"] }}">
+                </div>
             </div>
-            <div class="options-line">
-                <label for="per-page" class="topnav-label">Items per page:</label>
-                <input type="number" class="topnav-form" style="width: 120px;"
-                       id="per-page" name="perPage"
-                       min="1" value="{{ sort_args["perPage"] }}">
-            </div>
-            <div class="options-line">
-                <label for="filter-tag" class="topnav-label">Tag:</label>
-                <select id="filter-tag" class="topnav-form" name="tag">
-                    <option value="">Any</option>
-                    {% for tag, count in facets.tags %}
-                    <option value="{{ tag|e }}"{{ " selected" if tag in filter_values.get("tag", ()) else "" }}>{{ tag|e }} ({{ count }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="options-line">
-                <label for="filter-language" class="topnav-label">Language:</label>
-                <select id="filter-language" class="topnav-form" name="language">
-                    <option value="">Any</option>
-                    {% for language, count in facets.languages %}
-                    <option value="{{ language|e }}"{{ " selected" if language == filter_values.get("language") else "" }}>{{ language|e }} ({{ count }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="options-line">
-                <label for="filter-author" class="topnav-label">Author:</label>
-                <input type="search" class="topnav-form" id="filter-author" name="author"
-                       value="{{ filter_values.get("author", "")|e }}">
-            </div>
-            <div class="options-line">
-                <label for="filter-added-since" class="topnav-label">Added since:</label>
-                <input type="date" class="topnav-form" id="filter-added-since" name="addedSince"
-                       value="{{ filter_values.get("addedSince", "")|e }}">
-            </div>
-            <div class="options-line">
-                <label for="filter-added-before" class="topnav-label">Added before:</label>
-                <input type="date" class="topnav-form" id="filter-added-before" name="addedBefore"
-                       value="{{ filter_values.get("addedBefore", "")|e }}">
-            </div>
-            <div class="options-line">
-                <div></div> <!-- Spacer-->
-                <button type="submit" class="topnav-form">Submit</button>
-            </div>
+        </details>
+        <div class="drawer_footer">
+            <a class="topnav-form drawer_clear" href="{{ clear_filters_url|e }}">Clear filters</a>
+            <button type="submit" class="topnav-form">Apply</button>
+        </div>
     </form>
 </div>
 {% endblock %}

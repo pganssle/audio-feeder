@@ -158,6 +158,48 @@ def test_subfolder_counts_match_filter(paths: list[str], folder: str | None) -> 
         assert sub.count > 0
 
 
+def _tree_shape(nodes: Sequence[ef.FolderNode]) -> list[tuple[str, str, int, list]]:
+    return [
+        (node.folder.as_posix(), node.label, node.count, _tree_shape(node.children))
+        for node in nodes
+    ]
+
+
+def test_folder_tree() -> None:
+    assert _tree_shape(ef.folder_tree(_entries(PATHS))) == [
+        (
+            "audiobooks/Fiction",
+            "Fiction",
+            3,
+            [
+                ("audiobooks/Fiction/Fantasy", "Fantasy", 1, []),
+                ("audiobooks/Fiction/Science Fiction", "Science Fiction", 2, []),
+            ],
+        ),
+        (
+            "audiobooks/Nonfiction",
+            "Nonfiction",
+            2,
+            # History is Nonfiction's only subfolder, so it's collapsed
+            [("audiobooks/Nonfiction/History/Ancient", "History/Ancient", 1, [])],
+        ),
+        ("audiobooks/Poetry", "Poetry", 1, []),
+    ]
+
+
+@given(paths=st.lists(_paths, max_size=20))
+def test_folder_tree_matches_subfolders(paths: list[str]) -> None:
+    entries = _entries(paths)
+    to_check = [(None, ef.folder_tree(entries))]
+    while to_check:
+        parent, nodes = to_check.pop()
+        expected = ef.subfolders(entries, parent)
+        assert [(n.folder, n.count) for n in nodes] == [
+            (sub.folder, sub.count) for sub in expected
+        ]
+        to_check.extend((node.folder, node.children) for node in nodes)
+
+
 @pytest.mark.parametrize(
     "folder, expected",
     [

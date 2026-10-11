@@ -72,6 +72,26 @@ def _listed(page: str) -> set[str]:
     }
 
 
+def _checked(page: str, name: str) -> set[str]:
+    """The values of the checked checkboxes named ``name``."""
+    return {
+        html.unescape(value)
+        for value in re.findall(
+            rf'<input type="checkbox" name="{name}" value="([^"]*)" checked>', page
+        )
+    }
+
+
+def _checkboxes(page: str, name: str) -> list[str]:
+    """The values of all the checkboxes named ``name``, in order."""
+    return [
+        html.unescape(value)
+        for value in re.findall(
+            rf'<input type="checkbox" name="{name}" value="([^"]*)"', page
+        )
+    ]
+
+
 def test_books_unfiltered(client: flask.testing.FlaskClient) -> None:
     page = _books(client)
     assert _listed(page) == set(FICTION + NONFICTION)
@@ -106,8 +126,8 @@ def test_books_folder_navigation(client: flask.testing.FlaskClient) -> None:
     assert ">All</a>" in page
     assert ">audiobooks</a>" in page
 
-    # The sort form keeps the folder filter
-    assert '<input type="hidden" name="folder" value="audiobooks/Fiction">' in page
+    # The browse drawer keeps the folder filter
+    assert _checked(page, "folder") == {"audiobooks/Fiction"}
 
     # Folder links keep the sort order
     assert "orderBy=title" in page.split('class="breadcrumb"', 1)[1].split(">", 1)[0]
@@ -177,9 +197,9 @@ def test_filters_combine_with_folder(client: flask.testing.FlaskClient) -> None:
     assert "folder=audiobooks%2FFiction" in remove_url
     assert "author" not in remove_url
 
-    # The form keeps the folder as a hidden field and shows the author
-    assert '<input type="hidden" name="folder" value="audiobooks/Fiction">' in page
-    assert 'name="author"\n                       value="alcott"' in page
+    # The browse drawer keeps the folder and shows the author
+    assert _checked(page, "folder") == {"audiobooks/Fiction"}
+    assert re.search(r'name="author"\s+value="alcott"', page)
 
 
 def test_folder_counts_respect_other_filters(
@@ -243,3 +263,37 @@ def test_books_multiple_tags(client: flask.testing.FlaskClient) -> None:
 
     page = _books(client, tag=[tag_a, tag_b], tagMatch="all", perPage="100")
     assert _listed(page) == titles_a & titles_b
+
+
+def test_browse_drawer_folders(client: flask.testing.FlaskClient) -> None:
+    page = _books(
+        client, folder="audiobooks/Fiction", notFolder="audiobooks/Nonfiction"
+    )
+
+    # Every folder can be included or excluded, with the selections checked
+    assert _checkboxes(page, "folder") == [
+        "audiobooks/Fiction",
+        "audiobooks/Nonfiction",
+    ]
+    assert _checkboxes(page, "notFolder") == _checkboxes(page, "folder")
+    assert _checked(page, "folder") == {"audiobooks/Fiction"}
+    assert _checked(page, "notFolder") == {"audiobooks/Nonfiction"}
+
+
+def test_browse_drawer_tags(client: flask.testing.FlaskClient) -> None:
+    by_tag = _titles_by_tag()
+    least_common = min(sorted(by_tag), key=lambda tag: len(by_tag[tag]))
+
+    page = _books(client, notTag=least_common)
+    assert _checked(page, "notTag") == {least_common}
+    assert _checked(page, "tag") == set()
+
+    # Selected tags are listed first, followed by the rest
+    tags = _checkboxes(page, "tag")
+    assert tags[0] == least_common
+    assert set(tags) == set(by_tag)
+
+    # Any is the default for tagMatch, and is submitted as an empty value
+    assert '<input type="radio" name="tagMatch" value="" checked>' in page
+    page = _books(client, tag=least_common, tagMatch="all")
+    assert '<input type="radio" name="tagMatch" value="all" checked>' in page

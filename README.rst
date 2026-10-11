@@ -76,3 +76,5 @@ The code is released under the `Apache 2.0 <https://www.apache.org/licenses/LICE
 Contributing
 ============
 Pull requests and issues are more than welcome. Please be aware that your contributions will be released under the licenses stated above. If you are not comfortable with that, please do not make a pull request.
+
+User-facing changes should come with a changelog entry, which is managed with `scriv <https://scriv.readthedocs.io/>`_. Running ``tox -e changelog`` creates a new fragment in ``changelog.d/``; edit it to describe the change in a sentence or two (in reStructuredText) and commit it with the rest of your changes. When a release is made, the fragments are collected into ``CHANGELOG.rst``.

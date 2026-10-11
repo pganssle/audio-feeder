@@ -388,3 +388,24 @@ def test_menu_button_shows_filter_count(client: flask.testing.FlaskClient) -> No
     assert 'class="filter_count"' not in _books(client)
     page = _books(client, folder="audiobooks/Fiction", notTag=["a", "b"])
     assert '<span class="filter_count">3</span>' in page
+
+
+@pytest.mark.parametrize(
+    "per_page, has_navigation",
+    [
+        ("1", True),
+        # Everything fits on one page, so there's nowhere to navigate to
+        ("100", False),
+    ],
+)
+def test_page_navigation(
+    client: flask.testing.FlaskClient, per_page: str, has_navigation: bool
+) -> None:
+    page = _books(client, perPage=per_page)
+    assert ('class="navbar"' in page) is has_navigation
+
+
+def test_no_page_navigation_without_results(
+    client: flask.testing.FlaskClient,
+) -> None:
+    assert 'class="navbar"' not in _books(client, folder="Nonexistent")

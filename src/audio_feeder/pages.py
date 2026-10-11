@@ -9,7 +9,7 @@ import threading
 from collections.abc import Mapping, MutableSequence, Sequence
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
-from typing import Any, Final, TypeVar, cast
+from typing import Any, TypeVar, cast
 from urllib.parse import urlencode
 
 import attrs
@@ -103,12 +103,19 @@ def books():
     facets = entry_cache["facets"]
 
     # The folder navigation counts books matching the other filters, so that
-    # the counts match what you get when you navigate to a folder.
+    # the counts match what you get when you navigate to a folder. The folder
+    # tree in the browse drawer is used to choose both included and excluded
+    # folders, so it ignores them both.
     unfoldered_filter = attrs.evolve(entry_filter, folders=())
-    for cache_filter in (unfoldered_filter, entry_filter):
+    tree_filter = entry_filter.without_folders()
+    for cache_filter in (unfoldered_filter, tree_filter, entry_filter):
         if cache_filter not in entry_cache:
             entry_cache[cache_filter] = cache_filter.apply(entries, books_table)
     unfoldered_entries = entry_cache[unfoldered_filter]
+    tree_key = ("folder_tree", tree_filter)
+    if tree_key not in entry_cache:
+        entry_cache[tree_key] = ef.folder_tree(entry_cache[tree_filter])
+    folder_tree = entry_cache[tree_key]
     entries = entry_cache[entry_filter]
 
     nav_generator = _book_nav_generator(len(entries), request.endpoint)
@@ -143,6 +150,7 @@ def books():
 
     resolver = get_resolver()
     site_images = resolver.resolve_static(read_from_config("site_images_loc"))
+    active_filters = _active_filters(entry_filter, sort_args)
 
     page_data = {
         "entries": get_rendered_entries(entry_page),
@@ -160,10 +168,22 @@ def books():
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
         "sort_options": get_sort_options(),
         "sort_args": sort_args,
-        "hidden_filter_params": _hidden_filter_params(filter_params),
+        "entry_filter": entry_filter,
         "filter_values": filter_params,
         "facets": facets,
-        "active_filters": _active_filters(entry_filter, sort_args),
+        "folder_tree": folder_tree,
+        "extra_folders": _extra_folders(
+            folder_tree, entry_filter, entry_cache[tree_filter]
+        ),
+        "open_folders": {
+            parent
+            for folder in (*entry_filter.folders, *entry_filter.not_folders)
+            for parent in folder.parents
+        },
+        "tag_choices": _tag_choices(facets, entry_filter),
+        "clear_filters_url": _books_url(ef.EntryFilter(), sort_args),
+        "active_filters": active_filters,
+        "filter_count": len(active_filters) + (len(entry_filter.folders) == 1),
         "folder_nav": _folder_navigation(unfoldered_entries, entry_filter, sort_args),
         "stylesheet_links": get_css_links(),
         "favicon": None,
@@ -447,23 +467,48 @@ def _books_url(entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]) -> st
     return flask.url_for("root.books") + "?" + urlencode(params, doseq=True)
 
 
-# These filters have their own fields in the options form.
-_FORM_FILTER_PARAMS: Final = frozenset(
-    {"tag", "language", "author", "addedSince", "addedBefore"}
-)
+def _extra_folders(
+    folder_tree: Sequence[ef.FolderNode],
+    entry_filter: ef.EntryFilter,
+    entries: Sequence[oh.Entry],
+) -> Sequence[ef.FolderCount]:
+    """Included or excluded folders that aren't in the folder tree.
+
+    The tree leaves out folders that are collapsed into their only subfolder,
+    or that contain no books matching the other filters, but the browse
+    drawer needs to show every selected folder so that it can be deselected
+    (and so that it's kept when the form is submitted).
+    """
+    in_tree = set()
+    to_visit = list(folder_tree)
+    while to_visit:
+        node = to_visit.pop()
+        in_tree.add(node.folder)
+        to_visit.extend(node.children)
+
+    return [
+        ef.FolderCount(
+            folder, sum(1 for entry in entries if ef.in_folder(entry, folder))
+        )
+        for folder in sorted({*entry_filter.folders, *entry_filter.not_folders})
+        if folder not in in_tree
+    ]
 
 
-def _hidden_filter_params(
-    filter_params: Mapping[str, str | tuple[str, ...]],
-) -> Sequence[tuple[str, str]]:
-    """The filter parameters that the options form passes through unchanged."""
-    hidden = []
-    for name, value in filter_params.items():
-        if name in _FORM_FILTER_PARAMS:
-            continue
-        values = (value,) if isinstance(value, str) else value
-        hidden.extend((name, v) for v in values)
-    return hidden
+def _tag_choices(
+    facets: ef.Facets, entry_filter: ef.EntryFilter
+) -> Sequence[tuple[str, int]]:
+    """The tags to offer in the browse drawer, with the number of books for each.
+
+    Tags that are included or excluded come first, followed by the rest from
+    most to least common.
+    """
+    selected = {*entry_filter.tags, *entry_filter.not_tags}
+    counts = dict(facets.tags)
+    return [
+        *((tag, counts.get(tag, 0)) for tag in sorted(selected)),
+        *((tag, count) for tag, count in facets.tags if tag not in selected),
+    ]
 
 
 def _active_filters(

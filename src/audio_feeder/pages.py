@@ -71,6 +71,14 @@ def books():
     """
     The main page for listing audiobooks
     """
+    # Forms submit their empty fields as empty parameters, which have no
+    # effect, so redirect to the same page without them for a tidier URL.
+    params = list(request.args.items(multi=True))
+    if any(not value for _, value in params):
+        nonempty = [(name, value) for name, value in params if value]
+        query = "?" + urlencode(nonempty) if nonempty else ""
+        return flask.redirect(request.path + query)
+
     sort_args = get_sortable_args(request.args)
     try:
         entry_filter = ef.EntryFilter.from_args(request.args)

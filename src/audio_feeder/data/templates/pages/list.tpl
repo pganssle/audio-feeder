@@ -120,9 +120,9 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <!-- TODO: Implement login
     <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
     -->
-    <div class="topnav-settings-container topnav-icon">
-            <i class="fa fa-gear"></i>
-            <form action="/books" class="options-dropdown">
+    <button type="button" class="topnav-icon topnav-button" popovertarget="options-dropdown"
+            title="Options" aria-label="Options"><i class="fa fa-gear"></i></button>
+    <form action="/books" class="options-dropdown" id="options-dropdown" popover>
             {% for param_name, param_value in hidden_filter_params.items() %}
             <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
             {% endfor %}
@@ -186,9 +186,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 <div></div> <!-- Spacer-->
                 <button type="submit" class="topnav-form">Submit</button>
             </div>
-            </form>
-        </div>
-    </div>
+    </form>
 </div>
 {% endblock %}
     <div class='maintable'>

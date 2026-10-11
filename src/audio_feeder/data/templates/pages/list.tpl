@@ -120,9 +120,9 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <!-- TODO: Implement login
     <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
     -->
-    <div class="topnav-settings-container topnav-icon">
-            <i class="fa fa-gear"></i>
-            <form action="/books" class="options-dropdown">
+    <button type="button" class="topnav-icon topnav-button" popovertarget="options-dropdown"
+            title="Options" aria-label="Options"><i class="fa fa-gear"></i></button>
+    <form action="/books" class="options-dropdown" id="options-dropdown" popover>
             <div class="options-line">
                 <label for="sort-dropdown" class="topnav-label">Sort order:</label>
                 <select id="sort-dropdown" class="topnav-form" name="orderBy">
@@ -150,9 +150,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 <div></div> <!-- Spacer-->
                 <button type="submit" class="topnav-form">Submit</button>
             </div>
-            </form>
-        </div>
-    </div>
+    </form>
 </div>
 {% endblock %}
     <div class='maintable'>

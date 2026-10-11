@@ -409,3 +409,36 @@ def test_no_page_navigation_without_results(
     client: flask.testing.FlaskClient,
 ) -> None:
     assert 'class="navbar"' not in _books(client, folder="Nonexistent")
+
+
+def _no_results(page: str) -> str | None:
+    """The contents of the message shown when there are no books, if any."""
+    match = re.search(r'<p class="no_results">(.*?)</p>', page, re.S)
+    return match.group(1) if match is not None else None
+
+
+def test_no_results_message(client: flask.testing.FlaskClient) -> None:
+    message = _no_results(_books(client, folder="Nonexistent"))
+    assert message is not None
+    assert message.strip()
+
+
+def test_no_results_message_hidden_with_results(
+    client: flask.testing.FlaskClient,
+) -> None:
+    assert _no_results(_books(client)) is None
+
+
+def test_no_results_clear_filters_link(client: flask.testing.FlaskClient) -> None:
+    message = _no_results(_books(client, folder="Nonexistent", orderBy="title"))
+    assert message is not None
+
+    # The link clears the filters, but keeps the sort order
+    link = re.search(r'<a href="([^"]*)">', message)
+    assert link is not None
+    assert "folder" not in html.unescape(link.group(1))
+    assert "orderBy=title" in html.unescape(link.group(1))
+
+
+def test_no_results_title(client: flask.testing.FlaskClient) -> None:
+    assert "Page 0 of 0</title>" in _books(client, folder="Nonexistent")

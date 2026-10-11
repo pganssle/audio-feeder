@@ -155,6 +155,12 @@ span.hidden_expander_span a.read_more_link {
   font-weight: bold;
 }
 
+p.no_results {
+    margin: 40px 5%;
+    font-size: 1.3em;
+    text-align: center;
+}
+
 /* Navigation bar */
 div.navbar {
     display: inline-flex;

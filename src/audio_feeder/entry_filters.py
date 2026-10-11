@@ -121,6 +121,59 @@ def subfolders(
         ]
 
 
+@attrs.frozen
+class FolderNode:
+    """A folder in the tree of folders, with the number of entries in it."""
+
+    folder: PurePosixPath
+    label: str = attrs.field(
+        metadata={
+            "comment": "The folder's path relative to its parent node, which "
+            "has more than one part where folders were collapsed."
+        }
+    )
+    count: int
+    children: Sequence["FolderNode"]
+
+
+def folder_tree(
+    entries: Iterable[oh.Entry], folder: PurePosixPath | None = None
+) -> Sequence[FolderNode]:
+    """The tree of folders below ``folder`` that contain entries.
+
+    Each level is given by :func:`subfolders`, so chains of folders with a
+    single subfolder are collapsed in the same way.
+    """
+    entries = list(entries)
+
+    # Visit every folder in the tree, parents before their children
+    children: dict[PurePosixPath | None, Sequence[FolderCount]] = {}
+    to_visit: list[PurePosixPath | None] = [folder]
+    while to_visit:
+        current = to_visit.pop()
+        children[current] = subfolders(entries, current)
+        to_visit.extend(sub.folder for sub in children[current])
+
+    # Build the nodes, children before their parents
+    nodes: dict[PurePosixPath | None, Sequence[FolderNode]] = {}
+    for parent in reversed(children):
+        nodes[parent] = [
+            FolderNode(
+                folder=sub.folder,
+                label=(
+                    sub.folder.relative_to(parent).as_posix()
+                    if parent is not None
+                    else sub.name
+                ),
+                count=sub.count,
+                children=nodes[sub.folder],
+            )
+            for sub in children[parent]
+        ]
+
+    return nodes[folder]
+
+
 def breadcrumbs(folder: PurePosixPath | None) -> Sequence[PurePosixPath]:
     """The chain of folders from the top level down to ``folder``."""
     if folder is None:

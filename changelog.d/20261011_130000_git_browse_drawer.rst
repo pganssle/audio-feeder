@@ -1,0 +1,1 @@
+- The options menu has been replaced by a "browse" drawer, opened with the menu button at the top left of the page. It has sections for folders, filters and sorting, and it can include or exclude any number of folders and tags: folders are shown as a tree, and the tags most commonly used in the library are listed first. The button shows the number of active filters.

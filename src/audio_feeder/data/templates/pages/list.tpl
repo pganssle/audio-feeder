@@ -3,6 +3,7 @@
 <head>
     <title>{% block title %}{{ pagetitle }}{% endblock %}</title>
     <meta name="description" content="List of content served">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     {% if not stylesheet_links is sameas none %}
     {% for stylesheet_link in stylesheet_links %}

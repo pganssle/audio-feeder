@@ -138,7 +138,8 @@ def books():
     filter_params = entry_filter.to_params()
     nav_args = {**filter_params, **sort_args}
     nav_list = nav_generator.get_pages(nav_args)
-    max_page = len(nav_list) - 1
+    # With no results, there are no pages, but the title still says "Page 0"
+    max_page = max(len(nav_list) - 1, 0)
     page = min(sort_args["page"], max_page)
     if nav_list:
         first_index = nav_list[0].url or request.path

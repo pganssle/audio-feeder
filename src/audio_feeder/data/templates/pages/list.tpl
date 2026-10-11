@@ -312,6 +312,12 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     {% endif %}
     {% endblock %}
     {% block mainlist %}
+    {% if not entries %}
+    <p class="no_results">
+        There's nothing here.
+        {% if filter_count %}Maybe your filters are too narrow? <a href="{{ clear_filters_url|e }}">Clear filters</a>{% endif %}
+    </p>
+    {% endif %}
     {% for entry in entries %}
         <div class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
             <div class="cover_col" id="{{ entry.id }}">

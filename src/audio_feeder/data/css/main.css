@@ -205,7 +205,9 @@ span.current_folder {
 div.subfolders {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 6px;
+    margin-top: 15px;
 }
 
 a.subfolder {
@@ -327,6 +329,27 @@ span.filter_count {
     font-size: 0.8rem;
     font-weight: bold;
     line-height: 1.2rem;
+}
+
+/* The sort menu is a popover, so it opens and closes when its button is
+   clicked, and closes on Escape or a click outside of it. */
+.sort_menu {
+    position: fixed;
+    inset: auto;
+    top: 3.5rem;
+    right: 5%;
+    margin: 0;
+    background-color: #fff;
+    color: #000;
+    min-height: 50px;
+    min-width: 20%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #000;
+}
+
+.sort_menu .options-line + .options-line {
+    margin-top: 5px;
 }
 
 /* The browse drawer is a popover, so it opens and closes when the menu

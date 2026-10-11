@@ -319,3 +319,45 @@ def test_books_no_redirect_without_empty_params(
     client: flask.testing.FlaskClient,
 ) -> None:
     assert client.get("/books?tag=a&orderBy=title").status_code == 200
+
+
+def _form(page: str, form_id: str) -> str:
+    match = re.search(rf'<form [^>]*id="{form_id}"[^>]*>(.*?)</form>', page, re.DOTALL)
+    assert match is not None
+    return match.group(1)
+
+
+def _hidden(form: str) -> list[tuple[str, str]]:
+    return [
+        (name, html.unescape(value))
+        for name, value in re.findall(
+            r'<input type="hidden" name="([^"]*)" value="([^"]*)">', form
+        )
+    ]
+
+
+def test_sort_menu_keeps_filters(client: flask.testing.FlaskClient) -> None:
+    page = _books(
+        client,
+        folder=["audiobooks/Fiction", "audiobooks/Nonfiction"],
+        notTag="horror",
+        author="e",
+        orderBy="title",
+    )
+    sort_menu = _form(page, "sort-menu")
+    assert _hidden(sort_menu) == [
+        ("folder", "audiobooks/Fiction"),
+        ("folder", "audiobooks/Nonfiction"),
+        ("notTag", "horror"),
+        ("author", "e"),
+    ]
+    assert '<option value="title" selected>' in sort_menu
+
+
+def test_browse_drawer_keeps_sort(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, orderBy="title", sortAscending="False", perPage="10")
+    assert _hidden(_form(page, "browse-drawer")) == [
+        ("orderBy", "title"),
+        ("sortAscending", "False"),
+        ("perPage", "10"),
+    ]

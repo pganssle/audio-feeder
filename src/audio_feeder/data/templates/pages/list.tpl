@@ -144,8 +144,11 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     <a href="/login"><i class="fa fa-user topnav-icon"></i></a>
     -->
     <button type="button" class="topnav-icon topnav-button topnav-menu" popovertarget="browse-drawer"
-            title="Browse, filter and sort" aria-label="Browse, filter and sort"><i class="fa fa-bars"></i>{% if filter_count %}<span class="filter_count">{{ filter_count }}</span>{% endif %}</button>
+            title="Browse and filter" aria-label="Browse and filter"><i class="fa fa-bars"></i>{% if filter_count %}<span class="filter_count">{{ filter_count }}</span>{% endif %}</button>
     <form action="/books" class="browse_drawer" id="browse-drawer" popover>
+        {% for param_name, param_value in sort_params %}
+        <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
+        {% endfor %}
         <div class="drawer_header">
             <h2>Browse</h2>
             <button type="button" class="topnav-button drawer_close" popovertarget="browse-drawer"
@@ -179,32 +182,6 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
         <details class="drawer_section" open>
             <summary>Filters</summary>
             <div class="drawer_section_body">
-                {% if tag_choices %}
-                <fieldset class="drawer_fieldset">
-                    <legend class="topnav-label">Tags</legend>
-                    <div class="tag_match">
-                        Show books with
-                        <label><input type="radio" name="tagMatch" value=""{{ " checked" if entry_filter.tag_match == "any" else "" }}> any</label>
-                        <label><input type="radio" name="tagMatch" value="all"{{ " checked" if entry_filter.tag_match == "all" else "" }}> all</label>
-                        of the included tags
-                    </div>
-                    <ul class="tag_list">
-                    {% for tag, count in tag_choices[:15] %}
-                        {{ tag_row(tag, count) }}
-                    {% endfor %}
-                    </ul>
-                    {% if tag_choices|length > 15 %}
-                    <details class="more_tags">
-                        <summary>All {{ tag_choices|length }} tags</summary>
-                        <ul class="tag_list">
-                        {% for tag, count in tag_choices[15:] %}
-                            {{ tag_row(tag, count) }}
-                        {% endfor %}
-                        </ul>
-                    </details>
-                    {% endif %}
-                </fieldset>
-                {% endif %}
                 <div class="options-line">
                     <label for="filter-language" class="topnav-label">Language:</label>
                     <select id="filter-language" class="topnav-form" name="language">
@@ -231,58 +208,83 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
                 </div>
             </div>
         </details>
-        <details class="drawer_section">
-            <summary>Sort</summary>
+        {% if tag_choices %}
+        <details class="drawer_section"{{ " open" if entry_filter.tags or entry_filter.not_tags else "" }}>
+            <summary>Tags</summary>
             <div class="drawer_section_body">
-                <div class="options-line">
-                    <label for="sort-dropdown" class="topnav-label">Sort order:</label>
-                    <select id="sort-dropdown" class="topnav-form" name="orderBy">
-                        {% for sort_label, sort_value in sort_options.items() %}
-                        <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
-                            {{ sort_label }}
-                         </option>
-                        {% endfor %}
-                    </select>
+                <div class="tag_match">
+                    Show books with
+                    <label><input type="radio" name="tagMatch" value=""{{ " checked" if entry_filter.tag_match == "any" else "" }}> any</label>
+                    <label><input type="radio" name="tagMatch" value="all"{{ " checked" if entry_filter.tag_match == "all" else "" }}> all</label>
+                    of the included tags
                 </div>
-                <div class="options-line">
-                    <label for="sort-ascending" class="topnav-label">Direction:</label>
-                    <select id="sort-ascending" name="sortAscending" class="topnav-form">
-                        <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
-                        <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
-                    </select>
-                </div>
-                <div class="options-line">
-                    <label for="per-page" class="topnav-label">Items per page:</label>
-                    <input type="number" class="topnav-form" style="width: 120px;"
-                           id="per-page" name="perPage"
-                           min="1" value="{{ sort_args["perPage"] }}">
-                </div>
+                <ul class="tag_list">
+                {% for tag, count in tag_choices[:15] %}
+                    {{ tag_row(tag, count) }}
+                {% endfor %}
+                </ul>
+                {% if tag_choices|length > 15 %}
+                <details class="more_tags">
+                    <summary>All {{ tag_choices|length }} tags</summary>
+                    <ul class="tag_list">
+                    {% for tag, count in tag_choices[15:] %}
+                        {{ tag_row(tag, count) }}
+                    {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
             </div>
         </details>
+        {% endif %}
         <div class="drawer_footer">
             <a class="topnav-form drawer_clear" href="{{ clear_filters_url|e }}">Clear filters</a>
+            <button type="submit" class="topnav-form">Apply</button>
+        </div>
+    </form>
+    <button type="button" class="topnav-icon topnav-button" popovertarget="sort-menu"
+            title="Sort" aria-label="Sort"><i class="fa fa-arrow-down-wide-short"></i></button>
+    <form action="/books" class="sort_menu" id="sort-menu" popover>
+        {% for param_name, param_value in filter_param_pairs %}
+        <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
+        {% endfor %}
+        <div class="options-line">
+            <label for="sort-dropdown" class="topnav-label">Sort order:</label>
+            <select id="sort-dropdown" class="topnav-form" name="orderBy">
+                {% for sort_label, sort_value in sort_options.items() %}
+                <option value="{{ sort_value }}"{{" selected" if sort_value == sort_args["orderBy"] else ""}}>
+                    {{ sort_label }}
+                 </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="options-line">
+            <label for="sort-ascending" class="topnav-label">Direction:</label>
+            <select id="sort-ascending" name="sortAscending" class="topnav-form">
+                <option value="True"{{ " selected" if sort_args["sortAscending"] else "" }}>Ascending</option>
+                <option value="False"{{ " selected" if not sort_args["sortAscending"] else "" }}>Descending</option>
+            </select>
+        </div>
+        <div class="options-line">
+            <label for="per-page" class="topnav-label">Items per page:</label>
+            <input type="number" class="topnav-form" style="width: 120px;"
+                   id="per-page" name="perPage"
+                   min="1" value="{{ sort_args["perPage"] }}">
+        </div>
+        <div class="options-line">
+            <div></div> <!-- Spacer-->
             <button type="submit" class="topnav-form">Apply</button>
         </div>
     </form>
 </div>
 {% endblock %}
     <div class='maintable'>
-    {% block folder_nav %}
-    {% if folder_nav.subfolders or folder_nav.breadcrumbs|length > 1 %}
-    <div class="folder_nav">
-        <div class="breadcrumbs">
-            {% for crumb in folder_nav.breadcrumbs %}
-                {% if not crumb.url is sameas none %}<a class="breadcrumb" href="{{ crumb.url|e }}">{{ crumb.name|e }}</a>{% else %}<span class="breadcrumb current_folder">{{ crumb.name|e }}</span>{% endif %}
-                {% if not loop.last %}<span class="breadcrumb_separator">&rsaquo;</span>{% endif %}
-            {% endfor %}
-        </div>
-        {% if folder_nav.subfolders %}
-        <div class="subfolders">
-            {% for subfolder in folder_nav.subfolders %}
-            <a class="subfolder" href="{{ subfolder.url|e }}">{{ subfolder.name|e }} <span class="subfolder_count">({{ subfolder.count }})</span></a>
-            {% endfor %}
-        </div>
-        {% endif %}
+    {% block breadcrumbs %}
+    {% if folder_nav.breadcrumbs|length > 1 %}
+    <div class="folder_nav breadcrumbs">
+        {% for crumb in folder_nav.breadcrumbs %}
+            {% if not crumb.url is sameas none %}<a class="breadcrumb" href="{{ crumb.url|e }}">{{ crumb.name|e }}</a>{% else %}<span class="breadcrumb current_folder">{{ crumb.name|e }}</span>{% endif %}
+            {% if not loop.last %}<span class="breadcrumb_separator">&rsaquo;</span>{% endif %}
+        {% endfor %}
     </div>
     {% endif %}
     {% endblock %}
@@ -346,6 +348,15 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
         </div>
     {% endfor %}
     <div class="qr_holder" id="qr_container"></div>
+    {% endblock %}
+    {% block subfolders %}
+    {% if folder_nav.subfolders %}
+    <div class="folder_nav subfolders">
+        {% for subfolder in folder_nav.subfolders %}
+        <a class="subfolder" href="{{ subfolder.url|e }}">{{ subfolder.name|e }} <span class="subfolder_count">({{ subfolder.count }})</span></a>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% endblock %}
     {{ self.navbar() }}
     </div>

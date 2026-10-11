@@ -289,6 +289,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     {% endif %}
     {% endblock %}
     {% block navbar %}
+    {% if nav_list|length > 1 %}
     <div class="navbar">
         <div class="nav_arrow"><a{% if not first_index is sameas none %} href="{{ first_index }}"{% endif %}><i class="fa fa-angle-double-left nav_arrow" id="firstnav"></i></a></div>
 
@@ -307,6 +308,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
         <div class="nav_arrow"><a {% if not next_index is sameas none %} href="{{next_index}}"{% endif%}><i class="fa fa-angle-right nav_arrow" id="fwdnav"></i></a></div>
         <div class="nav_arrow"><a {% if not final_index is sameas none %} href="{{ final_index }}" {% endif %}><i class="fa fa-angle-double-right nav_arrow" id="lastnav"></i></a></div>
         </div>
+    {% endif %}
     {% endblock %}
     {% block mainlist %}
     {% for entry in entries %}

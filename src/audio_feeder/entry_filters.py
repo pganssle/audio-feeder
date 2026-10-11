@@ -181,6 +181,34 @@ def folder_tree(
     return nodes[folder]
 
 
+def library_root(entries: Iterable[oh.Entry]) -> PurePosixPath | None:
+    """The deepest folder that contains every entry, if there is one.
+
+    For example, if every entry is somewhere below ``audiobooks/``, that's
+    the library root. An entry's own directory doesn't count, so this is
+    always above every entry.
+    """
+    locations = [entry_location(entry) for entry in entries]
+    if not locations:
+        return None
+
+    # Every entry is below each of the parents shared by all of them
+    shared = set(locations[0].parents[:-1])
+    for location in locations[1:]:
+        shared.intersection_update(location.parents[:-1])
+
+    if not shared:
+        return None
+    return max(shared, key=lambda folder: len(folder.parts))
+
+
+def folder_label(folder: PurePosixPath, root: PurePosixPath | None) -> str:
+    """How to display ``folder``, relative to the library root."""
+    if root is not None and root in folder.parents:
+        return folder.relative_to(root).as_posix()
+    return folder.as_posix()
+
+
 def breadcrumbs(folder: PurePosixPath | None) -> Sequence[PurePosixPath]:
     """The chain of folders from the top level down to ``folder``."""
     if folder is None:

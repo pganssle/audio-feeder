@@ -161,7 +161,7 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
             <ul class="folder_tree drawer_section_body">
             {% for extra in extra_folders %}
                 <li>
-                    <div class="drawer_row leaf">{{ toggle_pair("folder", "notFolder", extra.folder.as_posix(), extra.folder.as_posix(), extra.folder in entry_filter.folders, extra.folder in entry_filter.not_folders) }}<span class="row_name">{{ extra.folder.as_posix()|e }}</span><span class="row_count">{{ extra.count }}</span></div>
+                    <div class="drawer_row leaf">{{ toggle_pair("folder", "notFolder", extra.folder.as_posix(), extra.folder.as_posix(), extra.folder in entry_filter.folders, extra.folder in entry_filter.not_folders) }}<span class="row_name">{{ extra.label|e }}</span><span class="row_count">{{ extra.count }}</span></div>
                 </li>
             {% endfor %}
             {% for node in folder_tree recursive %}

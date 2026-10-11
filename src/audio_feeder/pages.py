@@ -96,8 +96,10 @@ def books():
         ]
 
         entry_cache["base"] = entries
+        entry_cache["root"] = ef.library_root(entries)
     else:
         entries = entry_cache["base"]
+    root = entry_cache["root"]
 
     books_table = cast(Mapping[ID, oh.Book], dh.get_database_table(TableName("books")))
     if "facets" not in entry_cache:
@@ -163,7 +165,8 @@ def books():
         "prev_index": prev_index,
         "next_index": next_index,
         "pagetitle": (
-            f"Books: {entry_filter.folders[0].as_posix()}: Page {page} of {max_page}"
+            f"Books: {ef.folder_label(entry_filter.folders[0], root)}: "
+            f"Page {page} of {max_page}"
             if len(entry_filter.folders) == 1
             else f"Books: Page {page} of {max_page}"
         ),
@@ -184,7 +187,7 @@ def books():
         "facets": facets,
         "folder_tree": folder_tree,
         "extra_folders": _extra_folders(
-            folder_tree, entry_filter, entry_cache[tree_filter]
+            folder_tree, entry_filter, entry_cache[tree_filter], root
         ),
         "open_folders": {
             parent
@@ -194,7 +197,7 @@ def books():
         "tag_choices": _tag_choices(facets, entry_filter),
         "clear_filters_url": _books_url(ef.EntryFilter(), sort_args),
         "filter_count": entry_filter.criteria_count(),
-        "breadcrumbs": _breadcrumbs(entry_filter, sort_args),
+        "breadcrumbs": _breadcrumbs(entry_filter, sort_args, root),
         "stylesheet_links": get_css_links(),
         "favicon": None,
     }
@@ -492,7 +495,8 @@ def _extra_folders(
     folder_tree: Sequence[ef.FolderNode],
     entry_filter: ef.EntryFilter,
     entries: Sequence[oh.Entry],
-) -> Sequence[ef.FolderCount]:
+    root: PurePosixPath | None,
+) -> Sequence[ef.FolderNode]:
     """Included or excluded folders that aren't in the folder tree.
 
     The tree leaves out folders that are collapsed into their only subfolder,
@@ -508,8 +512,11 @@ def _extra_folders(
         to_visit.extend(node.children)
 
     return [
-        ef.FolderCount(
-            folder, sum(1 for entry in entries if ef.in_folder(entry, folder))
+        ef.FolderNode(
+            folder=folder,
+            label=ef.folder_label(folder, root),
+            count=sum(1 for entry in entries if ef.in_folder(entry, folder)),
+            children=(),
         )
         for folder in sorted({*entry_filter.folders, *entry_filter.not_folders})
         if folder not in in_tree
@@ -533,11 +540,14 @@ def _tag_choices(
 
 
 def _breadcrumbs(
-    entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]
+    entry_filter: ef.EntryFilter,
+    sort_args: Mapping[str, Any],
+    root: PurePosixPath | None,
 ) -> Sequence[Mapping[str, str | None]]:
     """Links to the folders above the included folder.
 
-    These are only shown when exactly one folder is included.
+    These are only shown when exactly one folder is included, and they start
+    below the library root, since every book is in the root.
     """
     if len(entry_filter.folders) != 1:
         return []
@@ -549,8 +559,16 @@ def _breadcrumbs(
         return _books_url(attrs.evolve(entry_filter, folders=folders), sort_args)
 
     (current,) = entry_filter.folders
+    below_root = [
+        folder
+        for folder in ef.breadcrumbs(current)
+        if root is None or root in folder.parents
+    ]
+    if not below_root:
+        return []
+
     crumbs: list[Mapping[str, str | None]] = [{"name": "All", "url": folder_url(None)}]
-    for folder in ef.breadcrumbs(current):
+    for folder in below_root:
         crumbs.append(
             {
                 "name": folder.name,

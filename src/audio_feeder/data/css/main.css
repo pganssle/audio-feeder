@@ -217,8 +217,8 @@ div.topnav {
 
 @media (max-width: 750px) {
     div.topnav {
-        padding-left: 0px;
-        padding-right: 0px;
+        padding-left: 10px;
+        padding-right: 10px;
     }
 }
 
@@ -300,7 +300,9 @@ span.filter_count {
 .browse_drawer {
     position: fixed;
     inset: 0 auto 0 0;
-    width: min(32rem, 100vw);
+    /* Leave some of the page visible beside the drawer, as somewhere to
+       tap to close it. */
+    width: min(32rem, 85vw);
     height: 100%;
     max-height: none;
     margin: 0;
@@ -551,4 +553,51 @@ ul.folder_tree .drawer_row.leaf {
     visibility: visible;
     opacity: 50%;
     background-color: "grey";
+}
+
+/* Larger targets for touch screens */
+@media (pointer: coarse) {
+    .drawer_section > summary {
+        padding: 15px;
+    }
+
+    .drawer_row {
+        min-height: 3rem;
+        font-size: 1.2rem;
+    }
+
+    .toggle_pair {
+        gap: 6px;
+    }
+
+    .toggle {
+        width: 2.75rem;
+        height: 2.75rem;
+        font-size: 1.4rem;
+    }
+
+    summary.drawer_row::before {
+        width: 1.5rem;
+    }
+
+    ul.folder_tree .drawer_row.leaf {
+        padding-left: calc(1.5rem + 8px);
+    }
+
+    .tag_match label {
+        display: inline-block;
+        padding: 10px 5px;
+    }
+
+    .more_tags > summary {
+        padding: 10px 0;
+    }
+}
+
+/* On narrow screens, the page links take up too much space, so only show
+   the arrows and the current page. */
+@media (max-width: 750px) {
+    div.nav_links a.nav_link {
+        display: none;
+    }
 }

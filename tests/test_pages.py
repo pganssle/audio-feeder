@@ -303,3 +303,25 @@ def test_browse_drawer_tags(client: flask.testing.FlaskClient) -> None:
     assert '<input type="radio" name="tagMatch" value="" checked>' in page
     page = _books(client, tag=least_common, tagMatch="all")
     assert '<input type="radio" name="tagMatch" value="all" checked>' in page
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("tag=&author=&orderBy=title", "/books?orderBy=title"),
+        ("tag=a&tag=&tag=b&tagMatch=", "/books?tag=a&tag=b"),
+        ("author=", "/books"),
+    ],
+)
+def test_books_empty_params_redirect(
+    client: flask.testing.FlaskClient, query: str, expected: str
+) -> None:
+    response = client.get("/books?" + query)
+    assert response.status_code == 302
+    assert response.headers["Location"] == expected
+
+
+def test_books_no_redirect_without_empty_params(
+    client: flask.testing.FlaskClient,
+) -> None:
+    assert client.get("/books?tag=a&orderBy=title").status_code == 200

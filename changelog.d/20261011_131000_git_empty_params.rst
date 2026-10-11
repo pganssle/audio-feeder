@@ -1,0 +1,1 @@
+- Empty query parameters, like those submitted by the browse drawer's empty fields, are now removed from the book list's URL by redirecting to the same page without them.

@@ -1,0 +1,1 @@
+- The book list can now be filtered to the books in a particular folder, with ``/books?folder=<path>``. The page shows breadcrumbs for the current folder and links to its subfolders, with the number of books in each. (`#7 <https://github.com/pganssle/audio-feeder/issues/7>`_)

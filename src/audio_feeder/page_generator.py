@@ -178,7 +178,7 @@ class NavItem:
         self.url = base_url
 
         if base_url is not None and params is not None:
-            self.url += "?" + urlencode(params)
+            self.url += "?" + urlencode(params, doseq=True)
 
     def display_only(self):
         """

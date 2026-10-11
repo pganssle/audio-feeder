@@ -5,7 +5,7 @@ import html
 import pathlib
 import re
 import threading
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from urllib.parse import urlencode
 
 import flask.testing
@@ -54,8 +54,8 @@ def client(testgen_config: pathlib.Path) -> Iterator[flask.testing.FlaskClient]:
     yield app.test_client()
 
 
-def _books(client: flask.testing.FlaskClient, **params: str) -> str:
-    response = client.get("/books?" + urlencode(params))
+def _books(client: flask.testing.FlaskClient, **params: str | Sequence[str]) -> str:
+    response = client.get("/books?" + urlencode(params, doseq=True))
     assert response.status_code == 200
     return response.get_data(as_text=True)
 
@@ -197,3 +197,49 @@ def test_folder_counts_respect_other_filters(
     assert counts.get("Fiction") == str(expected_fiction)
     # Every Alcott book is in Fiction, so there's nothing to navigate into
     assert 'class="subfolder"' not in _books(client, author="alcott")
+
+
+def test_books_multiple_folders(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, folder=["audiobooks/Fiction", "audiobooks/Nonfiction"])
+    assert _listed(page) == set(FICTION + NONFICTION)
+
+    # With more than one folder, each is shown as a removable filter rather
+    # than with breadcrumbs
+    assert 'class="breadcrumb' not in page
+    assert "Folder: audiobooks/Fiction" in page
+    assert "Folder: audiobooks/Nonfiction" in page
+
+
+def test_books_excluded_folder(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, notFolder="audiobooks/Fiction")
+    assert _listed(page) == set(NONFICTION)
+    assert "Not in folder: audiobooks/Fiction" in page
+
+    # The folder navigation doesn't offer the excluded folder
+    assert 'Fiction <span class="subfolder_count">' not in page
+
+    # Pagination keeps the exclusion
+    page = _books(client, notFolder="audiobooks/Fiction", perPage="1")
+    assert re.search(
+        r'class="nav_link" href="[^"]*notFolder=audiobooks%2FFiction', page
+    )
+
+
+def test_books_excluded_tag(client: flask.testing.FlaskClient) -> None:
+    by_tag = _titles_by_tag()
+    tag, titles = max(by_tag.items(), key=lambda kv: len(kv[1]))
+
+    page = _books(client, notTag=tag, perPage="100")
+    assert _listed(page) == set(FICTION + NONFICTION) - titles
+    assert f"Not tag: {html.escape(tag)}" in page
+
+
+def test_books_multiple_tags(client: flask.testing.FlaskClient) -> None:
+    by_tag = _titles_by_tag()
+    (tag_a, titles_a), (tag_b, titles_b) = sorted(by_tag.items())[:2]
+
+    page = _books(client, tag=[tag_a, tag_b], perPage="100")
+    assert _listed(page) == titles_a | titles_b
+
+    page = _books(client, tag=[tag_a, tag_b], tagMatch="all", perPage="100")
+    assert _listed(page) == titles_a & titles_b

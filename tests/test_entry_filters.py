@@ -7,6 +7,7 @@ from pathlib import Path, PurePosixPath
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from werkzeug import datastructures
 
 from audio_feeder import entry_filters as ef
 from audio_feeder import object_handler as oh
@@ -29,6 +30,14 @@ def _entries(paths: Sequence[str]) -> Sequence[oh.Entry]:
 
 def _folder(folder: str | None) -> PurePosixPath | None:
     return PurePosixPath(folder) if folder is not None else None
+
+
+def _args(args: Mapping[str, str | Sequence[str]]) -> ef.QueryArgs:
+    return datastructures.MultiDict(args)
+
+
+def _titles(entries: Sequence[oh.Entry]) -> set[str]:
+    return {entry.path.name for entry in entries}
 
 
 @pytest.mark.parametrize(
@@ -72,8 +81,44 @@ def test_parse_folder_rejects_parent_references(value: str) -> None:
     ],
 )
 def test_filter_by_folder(folder: str | None, expected_count: int) -> None:
-    entry_filter = ef.EntryFilter(folder=_folder(folder))
+    folders = (PurePosixPath(folder),) if folder is not None else ()
+    entry_filter = ef.EntryFilter(folders=folders)
     assert len(entry_filter.apply(_entries(PATHS), {})) == expected_count
+
+
+@pytest.mark.parametrize(
+    "folders, not_folders, expected",
+    [
+        # Including several folders shows the books in any of them
+        (
+            ["audiobooks/Fiction/Fantasy", "audiobooks/Poetry"],
+            [],
+            {"Cleo Placeholder - The Ninth Gate", "Finn Mock - Collected Verse"},
+        ),
+        # Excluding a folder inside an included one
+        (
+            ["audiobooks/Fiction"],
+            ["audiobooks/Fiction/Science Fiction"],
+            {"Cleo Placeholder - The Ninth Gate"},
+        ),
+        # Excluding folders with nothing included
+        (
+            [],
+            ["audiobooks/Fiction", "audiobooks/Nonfiction/History"],
+            {"Finn Mock - Collected Verse"},
+        ),
+        # Excluding a folder above an included one excludes everything
+        (["audiobooks/Poetry"], ["audiobooks"], set()),
+    ],
+)
+def test_filter_by_multiple_folders(
+    folders: list[str], not_folders: list[str], expected: set[str]
+) -> None:
+    entry_filter = ef.EntryFilter(
+        folders=[PurePosixPath(f) for f in folders],
+        not_folders=[PurePosixPath(f) for f in not_folders],
+    )
+    assert _titles(entry_filter.apply(_entries(PATHS), {})) == expected
 
 
 @pytest.mark.parametrize(
@@ -108,7 +153,8 @@ def test_subfolder_counts_match_filter(paths: list[str], folder: str | None) -> 
     parent = _folder(folder)
     for sub in ef.subfolders(entries, parent):
         assert parent is None or parent in sub.folder.parents
-        assert sub.count == len(ef.EntryFilter(folder=sub.folder).apply(entries, {}))
+        entry_filter = ef.EntryFilter(folders=(sub.folder,))
+        assert sub.count == len(entry_filter.apply(entries, {}))
         assert sub.count > 0
 
 
@@ -132,16 +178,28 @@ def test_breadcrumbs(folder: str | None, expected: list[str]) -> None:
     [
         ({}, {}),
         ({"folder": ""}, {}),
-        ({"folder": "/audiobooks/Fiction/"}, {"folder": "audiobooks/Fiction"}),
-        ({"folder": "audiobooks", "page": "2"}, {"folder": "audiobooks"}),
+        ({"folder": "/audiobooks/Fiction/"}, {"folder": ("audiobooks/Fiction",)}),
+        ({"folder": "audiobooks", "page": "2"}, {"folder": ("audiobooks",)}),
+        (
+            {"folder": ["b", "a", "b/"], "notFolder": ["a/x"]},
+            {"folder": ("a", "b"), "notFolder": ("a/x",)},
+        ),
+        (
+            {"tag": ["Space Opera", "fiction", ""], "notTag": "Abridged"},
+            {"tag": ("fiction", "space opera"), "notTag": ("abridged",)},
+        ),
+        # The default tagMatch is left out
+        ({"tag": "a", "tagMatch": "any"}, {"tag": ("a",)}),
+        ({"tag": "a", "tagMatch": "ALL"}, {"tag": ("a",), "tagMatch": "all"}),
     ],
 )
 def test_filter_params_round_trip(
-    args: dict[str, str], expected_params: dict[str, str]
+    args: Mapping[str, str | Sequence[str]],
+    expected_params: Mapping[str, str | Sequence[str]],
 ) -> None:
-    entry_filter = ef.EntryFilter.from_args(args)
+    entry_filter = ef.EntryFilter.from_args(_args(args))
     assert entry_filter.to_params() == expected_params
-    assert ef.EntryFilter.from_args(entry_filter.to_params()) == entry_filter
+    assert ef.EntryFilter.from_args(_args(entry_filter.to_params())) == entry_filter
 
 
 _UTC = datetime.UTC
@@ -166,7 +224,7 @@ def _entry(
 @pytest.mark.parametrize(
     "args, expected",
     [
-        ({"tag": " Fiction "}, ef.EntryFilter(tag="fiction")),
+        ({"tag": " Fiction "}, ef.EntryFilter(tags=["fiction"])),
         ({"language": "EN"}, ef.EntryFilter(language="en")),
         ({"author": "  Mary Shelley "}, ef.EntryFilter(author="Mary Shelley")),
         (
@@ -178,31 +236,44 @@ def _entry(
         ),
         # Empty fields, as submitted by the form, mean no filter
         (
-            {"tag": "", "language": "", "author": " ", "addedSince": "", "folder": ""},
+            {
+                "tag": "",
+                "tagMatch": "",
+                "language": "",
+                "author": " ",
+                "addedSince": "",
+                "folder": "",
+            },
             ef.EntryFilter(),
         ),
     ],
 )
 def test_filter_from_args(args: Mapping[str, str], expected: ef.EntryFilter) -> None:
-    entry_filter = ef.EntryFilter.from_args(args)
+    entry_filter = ef.EntryFilter.from_args(_args(args))
     assert entry_filter == expected
-    assert ef.EntryFilter.from_args(entry_filter.to_params()) == entry_filter
+    assert ef.EntryFilter.from_args(_args(entry_filter.to_params())) == entry_filter
 
 
 @pytest.mark.parametrize(
-    "args", [{"addedSince": "yesterday"}, {"addedBefore": "2024-13-01"}]
+    "args",
+    [
+        {"addedSince": "yesterday"},
+        {"addedBefore": "2024-13-01"},
+        {"tagMatch": "some"},
+        {"notFolder": "../secrets"},
+    ],
 )
-def test_filter_from_args_invalid_date(args: Mapping[str, str]) -> None:
+def test_filter_from_args_invalid(args: Mapping[str, str]) -> None:
     with pytest.raises(ef.InvalidFilter):
-        ef.EntryFilter.from_args(args)
+        ef.EntryFilter.from_args(_args(args))
 
 
 @pytest.mark.parametrize(
     "entry_filter, book, expected",
     [
-        (ef.EntryFilter(tag="fiction"), _book(tags=["Fiction", "Horror"]), True),
-        (ef.EntryFilter(tag="fiction"), _book(tags=["history"]), False),
-        (ef.EntryFilter(tag="fiction"), _book(tags=None), False),
+        (ef.EntryFilter(tags=["fiction"]), _book(tags=["Fiction", "Horror"]), True),
+        (ef.EntryFilter(tags=["fiction"]), _book(tags=["history"]), False),
+        (ef.EntryFilter(tags=["fiction"]), _book(tags=None), False),
         (ef.EntryFilter(language="en"), _book(language="EN"), True),
         (ef.EntryFilter(language="en"), _book(language="es"), False),
         (ef.EntryFilter(language="en"), _book(language=None), False),
@@ -214,12 +285,14 @@ def test_filter_from_args_invalid_date(args: Mapping[str, str]) -> None:
         (ef.EntryFilter(author="shelley"), _book(authors=["H G Wells"]), False),
         (ef.EntryFilter(author="shelley"), _book(authors=None), False),
         (
-            ef.EntryFilter(tag="fiction", author="shelley"),
+            ef.EntryFilter(tags=["fiction"], author="shelley"),
             _book(tags=["fiction"], authors=["H G Wells"]),
             False,
         ),
         (ef.EntryFilter(), None, True),
-        (ef.EntryFilter(tag="fiction"), None, False),
+        (ef.EntryFilter(tags=["fiction"]), None, False),
+        # Excluding a tag doesn't need any information about the book
+        (ef.EntryFilter(not_tags=["horror"]), None, True),
     ],
 )
 def test_filter_matches_book_metadata(
@@ -261,13 +334,35 @@ def test_filter_matches_date_added(
     assert entry_filter.matches(_entry(date_added=date_added), _book()) is expected
 
 
+_TAGGED = _book(tags=["Fiction", "Space Opera"])
+
+
+@pytest.mark.parametrize(
+    "entry_filter, expected",
+    [
+        (ef.EntryFilter(tags=["fiction", "history"]), True),
+        (ef.EntryFilter(tags=["fiction", "history"], tag_match="all"), False),
+        (ef.EntryFilter(tags=["fiction", "space opera"], tag_match="all"), True),
+        (ef.EntryFilter(not_tags=["horror"]), True),
+        (ef.EntryFilter(not_tags=["horror", "space opera"]), False),
+        (ef.EntryFilter(tags=["fiction"], not_tags=["space opera"]), False),
+        # Excluding a tag takes precedence over including it
+        (ef.EntryFilter(tags=["fiction"], not_tags=["fiction"]), False),
+    ],
+)
+def test_filter_matches_multiple_tags(
+    entry_filter: ef.EntryFilter, expected: bool
+) -> None:
+    assert entry_filter.matches(_entry(), _TAGGED) is expected
+
+
 def test_filter_apply_looks_up_books() -> None:
     entries = [_entry(data_id=100), _entry(data_id=101), _entry(data_id=None)]
     books = {
         ID(100): _book(id=ID(100), tags=["fiction"]),
         ID(101): _book(id=ID(101), tags=["history"]),
     }
-    result = ef.EntryFilter(tag="fiction").apply(entries, books)
+    result = ef.EntryFilter(tags=["fiction"]).apply(entries, books)
     assert [entry.data_id for entry in result] == [ID(100)]
 
 

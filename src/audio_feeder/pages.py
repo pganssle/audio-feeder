@@ -9,7 +9,7 @@ import threading
 from collections.abc import Mapping, MutableSequence, Sequence
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
-from typing import Any, cast
+from typing import Any, Final, TypeVar, cast
 from urllib.parse import urlencode
 
 import attrs
@@ -34,6 +34,8 @@ from . import cache_utils, updater
 from ._db_types import ID, TableName
 
 root = Blueprint("root", __name__)
+
+_T = TypeVar("_T")
 
 ###
 # Pages
@@ -102,7 +104,7 @@ def books():
 
     # The folder navigation counts books matching the other filters, so that
     # the counts match what you get when you navigate to a folder.
-    unfoldered_filter = attrs.evolve(entry_filter, folder=None)
+    unfoldered_filter = attrs.evolve(entry_filter, folders=())
     for cache_filter in (unfoldered_filter, entry_filter):
         if cache_filter not in entry_cache:
             entry_cache[cache_filter] = cache_filter.apply(entries, books_table)
@@ -150,18 +152,15 @@ def books():
         "prev_index": prev_index,
         "next_index": next_index,
         "pagetitle": (
-            f"Books: {entry_filter.folder.as_posix()}: Page {page} of {max_page}"
-            if entry_filter.folder is not None
+            f"Books: {entry_filter.folders[0].as_posix()}: Page {page} of {max_page}"
+            if len(entry_filter.folders) == 1
             else f"Books: Page {page} of {max_page}"
         ),
         "site_images_url": site_images.url,
         "default_cover": os.path.join(site_images.url, "default_cover.svg"),
         "sort_options": get_sort_options(),
         "sort_args": sort_args,
-        # The other filters have their own fields in the options form
-        "hidden_filter_params": {
-            k: v for k, v in filter_params.items() if k == "folder"
-        },
+        "hidden_filter_params": _hidden_filter_params(filter_params),
         "filter_values": filter_params,
         "facets": facets,
         "active_filters": _active_filters(entry_filter, sort_args),
@@ -441,39 +440,111 @@ def version() -> str:
 
 ###
 # Functions (probably want to move most of these to page_generator)
-_FILTER_LABELS: Mapping[str, str] = {
-    "tag": "Tag",
-    "language": "Language",
-    "author": "Author",
-    "added_since": "Added since",
-    "added_before": "Added before",
-}
-
-
 def _books_url(entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]) -> str:
     """The URL for the first page of books with a given filter and sort order."""
     link_args = {k: v for k, v in sort_args.items() if k != "page"}
     params = {**entry_filter.to_params(), **link_args}
-    return flask.url_for("root.books") + "?" + urlencode(params)
+    return flask.url_for("root.books") + "?" + urlencode(params, doseq=True)
+
+
+# These filters have their own fields in the options form.
+_FORM_FILTER_PARAMS: Final = frozenset(
+    {"tag", "language", "author", "addedSince", "addedBefore"}
+)
+
+
+def _hidden_filter_params(
+    filter_params: Mapping[str, str | tuple[str, ...]],
+) -> Sequence[tuple[str, str]]:
+    """The filter parameters that the options form passes through unchanged."""
+    hidden = []
+    for name, value in filter_params.items():
+        if name in _FORM_FILTER_PARAMS:
+            continue
+        values = (value,) if isinstance(value, str) else value
+        hidden.extend((name, v) for v in values)
+    return hidden
 
 
 def _active_filters(
     entry_filter: ef.EntryFilter, sort_args: Mapping[str, Any]
-) -> Sequence[Mapping[str, str]]:
-    """Each active (non-folder) filter, with a link that removes it."""
+) -> Sequence[Mapping[str, Any]]:
+    """Each active filter, with a link that removes it.
+
+    A single included folder is shown by the folder navigation instead.
+    """
     active = []
-    for field, label in _FILTER_LABELS.items():
-        value = getattr(entry_filter, field)
-        if value is not None:
-            active.append(
-                {
-                    "label": label,
-                    "value": str(value),
-                    "remove_url": _books_url(
-                        attrs.evolve(entry_filter, **{field: None}), sort_args
-                    ),
-                }
+
+    def add(label: str, value: str, without: ef.EntryFilter, excluded: bool = False):
+        active.append(
+            {
+                "label": label,
+                "value": value,
+                "remove_url": _books_url(without, sort_args),
+                "excluded": excluded,
+            }
+        )
+
+    def without(values: tuple[_T, ...], value: _T) -> tuple[_T, ...]:
+        return tuple(v for v in values if v != value)
+
+    folders = entry_filter.folders
+    if len(folders) > 1:
+        for folder in folders:
+            add(
+                "Folder",
+                folder.as_posix(),
+                attrs.evolve(entry_filter, folders=without(folders, folder)),
             )
+
+    not_folders = entry_filter.not_folders
+    for folder in not_folders:
+        add(
+            "Not in folder",
+            folder.as_posix(),
+            attrs.evolve(entry_filter, not_folders=without(not_folders, folder)),
+            excluded=True,
+        )
+
+    tags = entry_filter.tags
+    for tag in tags:
+        add("Tag", tag, attrs.evolve(entry_filter, tags=without(tags, tag)))
+
+    if len(tags) > 1 and entry_filter.tag_match is ef.TagMatch.ALL:
+        add(
+            "Tags",
+            "must match all",
+            attrs.evolve(entry_filter, tag_match=ef.TagMatch.ANY),
+        )
+
+    not_tags = entry_filter.not_tags
+    for tag in not_tags:
+        add(
+            "Not tag",
+            tag,
+            attrs.evolve(entry_filter, not_tags=without(not_tags, tag)),
+            excluded=True,
+        )
+
+    if entry_filter.language is not None:
+        add(
+            "Language", entry_filter.language, attrs.evolve(entry_filter, language=None)
+        )
+    if entry_filter.author is not None:
+        add("Author", entry_filter.author, attrs.evolve(entry_filter, author=None))
+    if entry_filter.added_since is not None:
+        add(
+            "Added since",
+            entry_filter.added_since.isoformat(),
+            attrs.evolve(entry_filter, added_since=None),
+        )
+    if entry_filter.added_before is not None:
+        add(
+            "Added before",
+            entry_filter.added_before.isoformat(),
+            attrs.evolve(entry_filter, added_before=None),
+        )
+
     return active
 
 
@@ -482,14 +553,20 @@ def _folder_navigation(
     entry_filter: ef.EntryFilter,
     sort_args: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    """Breadcrumbs and subfolder links for the folder filter."""
+    """Breadcrumbs and subfolder links for the folder filter.
+
+    These are only shown when at most one folder is included.
+    """
+    if len(entry_filter.folders) > 1:
+        return {"breadcrumbs": [], "subfolders": []}
 
     # Changing folders keeps the other filters and sort settings, but goes
     # back to the first page.
     def folder_url(folder: PurePosixPath | None) -> str:
-        return _books_url(attrs.evolve(entry_filter, folder=folder), sort_args)
+        folders = (folder,) if folder is not None else ()
+        return _books_url(attrs.evolve(entry_filter, folders=folders), sort_args)
 
-    current = entry_filter.folder
+    current = entry_filter.folders[0] if entry_filter.folders else None
     crumbs = [{"name": "All", "url": folder_url(None) if current else None}]
     for folder in ef.breadcrumbs(current):
         crumbs.append(

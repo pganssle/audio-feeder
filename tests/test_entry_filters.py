@@ -419,3 +419,26 @@ def test_facets() -> None:
     # Most common first, then alphabetical; tags are counted once per book
     assert result.tags == [("fiction", 2), ("history", 1), ("horror", 1)]
     assert result.languages == [("en", 2), ("es", 1)]
+
+
+@pytest.mark.parametrize(
+    "entry_filter, expected",
+    [
+        (ef.EntryFilter(), 0),
+        # The tag match mode isn't a criterion of its own
+        (ef.EntryFilter(tag_match="all"), 0),
+        (
+            ef.EntryFilter(
+                folders=[PurePosixPath("a"), PurePosixPath("b")],
+                not_folders=[PurePosixPath("a/c")],
+                tags=["x"],
+                not_tags=["y", "z"],
+                language="en",
+                added_since=datetime.date(2025, 1, 1),
+            ),
+            8,
+        ),
+    ],
+)
+def test_criteria_count(entry_filter: ef.EntryFilter, expected: int) -> None:
+    assert entry_filter.criteria_count() == expected

@@ -92,13 +92,39 @@ def _checkboxes(page: str, name: str) -> list[str]:
     ]
 
 
+def _folder_counts(page: str) -> dict[str, int]:
+    """The top-level folders in the browse drawer's folder tree."""
+    match = re.search(r'<ul class="folder_tree[^"]*">(.*?)<summary>Filters', page, re.S)
+    if match is None:
+        return {}
+    # Top-level rows are the first row in each top-level <li>
+    tree = match.group(1)
+    counts = {}
+    depth = 0
+    for token in re.finditer(
+        r'(<ul>|</ul>)|<span class="row_name">([^<]*)</span>'
+        r'<span class="row_count">(\d+)</span>',
+        tree,
+    ):
+        if token.group(1) == "<ul>":
+            depth += 1
+        elif token.group(1) == "</ul>":
+            depth -= 1
+        elif depth == 0:
+            counts[html.unescape(token.group(2))] = int(token.group(3))
+    return counts
+
+
 def test_books_unfiltered(client: flask.testing.FlaskClient) -> None:
     page = _books(client)
     assert _listed(page) == set(FICTION + NONFICTION)
 
-    # Every book is below audiobooks/, so the top level offers its subfolders
-    assert 'Fiction <span class="subfolder_count">(5)</span>' in page
-    assert 'Nonfiction <span class="subfolder_count">(3)</span>' in page
+    # Every book is below audiobooks/, so the folder tree starts at its
+    # subfolders
+    assert _folder_counts(page) == {"Fiction": 5, "Nonfiction": 3}
+
+    # With no folder selected, there are no breadcrumbs
+    assert 'class="breadcrumb' not in page
 
 
 @pytest.mark.parametrize(
@@ -159,7 +185,7 @@ def test_books_filtered_by_author(client: flask.testing.FlaskClient) -> None:
     page = _books(client, author="ALCOTT")
     assert _listed(page) == {"Little Women", "Little Men"}
 
-    assert "Author: ALCOTT" in page
+    assert re.search(r'name="author"\s+value="ALCOTT"', page)
 
 
 def test_books_filtered_by_tag(client: flask.testing.FlaskClient) -> None:
@@ -190,12 +216,10 @@ def test_books_invalid_date_is_ignored(client: flask.testing.FlaskClient) -> Non
 def test_filters_combine_with_folder(client: flask.testing.FlaskClient) -> None:
     page = _books(client, folder="audiobooks/Fiction", author="alcott")
 
-    # Removing the author filter keeps the folder
-    remove_link = re.search(r'class="remove_filter" href="([^"]*)"', page)
-    assert remove_link is not None
-    remove_url = html.unescape(remove_link.group(1))
-    assert "folder=audiobooks%2FFiction" in remove_url
-    assert "author" not in remove_url
+    # Breadcrumbs keep the author filter
+    crumb = re.search(r'class="breadcrumb" href="([^"]*)"', page)
+    assert crumb is not None
+    assert "author=alcott" in html.unescape(crumb.group(1))
 
     # The browse drawer keeps the folder and shows the author
     assert _checked(page, "folder") == {"audiobooks/Fiction"}
@@ -205,38 +229,35 @@ def test_filters_combine_with_folder(client: flask.testing.FlaskClient) -> None:
 def test_folder_counts_respect_other_filters(
     client: flask.testing.FlaskClient,
 ) -> None:
-    # Without other filters, the top level offers Fiction (5) and Nonfiction (3)
+    # Without other filters, the folder tree has Fiction (5) and Nonfiction (3)
     page = _books(client, author="e")
-    counts = dict(
-        re.findall(r'>([^<>]+) <span class="subfolder_count">\((\d+)\)', page)
-    )
     expected_fiction = len(
-        {"Dracula", "The Invisible Man", "Little Women", "Little Men", "Frankenstein"}
-        & _listed(_books(client, author="e", folder="audiobooks/Fiction"))
+        _listed(_books(client, author="e", folder="audiobooks/Fiction"))
     )
-    assert counts.get("Fiction") == str(expected_fiction)
-    # Every Alcott book is in Fiction, so there's nothing to navigate into
-    assert 'class="subfolder"' not in _books(client, author="alcott")
+    assert _folder_counts(page)["Fiction"] == expected_fiction
+
+    # The counts ignore the selected folders, since the tree is used to
+    # change them
+    page = _books(client, author="e", notFolder="audiobooks/Fiction")
+    assert _folder_counts(page)["Fiction"] == expected_fiction
+
+    # Every Alcott book is in Fiction, so the tree collapses to its contents
+    assert "Fiction" not in _folder_counts(_books(client, author="alcott"))
 
 
 def test_books_multiple_folders(client: flask.testing.FlaskClient) -> None:
     page = _books(client, folder=["audiobooks/Fiction", "audiobooks/Nonfiction"])
     assert _listed(page) == set(FICTION + NONFICTION)
 
-    # With more than one folder, each is shown as a removable filter rather
-    # than with breadcrumbs
+    # There are only breadcrumbs for a single folder
     assert 'class="breadcrumb' not in page
-    assert "Folder: audiobooks/Fiction" in page
-    assert "Folder: audiobooks/Nonfiction" in page
+    assert _checked(page, "folder") == {"audiobooks/Fiction", "audiobooks/Nonfiction"}
 
 
 def test_books_excluded_folder(client: flask.testing.FlaskClient) -> None:
     page = _books(client, notFolder="audiobooks/Fiction")
     assert _listed(page) == set(NONFICTION)
-    assert "Not in folder: audiobooks/Fiction" in page
-
-    # The folder navigation doesn't offer the excluded folder
-    assert 'Fiction <span class="subfolder_count">' not in page
+    assert _checked(page, "notFolder") == {"audiobooks/Fiction"}
 
     # Pagination keeps the exclusion
     page = _books(client, notFolder="audiobooks/Fiction", perPage="1")
@@ -251,7 +272,7 @@ def test_books_excluded_tag(client: flask.testing.FlaskClient) -> None:
 
     page = _books(client, notTag=tag, perPage="100")
     assert _listed(page) == set(FICTION + NONFICTION) - titles
-    assert f"Not tag: {html.escape(tag)}" in page
+    assert _checked(page, "notTag") == {tag}
 
 
 def test_books_multiple_tags(client: flask.testing.FlaskClient) -> None:
@@ -361,3 +382,9 @@ def test_browse_drawer_keeps_sort(client: flask.testing.FlaskClient) -> None:
         ("sortAscending", "False"),
         ("perPage", "10"),
     ]
+
+
+def test_menu_button_shows_filter_count(client: flask.testing.FlaskClient) -> None:
+    assert 'class="filter_count"' not in _books(client)
+    page = _books(client, folder="audiobooks/Fiction", notTag=["a", "b"])
+    assert '<span class="filter_count">3</span>' in page

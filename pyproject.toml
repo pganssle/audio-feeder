@@ -112,7 +112,7 @@ select = [
 # (`tox -e changelog -- collect --version <version>`).
 [tool.scriv]
 format = "rst"
-categories = ""
+categories = ["Features", "Bugfixes", "Misc"]
 entry_title_template = "Version {{ version }}"
 
 ## Coverage

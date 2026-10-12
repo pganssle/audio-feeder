@@ -1,11 +1,13 @@
 """Database handler using a SQL database"""
 
+import contextlib
 import datetime
 import functools
 import json
 import logging
 import os
 import pathlib
+import sqlite3
 import threading
 import types
 from collections import abc
@@ -316,6 +318,16 @@ class SqlDatabaseHandler:
 
         session.execute(sa.text(f"PRAGMA user_version={DB_VERSION}"))
 
+    def _backup(self, version: int) -> pathlib.Path:
+        """Back up the database before upgrading it from ``version``."""
+        backup_path = self._db.with_name(f"{self._db.name}.v{version}.bak")
+        with (
+            contextlib.closing(sqlite3.connect(self._db)) as source,
+            contextlib.closing(sqlite3.connect(backup_path)) as backup,
+        ):
+            source.backup(backup)
+        return backup_path
+
     def _initialize_db(self) -> None:
         if not self._db.exists():
             _metadata_object().create_all(self.engine)
@@ -329,8 +341,12 @@ class SqlDatabaseHandler:
                     sa.text("PRAGMA user_version")
                 ).scalar_one()
                 if db_version < DB_VERSION:
+                    backup = self._backup(db_version)
                     logging.info(
-                        "Upgrading database from %s to %s", db_version, DB_VERSION
+                        "Upgrading database from %s to %s (backed up to %s)",
+                        db_version,
+                        DB_VERSION,
+                        backup,
                     )
                     self._upgrade_version(session, db_version)
                 elif db_version > DB_VERSION:

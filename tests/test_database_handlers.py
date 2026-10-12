@@ -246,6 +246,14 @@ def test_sql_migration(
     with subtests.test("post-save version"):
         assert _get_version(db_out_path) == sdh.DB_VERSION
 
+    # Upgrades back up the database first
+    backup_path = db_out_path.with_name(f"{db_out_path.name}.v{expected_version}.bak")
+    with subtests.test("backup"):
+        if expected_version < sdh.DB_VERSION:
+            assert _get_version(backup_path) == expected_version
+        else:
+            assert not backup_path.exists()
+
 
 def _create_handlers_concurrently(db_loc: pathlib.Path) -> None:
     # Switch threads as often as possible to make the race likely

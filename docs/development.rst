@@ -30,6 +30,27 @@ is what the :doc:`changelog` page shows. CI checks that every pull request adds 
 fragment; for changes that don't need one (e.g. refactoring or CI changes),
 add the ``skip-changelog`` label to the pull request.
 
+Making a release
+----------------
+
+Releases are made in three steps, the last two of which upload the package with
+the ``publish.yml`` workflow:
+
+1. Collect the changelog fragments with
+   ``tox -e changelog -- collect --version <version>`` and merge that in a
+   pull request.
+2. Push a tag for the version (e.g. ``0.7.0``) on that commit. The version
+   comes from the tag, and pushing it runs the tests, builds the package and
+   uploads it to `TestPyPI <https://test.pypi.org/p/audio-feeder>`_, where it
+   can be checked before the real release.
+3. Create a GitHub release from the tag, which uploads the same version to
+   `PyPI <https://pypi.org/p/audio-feeder>`_.
+
+The uploads use `trusted publishing <https://docs.pypi.org/trusted-publishers/>`_
+rather than API tokens: on both PyPI and TestPyPI, the project trusts the
+``publish.yml`` workflow in ``pganssle/audio-feeder`` when it runs in the
+``release`` environment, which only tags can deploy to.
+
 .. _query-parameters:
 
 The book list's URL parameters

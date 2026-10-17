@@ -14,7 +14,7 @@ from urllib.parse import urlencode, urljoin
 import attrs
 from jinja2 import Template
 
-from . import resources
+from . import file_probe, resources
 from .config import read_from_config
 from .html_utils import TagStripper
 from .media_renderer import RenderModes
@@ -124,11 +124,14 @@ class EntryRenderer:
         )
         out["qr_img_url"] = self.resolver.resolve_qr(entry_obj.id, out["rss_url"]).url
 
-        has_chapter_info = False
-        if entry_obj.file_metadata:
-            if any(fi.chapters for fi in entry_obj.file_metadata.values()):
-                has_chapter_info = True
+        file_infos = (entry_obj.file_metadata or {}).values()
+        has_chapter_info = any(fi.chapters for fi in file_infos)
         out["has_chapter_info"] = has_chapter_info
+        # Files whose chapter information is broken are treated as a single
+        # chapter each, which the book list points out on the chapters feed.
+        out["broken_chapter_info"] = any(
+            map(file_probe.has_broken_chapters, file_infos)
+        )
         out["segmentable"] = has_chapter_info or (
             entry_obj.files and len(entry_obj.files) > 1
         )

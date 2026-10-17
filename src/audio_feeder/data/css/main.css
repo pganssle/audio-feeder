@@ -655,6 +655,16 @@ input.exc:checked {
     text-decoration: underline;
 }
 
+/* Marks a feed made from broken metadata, e.g. the chapters feed of a book
+   with chapters that start after the end of the file */
+.feed_warning {
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.3rem;
+    color: var(--exclude);
+    stroke-width: 2.4;
+}
+
 .qr_button {
     display: inline-flex;
     align-items: center;

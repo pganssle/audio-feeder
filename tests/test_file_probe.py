@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pathlib
+from collections.abc import Sequence
 
 import pytest
 
@@ -142,3 +143,74 @@ def test_get_file_duration_error(tmp_path: pathlib.Path, caplog):
 def test_bad_overdrive_media_tags(tag: str, err_type: type[Exception]) -> None:
     with pytest.raises(err_type):
         file_probe.OverdriveMediaMarker.from_xml(tag)
+
+
+def _file_info(
+    chapter_times: Sequence[tuple[float, float]] | None, duration: float | None = 60.0
+) -> file_probe.FileInfo:
+    return file_probe.FileInfo(
+        format_info=file_probe.FormatInfo(filename="file.mp3", duration=duration),
+        chapters=(
+            None
+            if chapter_times is None
+            else [
+                file_probe.ChapterInfo(num=num, start_time=start, end_time=end)
+                for num, (start, end) in enumerate(chapter_times, 1)
+            ]
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "file_info, broken",
+    [
+        # No chapter information isn't broken chapter information
+        (_file_info(None), False),
+        (_file_info(()), False),
+        (_file_info(((0.0, 30.0), (30.0, 60.0))), False),
+        # Only chapters that start after the end of the file are broken
+        (_file_info(((0.0, 30.0), (30.0, 90.0))), False),
+        (_file_info(((0.0, 30.0), (60.0, 60.0))), False),
+        (_file_info(((0.0, 30.0), (60.5, 90.0))), True),
+        (_file_info(((0.0, 120.0), (120.0, 240.0))), True),
+        (_file_info(((120.0, 240.0), (0.0, 120.0))), True),
+        # Without the file's duration, there's nothing to compare to
+        (_file_info(((0.0, 120.0), (120.0, 240.0)), duration=None), False),
+    ],
+)
+def test_has_broken_chapters(file_info: file_probe.FileInfo, broken: bool) -> None:
+    assert file_probe.has_broken_chapters(file_info) is broken
+
+
+@pytest.mark.parametrize(
+    "chapter_times, usable",
+    [
+        (None, False),
+        ((), False),
+        (((0.0, 30.0), (30.0, 60.0)), True),
+        (((0.0, 30.0), (60.5, 90.0)), False),
+    ],
+)
+@pytest.mark.parametrize("fall_back_to_durations", [False, True])
+def test_get_multipath_chapter_info_unusable_chapters(
+    chapter_times: Sequence[tuple[float, float]] | None,
+    usable: bool,
+    fall_back_to_durations: bool,
+) -> None:
+    # Files without usable chapter information are a single chapter, if
+    # they're included at all
+    path = pathlib.Path("file.mp3")
+    file_info = _file_info(chapter_times)
+
+    chapter_info = file_probe.get_multipath_chapter_info(
+        [path],
+        file_infos={path: file_info},
+        fall_back_to_durations=fall_back_to_durations,
+    )
+
+    if usable:
+        assert [chapter for _, chapter in chapter_info] == file_info.chapters
+    elif fall_back_to_durations:
+        assert [(c.start_time, c.end_time) for _, c in chapter_info] == [(0, 60.0)]
+    else:
+        assert chapter_info == []

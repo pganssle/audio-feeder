@@ -593,6 +593,47 @@ def test_split_chapters_multifile(
         )
 
 
+def test_split_chapters_no_chapter_info(
+    dracula_files: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    # Without chapter information, each file is a chapter of its own
+    files = dp.AudiobookLoader().audio_files(dracula_files)
+    assert files
+    assert not any(file_probe.FileInfo.from_file(f).chapters for f in files)
+
+    jobs = m4btools.chapter_split_jobs(files, tmp_path, base_name="Dracula-")
+
+    assert all(job.is_copy_job() for job in jobs)
+    assert [job.subsets[0].path for job in jobs] == list(files)
+    assert [job.out_path.name for job in jobs] == [
+        f"Dracula-{i}.mp3" for i in range(1, len(files) + 1)
+    ]
+    assert [
+        [chapter.title for chapter in job.out_file_info.chapters or ()] for job in jobs
+    ] == [[chapter.title] for chapter in DRACULA_CHAPTERS]
+
+
+def test_split_chapters_partial_chapter_info(
+    multifile_chaptered: pathlib.Path,
+    dracula_files: pathlib.Path,
+    tmp_path: pathlib.Path,
+) -> None:
+    # A file without chapter information after chaptered files is kept as one
+    # chapter, rather than being dropped.
+    loader = dp.AudiobookLoader()
+    unchaptered = loader.audio_files(dracula_files)[0]
+    files = (*loader.audio_files(multifile_chaptered), unchaptered)
+
+    jobs = m4btools.chapter_split_jobs(files, tmp_path, base_name="Generic Book - ")
+
+    assert [job.out_path.name for job in jobs] == [
+        f"Generic Book - {i}.mp3" for i in range(5)
+    ]
+    assert not any(job.is_copy_job() for job in jobs[:-1])
+    assert jobs[-1].is_copy_job()
+    assert jobs[-1].subsets[0].path == unchaptered
+
+
 def test_segmenter_already_optimal(tmp_path: pathlib.Path) -> None:
     format_info_base = file_probe.FormatInfo(
         format_name="mp3",

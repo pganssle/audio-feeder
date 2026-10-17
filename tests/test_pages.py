@@ -737,6 +737,12 @@ def _entries(page: str) -> dict[str, str]:
     }
 
 
+def _entry_id(entry: str) -> int:
+    entry_id = re.search(r'data-id="(\d+)"', entry)
+    assert entry_id is not None
+    return int(entry_id.group(1))
+
+
 def test_covers(
     client: flask.testing.FlaskClient, testgen_config: pathlib.Path
 ) -> None:
@@ -747,9 +753,8 @@ def test_covers(
     database = dh.get_database()
     shown_sizes = {}
     for title, entry in entries.items():
-        entry_id = re.search(r'data-id="(\d+)"', entry)
-        assert entry_id is not None
-        cover_images = database["entries"][int(entry_id.group(1))].cover_images
+        entry_id = _entry_id(entry)
+        cover_images = database["entries"][entry_id].cover_images
         src = re.search(r'<img src="([^"]*)" class="cover_img"', entry)
 
         if not cover_images:
@@ -765,9 +770,7 @@ def test_covers(
         assert src is not None
         shown = static_path / unquote(src.group(1).split("/static/", 1)[1])
         cover = static_path / cover_images[0]
-        thumbnail = (
-            static_path / f"images/entry_cover_cache/{entry_id.group(1)}-thumb.jpg"
-        )
+        thumbnail = static_path / f"images/entry_cover_cache/{entry_id}-thumb.jpg"
         assert shown in (cover, thumbnail)
         assert shown.stat().st_size == min(
             cover.stat().st_size, thumbnail.stat().st_size
@@ -978,3 +981,61 @@ def test_rss_feed_title_and_description(
     assert "ISBN" in description
     assert "1605206288" in description
     assert "least actually read" in description
+
+
+# Books without any chapter information, and those of them that are one file
+NO_CHAPTERS = (
+    "The Invisible Man",
+    "Little Men",
+    "The Writing of Fiction",
+    "How to Decode CMYK Images",
+)
+UNSEGMENTABLE = ("The Writing of Fiction", "How to Decode CMYK Images")
+RENDER_MODES = ("singlefile", "chapters", "segmented")
+
+
+@pytest.mark.parametrize("mode", RENDER_MODES)
+@pytest.mark.parametrize("title", FICTION + NONFICTION)
+def test_derived_feed(client: flask.testing.FlaskClient, title: str, mode: str) -> None:
+    entry = _entries(_books(client))[title]
+    e_id = _entry_id(entry)
+    feed_path = f"rss/derived/{e_id}-{mode}.xml"
+
+    response = client.get(f"/{feed_path}")
+    if response.status_code == 302:
+        # Rendered feeds that would be identical to the original redirect to it
+        assert response.location == f"/rss/{e_id}.xml"
+    else:
+        assert response.status_code == 200
+        assert response.mimetype == "application/xml"
+        channel = ET.fromstring(response.data).find("channel")
+        assert channel is not None
+        assert channel.findall("item")
+
+    # The book list may link to rendered feeds that redirect to the original
+    # (e.g. Dracula's chapters feed), but any feed it doesn't link to
+    # redirects
+    if feed_path not in entry:
+        assert response.status_code == 302
+
+
+@pytest.mark.parametrize(
+    "title, mode",
+    [
+        *((title, "chapters") for title in NO_CHAPTERS),
+        *((title, "segmented") for title in UNSEGMENTABLE),
+    ],
+)
+def test_derived_feed_redirects_to_original(
+    client: flask.testing.FlaskClient, title: str, mode: str
+) -> None:
+    e_id = _entry_id(_entries(_books(client))[title])
+    original = client.get(f"/rss/{e_id}.xml")
+    assert original.status_code == 200
+
+    # Later requests, which don't need to start rendering, redirect as well
+    for _ in range(2):
+        response = client.get(f"/rss/derived/{e_id}-{mode}.xml", follow_redirects=True)
+        assert [r.location for r in response.history] == [f"/rss/{e_id}.xml"]
+        assert response.status_code == 200
+        assert response.data == original.data

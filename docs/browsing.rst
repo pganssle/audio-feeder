@@ -100,3 +100,22 @@ Direction
 
 Items per page
     25 by default.
+
+Moving between pages
+--------------------
+
+The links above and below the list go to the first, previous, next and last
+pages, and to the pages near the current one. To keep them short, they only
+list the first and last three pages and the pages either side of the current
+one, with "…" in place of the rest, e.g. ``0 1 2 … 11 12 13 … 77 78 79``. On a
+phone, only the arrows and the current page are shown.
+
+To get to any other page, use the menu above the list, which lists every page
+with the range of the sort order that it covers. For example, when sorting by
+title, a page might cover "Little M → Little W", meaning its first book's title
+starts with "Little M" and its last book's with "Little W"; each end is just
+long enough to tell it apart from the pages around it. When sorting by date,
+the range leaves out what both ends have in common, e.g. "3 → 17 Mar 2023" or
+"Dec 2022 → Feb 2023".
+
+Pages are numbered from 0.

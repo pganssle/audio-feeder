@@ -521,6 +521,107 @@ def test_no_page_navigation_without_results(
     assert 'class="navbar"' not in _books(client, folder="Nonexistent")
 
 
+def _nav_items(page: str) -> list[str]:
+    """The items in the first page navigation bar: page numbers or "…"."""
+    match = re.search(r'<div class="nav_links">(.*?)</div>', page, re.S)
+    assert match is not None
+    return re.sub(r"<[^>]*>", " ", match.group(1)).split()
+
+
+@pytest.mark.parametrize(
+    "current, expected",
+    [
+        # Pages 3 and 4 are replaced by an ellipsis
+        ("0", ["0", "1", "2", "…", "5", "6", "7"]),
+        ("7", ["0", "1", "2", "…", "5", "6", "7"]),
+        # Every page is near the current page or an end
+        ("4", ["0", "1", "2", "3", "4", "5", "6", "7"]),
+    ],
+)
+def test_page_navigation_ellipsis(
+    client: flask.testing.FlaskClient, current: str, expected: Sequence[str]
+) -> None:
+    page = _books(client, perPage="1", page=current)
+    assert _nav_items(page) == expected
+    # The ellipsis isn't a link, and isn't marked as the current page either
+    assert ('<span class="nav_gap">…</span>' in page) is ("…" in expected)
+    assert not re.search(rf'class="nav_link"[^>]*page={current}\D', page)
+
+
+def _page_jump(page: str) -> str:
+    forms = re.findall(
+        r'<form class="page_jump" method="get" action="/books">(.*?)</form>',
+        page,
+        re.S,
+    )
+    # The menu is only shown above the list, not repeated below it
+    assert len(forms) == 1
+    return forms[0]
+
+
+def _page_options(form: str) -> list[tuple[str, bool, str]]:
+    """The (value, selected, label) of each option in the page jump menu."""
+    return [
+        (value, bool(selected), html.unescape(label))
+        for value, selected, label in re.findall(
+            r'<option value="(\d+)"( selected)?>([^<]*)</option>', form
+        )
+    ]
+
+
+def test_page_jump_lists_every_page(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, orderBy="title", perPage="2", page="1")
+    form = _page_jump(page)
+    assert _page_options(form) == [
+        ("0", False, "0. Co → Dr"),
+        ("1", True, "1. Fr → Ho"),
+        ("2", False, "2. Little M → Little W"),
+        ("3", False, "3. The I → The W"),
+    ]
+    assert '<select name="page">' in form
+    assert '<button type="submit">Go</button>' in form
+
+
+def test_page_jump_keeps_filters(client: flask.testing.FlaskClient) -> None:
+    filters = {"folder": "audiobooks/Fiction", "notTag": "horror"}
+    num_books = len(_listed(_books(client, **filters, perPage="100")))
+    page = _books(client, **filters, orderBy="title", perPage="1")
+    form = _page_jump(page)
+    assert _hidden(form) == [
+        ("folder", "audiobooks/Fiction"),
+        ("notTag", "horror"),
+        ("orderBy", "title"),
+        ("sortAscending", "True"),
+        ("perPage", "1"),
+    ]
+    options = _page_options(form)
+    assert len(options) == num_books
+    assert [selected for _, selected, _ in options].count(True) == 1
+    assert options[0][1]
+
+
+@pytest.mark.parametrize("order_by", ["date_added", "last_modified"])
+def test_page_jump_dates(client: flask.testing.FlaskClient, order_by: str) -> None:
+    options = _page_options(_page_jump(_books(client, orderBy=order_by, perPage="3")))
+    assert len(options) == 3
+    for index, (value, _, label) in enumerate(options):
+        assert value == str(index)
+        assert re.fullmatch(
+            rf"{index}\. (\d+ )?([A-Z][a-z]{{2}} )?\d+( → \d+ [A-Z][a-z]{{2}} \d{{4}})?",
+            label,
+        )
+
+
+def test_page_jump_authors(client: flask.testing.FlaskClient) -> None:
+    options = _page_options(_page_jump(_books(client, orderBy="author", perPage="4")))
+    assert len(options) == 2
+    assert all(re.fullmatch(r"\d\. \S.* → \S.*", label) for _, _, label in options)
+
+
+def test_no_page_jump_on_single_page(client: flask.testing.FlaskClient) -> None:
+    assert 'class="page_jump"' not in _books(client, perPage="100")
+
+
 def _no_results(page: str) -> str | None:
     """The contents of the message shown when there are no books, if any."""
     match = re.search(r'<p class="no_results">(.*?)</p>', page, re.S)

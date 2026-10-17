@@ -8,7 +8,7 @@ import math
 import os
 import string
 from collections.abc import Callable, Sequence
-from typing import TypeVar
+from typing import Final, TypeVar
 from urllib.parse import urlencode, urljoin
 
 import attrs
@@ -20,6 +20,10 @@ from .html_utils import TagStripper
 from .media_renderer import RenderModes
 
 WORD_CHARS = set(string.ascii_letters + string.digits)
+
+# The suffixes of cover thumbnails made by the updater, newest first: older
+# versions made PNG thumbnails.
+THUMBNAIL_SUFFIXES: Final = ("-thumb.jpg", "-thumb.png")
 
 
 class EntryRenderer:
@@ -67,14 +71,38 @@ class EntryRenderer:
         data_dict["name_"] = out["name"]
 
         out["description"] = type_dict["description"].render(**data_dict)
+
         out["cover_url"] = None
+        cover_path = None
 
         for cover_image in entry_obj.cover_images or []:
             try:
-                out["cover_url"] = self.resolver.resolve_static(cover_image).url
-                break
+                cover = self.resolver.resolve_static(cover_image)
             except FailedResolutionError:
-                pass
+                continue
+            out["cover_url"] = cover.url
+            cover_path = cover.path
+            break
+
+        # The book list shows the cover's thumbnail, which the updater makes
+        # from the best cover image, unless the cover itself is smaller (as
+        # small images from metadata sources often are).
+        out["thumb_url"] = out["cover_url"]
+        if cover_path is not None:
+            for suffix in THUMBNAIL_SUFFIXES:
+                thumb = self.resolver.resolve_static(
+                    os.path.join(
+                        read_from_config("cover_cache_path"),
+                        f"{entry_obj.id}{suffix}",
+                    )
+                )
+                if thumb.path is not None and thumb.path.exists():
+                    if (
+                        not cover_path.exists()
+                        or thumb.path.stat().st_size < cover_path.stat().st_size
+                    ):
+                        out["thumb_url"] = thumb.url
+                    break
 
         out["rss_url"] = self.resolver.resolve_rss(entry_obj).url
         out["derived_rss_url"] = urljoin(

@@ -536,13 +536,13 @@ def init_config(
 
         if falling_back:
             msg = (
-                "Could not find config file from environment variable:"
-                + f" {os.environ['AUDIO_RSS_CONFIG']},"
+                "Could not find config file from environment variable"
+                f" AUDIO_FEEDER_CONFIG: {config_env_var}, "
             )
             if config_location is not None:
-                msg += f", using {config_location} instead."
+                msg += f"using {config_location} instead."
             else:
-                msg += ", using baseline configuration."
+                msg += "using baseline configuration."
 
             warnings.warn(msg, RuntimeWarning)
 

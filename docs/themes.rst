@@ -1,7 +1,7 @@
 Themes and appearance
 =====================
 
-The book list comes with five themes, which change how it looks without
+The book list comes with six themes, which change how it looks without
 changing what's on it. Each person picks their own at the top of the menu, and
 the choice is stored in a cookie, so it applies to that browser only: you can
 use one theme on your computer and another on your phone, and other people
@@ -56,6 +56,22 @@ Tape deck
     .. image:: images/screenshots/themes/tape_deck.jpg
         :width: 800px
         :alt: The book list in the Tape deck theme
+
+Cyberspace
+    A home page from the first years of the web, floating over a wireframe
+    floor: green on black, in a terminal font, with each book on a bevelled
+    panel, buttons that stand out of the page and press in, and hit counters
+    for the tag counts. It's dark only, whatever the system is set to.
+
+    This is the one built-in theme with a font of its own: VT323, which is
+    bundled with it (a 6 KB Latin subset, under the `SIL Open Font License
+    <https://openfontlicense.org/>`_, with the licence in
+    ``themes/cyberspace/OFL.txt``) and only downloaded when this theme is
+    chosen.
+
+    .. image:: images/screenshots/themes/cyberspace.png
+        :width: 800px
+        :alt: The book list in the Cyberspace theme
 
 Plain
     The browser's own look: serif text, blue links and feeds written as
@@ -123,8 +139,11 @@ are:
 
 ``--font-body``, ``--font-display`` and ``--display-style``
     The fonts, and whether the title, author names and a few other flourishes
-    are italic. The built-in themes only use fonts that come with the
-    operating system, so they don't have to download any.
+    are italic. The built-in themes use fonts that come with the operating
+    system, apart from Cyberspace, which brings its own; a theme that needs a
+    font can put it in a directory next to its stylesheet and load it with
+    ``@font-face``, since only the ``.css`` files in ``themes/`` are listed as
+    themes.
 
 ``--measure``, ``--cover-width``, ``--radius`` and ``--target``
     The widest the page's column gets, the width of the covers, how rounded

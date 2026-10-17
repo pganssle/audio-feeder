@@ -2,11 +2,16 @@
 Page generator
 """
 
+import datetime
+import enum
 import math
 import os
 import string
+from collections.abc import Callable, Sequence
+from typing import TypeVar
 from urllib.parse import urlencode, urljoin
 
+import attrs
 from jinja2 import Template
 
 from . import resources
@@ -172,13 +177,25 @@ class EntryRenderer:
         return type_cache[type_name]
 
 
+class NavKind(enum.StrEnum):
+    """The kinds of item in the page navigation."""
+
+    LINK = "link"
+    CURRENT = "current"
+    GAP = "gap"
+
+
 class NavItem:
-    def __init__(self, base_url, display, params=None):
+    def __init__(self, base_url, display, params=None, kind: NavKind | None = None):
         self.display = display
         self.url = base_url
 
         if base_url is not None and params is not None:
             self.url += "?" + urlencode(params, doseq=True)
+
+        if kind is None:
+            kind = NavKind.CURRENT if self.url is None else NavKind.LINK
+        self.kind = kind
 
     def display_only(self):
         """
@@ -186,10 +203,194 @@ class NavItem:
         """
         return self.__class__(None, self.display)
 
+    @classmethod
+    def gap(cls) -> "NavItem":
+        """An ellipsis standing in for the pages left out of the navigation."""
+        return cls(None, "\u2026", kind=NavKind.GAP)
+
+
+def page_window(
+    num_pages: int, current: int, *, edge: int = 3, around: int = 1
+) -> Sequence[int | None]:
+    """The pages to show in the page navigation, with ``None`` for gaps.
+
+    This shows the first and last ``edge`` pages and the pages within
+    ``around`` of the current page. Gaps between them are shown as an
+    ellipsis, except that a gap of a single page shows that page instead,
+    since an ellipsis would take up just as much room.
+    """
+    shown = sorted(
+        {
+            *range(min(edge, num_pages)),
+            *range(max(current - around, 0), min(current + around + 1, num_pages)),
+            *range(max(num_pages - edge, 0), num_pages),
+        }
+    )
+
+    window: list[int | None] = []
+    previous = -1
+    for page in shown:
+        gap = page - previous - 1
+        if gap == 1:
+            window.append(page - 1)
+        elif gap > 1:
+            window.append(None)
+        window.append(page)
+        previous = page
+
+    return tuple(window)
+
+
+def windowed_nav(nav_list: Sequence[NavItem], current: int) -> Sequence[NavItem]:
+    """The items from a full list of pages to show in the page navigation."""
+    return tuple(
+        nav_list[page] if page is not None else NavItem.gap()
+        for page in page_window(len(nav_list), current)
+    )
+
+
+SortKey = str | datetime.date | None
+_T = TypeVar("_T")
+
+MIN_LABEL_PREFIX = 2
+MAX_LABEL_PREFIX = 12
+
+
+@attrs.frozen
+class PageRange:
+    """The range of sort keys on a page, e.g. ``Aa`` to ``At``.
+
+    ``end`` is ``None`` when the whole page has the same label.
+    """
+
+    start: str
+    end: str | None = None
+
+    def __str__(self) -> str:
+        return self.start if self.end is None else f"{self.start} \u2192 {self.end}"
+
+
+def page_range_labels(
+    entries: Sequence[_T], per_page: int, key: Callable[[_T], SortKey]
+) -> Sequence[PageRange]:
+    """The range of sort keys on each page, e.g. ``Aa`` to ``At``.
+
+    Text is shortened to the shortest prefix (of at least
+    ``MIN_LABEL_PREFIX`` characters) that distinguishes it from the nearest
+    different page boundary on either side (usually the other end of its page
+    and the adjacent end of the neighbouring page), up to
+    ``MAX_LABEL_PREFIX`` characters. Dates leave out what both ends of a page
+    have in common, e.g. ``3`` to ``17 Mar 2023``, and pages whose start and
+    end have the same label are labelled once.
+
+    ``key`` is only called for the first and last entry on each page, so this
+    takes time proportional to the number of pages, not the number of entries.
+    """
+    # Page boundaries in order, i.e. start_0, end_0, start_1, end_1, ...
+    boundaries = [
+        key(entries[index])
+        for start in range(0, len(entries), per_page)
+        for index in (start, min(start + per_page, len(entries)) - 1)
+    ]
+
+    # Each boundary is distinguished from the nearest different boundary on
+    # either side. Skipping over equal ones (e.g. both ends of a page with a
+    # single entry, or an author whose books span several pages) means that
+    # equal keys always get the same label.
+    before = _nearest_different(boundaries)
+    after = _nearest_different(boundaries[::-1])[::-1]
+    labels = [
+        _boundary_label(value, (previous, following))
+        for value, previous, following in zip(boundaries, before, after)
+    ]
+
+    return tuple(
+        (
+            _date_range(start_key, end_key)
+            if isinstance(start_key, datetime.date)
+            and isinstance(end_key, datetime.date)
+            else PageRange(start) if start == end else PageRange(start, end)
+        )
+        for start_key, end_key, start, end in zip(
+            boundaries[::2], boundaries[1::2], labels[::2], labels[1::2]
+        )
+    )
+
+
+_MONTHS = (
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)  # fmt: skip
+
+
+def _date_range(start: datetime.date, end: datetime.date) -> PageRange:
+    """The range between two dates, leaving out what they have in common.
+
+    Dates are written like ``3 Mar 2023``, which is unambiguous in any
+    locale. Ranges within a year give the days, and longer ones only the
+    months, e.g. ``3 Mar`` to ``17 Jun 2023``, or ``Dec 2022`` to
+    ``Feb 2023``.
+    """
+    start, end = _as_date(start), _as_date(end)
+
+    def month(date: datetime.date) -> str:
+        return _MONTHS[date.month - 1]
+
+    if start == end:
+        return PageRange(_format_date(start))
+    if start.year != end.year:
+        return PageRange(f"{month(start)} {start.year}", f"{month(end)} {end.year}")
+    end_label = _format_date(end)
+    if start.month == end.month:
+        return PageRange(f"{start.day}", end_label)
+    return PageRange(f"{start.day} {month(start)}", end_label)
+
+
+def _format_date(date: datetime.date) -> str:
+    return f"{date.day} {_MONTHS[date.month - 1]} {date.year}"
+
+
+def _as_date(value: datetime.date) -> datetime.date:
+    return value.date() if isinstance(value, datetime.datetime) else value
+
+
+def _nearest_different(values: Sequence[SortKey]) -> Sequence[SortKey]:
+    """For each value, the closest earlier value that isn't equal to it."""
+    nearest: list[SortKey] = []
+    current: SortKey = None
+    for index, value in enumerate(values):
+        if index and values[index - 1] != value:
+            current = values[index - 1]
+        nearest.append(current)
+    return nearest
+
+
+def _boundary_label(value: SortKey, neighbours: Sequence[SortKey]) -> str:
+    if value is None or value == "":
+        return "?"
+    if isinstance(value, datetime.date):
+        return _format_date(_as_date(value))
+
+    length = max(
+        (
+            _common_prefix_length(value, neighbour) + 1
+            for neighbour in neighbours
+            if isinstance(neighbour, str)
+        ),
+        default=MIN_LABEL_PREFIX,
+    )
+    length = min(max(length, MIN_LABEL_PREFIX), MAX_LABEL_PREFIX)
+    return value[:length].rstrip()
+
+
+def _common_prefix_length(a: str, b: str) -> int:
+    for index, (char_a, char_b) in enumerate(zip(a, b)):
+        if char_a != char_b:
+            return index
+    return min(len(a), len(b))
+
 
 class NavGenerator:
-    # For now, there won't be any truncation of the list.
-    # TODO: Add list truncation
     def __init__(self, num_entries, base_url):
         self.num_entries = num_entries
         self.base_url = base_url

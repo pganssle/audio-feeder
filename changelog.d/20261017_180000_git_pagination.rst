@@ -1,0 +1,9 @@
+Features
+--------
+
+- The page navigation now shows only the first and last few pages and the pages around the current one, with an ellipsis in place of the rest, rather than a link to every page. A new drop-down menu above the book list jumps to any page, and labels each page with the range of authors, titles or dates on it, e.g. "3. Ke → Qu". (`#5 <https://github.com/pganssle/audio-feeder/issues/5>`_)
+
+Misc
+----
+
+- Each page of the book list no longer sorts the books separately, so moving between pages is faster.

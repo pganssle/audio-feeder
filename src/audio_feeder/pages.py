@@ -6,7 +6,13 @@ import logging
 import os
 import textwrap
 import threading
-from collections.abc import Iterable, Mapping, MutableSequence, Sequence
+from collections.abc import (
+    Callable,
+    Iterable,
+    Mapping,
+    MutableSequence,
+    Sequence,
+)
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
 from typing import Any, TypeAlias, cast
@@ -141,6 +147,14 @@ def books():
     # Do the pagination
     entry_page = get_paged_entries(entries, sort_args)
 
+    # The page jump menu labels each page with the range of its sort keys.
+    labels_key = ("page_labels", arg_sort)
+    if labels_key not in entry_cache:
+        entry_cache[labels_key] = pg.page_range_labels(
+            entries, sort_args["perPage"], _page_label_key(sort_args["orderBy"])
+        )
+    page_labels = entry_cache[labels_key]
+
     # Navigation links need to preserve the filter as well as the sort order
     filter_params = entry_filter.to_params()
     nav_args = {**filter_params, **sort_args}
@@ -162,9 +176,23 @@ def books():
     resolver = get_resolver()
     site_images = resolver.resolve_static(read_from_config("site_images_loc"))
 
+    sort_params = [
+        ("orderBy", sort_args["orderBy"]),
+        ("sortAscending", str(sort_args["sortAscending"])),
+        ("perPage", str(sort_args["perPage"])),
+    ]
+    filter_param_pairs = _param_pairs(filter_params)
+
     page_data = {
         "entries": get_rendered_entries(entry_page),
-        "nav_list": nav_list,
+        "nav_list": pg.windowed_nav(nav_list, page),
+        # The number of each page, and the range of sort keys on it
+        "page_options": [
+            (nav_item.display, page_range)
+            for nav_item, page_range in zip(nav_list, page_labels)
+        ],
+        "current_page": page,
+        "page_jump_params": [*filter_param_pairs, *sort_params],
         "first_index": first_index,
         "final_index": final_index,
         "prev_index": prev_index,
@@ -182,12 +210,8 @@ def books():
         "entry_filter": entry_filter,
         # The browse drawer and the sort menu are separate forms, so each
         # passes on the other's settings as hidden fields.
-        "filter_param_pairs": _param_pairs(filter_params),
-        "sort_params": [
-            ("orderBy", sort_args["orderBy"]),
-            ("sortAscending", str(sort_args["sortAscending"])),
-            ("perPage", str(sort_args["perPage"])),
-        ],
+        "filter_param_pairs": filter_param_pairs,
+        "sort_params": sort_params,
         "filter_values": filter_params,
         "facets": facets,
         "folder_tree": folder_tree,
@@ -601,6 +625,17 @@ def get_paged_entries(entry_list, sort_args):
     end_loc = start_loc + per_page
 
     return entry_list[start_loc:end_loc]
+
+
+def _page_label_key(order_by: str) -> Callable[[Any], pg.SortKey]:
+    """The sort key that the page jump menu labels pages with."""
+    if order_by == "author":
+        return lambda el_e: next(
+            (auth_obj.sort_name or auth_obj.name for auth_obj in el_e[2]), None
+        )
+    if order_by == "title":
+        return lambda el_e: el_e[1].title
+    return lambda el_e: getattr(el_e[0], order_by)
 
 
 EntryObjects: TypeAlias = tuple[oh.Entry, oh.Book, Sequence[oh.Author]]

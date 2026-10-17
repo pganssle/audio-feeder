@@ -197,6 +197,16 @@ div.nav_links {
     flex-grow: 1;
 }
 
+/* Page navigation ellipsis and page jump menu (#5) */
+span.nav_gap {
+    color: #777777;
+}
+
+form.page_jump {
+    margin: 0 5% 10px 5%;
+    text-align: center;
+}
+
 /* Breadcrumbs */
 div.breadcrumbs {
     font-size: 1.3em;
@@ -588,7 +598,8 @@ ul.folder_tree .drawer_row.leaf {
 /* On narrow screens, the page links take up too much space, so only show
    the arrows and the current page. */
 @media (max-width: 750px) {
-    div.nav_links a.nav_link {
+    div.nav_links a.nav_link,
+    div.nav_links span.nav_gap {
         display: none;
     }
 }

@@ -230,8 +230,10 @@ function toggle_hidden(entry_id) {
         <div class="nav_links">
             {% block navlist %}
             {% for nav_item in nav_list %}
-                {% if not nav_item.url is sameas none %}
+                {% if nav_item.kind == "link" %}
                     <a class="nav_link" href="{{ nav_item.url }}">{{ nav_item.display }}</a>
+                {% elif nav_item.kind == "gap" %}
+                    <span class="nav_gap">{{ nav_item.display }}</span>
                 {% else %}
                     {{ nav_item.display }}
                 {% endif %}
@@ -241,6 +243,22 @@ function toggle_hidden(entry_id) {
         <div class="nav_arrow"><a {% if not next_index is sameas none %} href="{{next_index}}"{% endif%}><i class="fa fa-angle-right nav_arrow" id="fwdnav"></i></a></div>
         <div class="nav_arrow"><a {% if not final_index is sameas none %} href="{{ final_index }}" {% endif %}><i class="fa fa-angle-double-right nav_arrow" id="lastnav"></i></a></div>
         </div>
+    {% endif %}
+    {% endblock %}
+    {# Page jump menu (#5): only shown above the list, not repeated below. #}
+    {% block pagejump %}
+    {% if page_options|length > 1 %}
+    <form class="page_jump" method="get" action="/books">
+        {% for param_name, param_value in page_jump_params %}
+        <input type="hidden" name="{{ param_name|e }}" value="{{ param_value|e }}">
+        {% endfor %}
+        <label><span class="visually_hidden">Jump to page</span><select name="page">
+            {% for number, page_range in page_options %}
+            <option value="{{ loop.index0 }}"{{ " selected" if loop.index0 == current_page else "" }}>{{ number }}. {{ page_range|string|e }}</option>
+            {% endfor %}
+        </select></label>
+        <button type="submit">Go</button>
+    </form>
     {% endif %}
     {% endblock %}
     {% block mainlist %}

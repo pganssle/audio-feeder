@@ -2,6 +2,8 @@
    dark to match the system. */
 
 :root {
+    /* The system colours are light or dark to match the colour scheme */
+    color-scheme: light dark;
     --paper: Canvas;
     --surface: Canvas;
     --ink: CanvasText;

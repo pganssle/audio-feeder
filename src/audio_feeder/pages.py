@@ -1,9 +1,11 @@
 #! /usr/bin/env python3
 
+import enum
 import functools
 import itertools as it
 import logging
 import os
+import re
 import textwrap
 import threading
 from collections.abc import (
@@ -78,20 +80,30 @@ def books():
     """
     # Forms submit their empty fields as empty parameters, which have no
     # effect, so redirect to the same page without them for a tidier URL. The
-    # theme picker sets the theme in a cookie, so it's also dropped.
+    # theme and the colour scheme are stored in cookies, so they're also
+    # dropped.
     params = list(request.args.items(multi=True))
-    if "theme" in request.args or any(not value for _, value in params):
-        kept = [(name, value) for name, value in params if value and name != "theme"]
+    has_preferences = not _PREFERENCE_PARAMS.isdisjoint(request.args)
+    if has_preferences or any(not value for _, value in params):
+        kept = [
+            (name, value)
+            for name, value in params
+            if value and name not in _PREFERENCE_PARAMS
+        ]
         query = "?" + urlencode(kept) if kept else ""
         response = flask.redirect(request.path + query)
         if "theme" in request.args:
             _set_theme_cookie(response, request.args["theme"])
+        if "scheme" in request.args:
+            _set_scheme_cookie(response, request.args["scheme"])
         return response
 
     theme = request.cookies.get(THEME_COOKIE)
     themes = get_themes()
     if theme not in themes:
         theme = None
+    # The default theme has both colour schemes
+    theme_has_schemes = theme is None or themes[theme].has_schemes
 
     sort_args = get_sortable_args(request.args)
     try:
@@ -241,7 +253,9 @@ def books():
         "site_logo": _site_logo_url(),
         "themes": [(name, _theme_label(name)) for name in themes],
         "theme": theme,
-        "theme_link": themes[theme] if theme is not None else None,
+        "theme_link": themes[theme].url if theme is not None else None,
+        "theme_has_schemes": theme_has_schemes,
+        "scheme": _get_scheme(),
     }
 
     # Apply the template
@@ -862,19 +876,56 @@ def _site_logo_url() -> str | None:
 
 
 THEME_COOKIE = "theme"
+SCHEME_COOKIE = "scheme"
 _THEMES_DIR = "themes"
+_PREFERENCE_PARAMS = frozenset({"theme", "scheme"})
+# The theme and colour scheme are preferences for a browser, so they last a
+# long time
+_PREFERENCE_MAX_AGE = 10 * 365 * 24 * 60 * 60
+
+
+class Scheme(enum.StrEnum):
+    """A colour scheme chosen in place of the system's."""
+
+    LIGHT = "light"
+    DARK = "dark"
+
+
+@attrs.frozen
+class Theme:
+    url: str
+    # Whether the theme has both a light and a dark version, so that the
+    # colour scheme can be chosen
+    has_schemes: bool
 
 
 def _set_theme_cookie(response: Response, theme: str) -> None:
     if theme in get_themes():
-        # The theme is a preference for this browser, so it lasts a long time
         response.set_cookie(
-            THEME_COOKIE, theme, max_age=10 * 365 * 24 * 60 * 60, samesite="Lax"
+            THEME_COOKIE, theme, max_age=_PREFERENCE_MAX_AGE, samesite="Lax"
         )
     else:
         # Choosing the default theme (or one that doesn't exist) goes back to
         # the default
         response.delete_cookie(THEME_COOKIE, samesite="Lax")
+
+
+def _set_scheme_cookie(response: Response, scheme: str) -> None:
+    if scheme == "system":
+        response.delete_cookie(SCHEME_COOKIE, samesite="Lax")
+    elif scheme in tuple(Scheme):
+        response.set_cookie(
+            SCHEME_COOKIE, scheme, max_age=_PREFERENCE_MAX_AGE, samesite="Lax"
+        )
+    # Anything else leaves the colour scheme as it was
+
+
+def _get_scheme() -> Scheme | None:
+    """The colour scheme chosen in this browser, or None to follow the system."""
+    try:
+        return Scheme(request.cookies.get(SCHEME_COOKIE))
+    except ValueError:
+        return None
 
 
 def _theme_label(name: str) -> str:
@@ -895,12 +946,14 @@ def _install_default_css() -> None:
 
 @cache_utils.register_function_cache("misc")
 @functools.cache
-def get_themes() -> Mapping[str, str]:
-    """The available themes, mapped to the URL of each one's stylesheet.
+def get_themes() -> Mapping[str, Theme]:
+    """The available themes, by name.
 
     Themes are the stylesheets in the ``themes`` directory of the CSS
     directory, which has the themes that come with audio-feeder, and to which
     more can be added. A theme is applied on top of the default stylesheets.
+    A theme says that it has both a light and a dark version with
+    ``color-scheme: light dark``.
     """
     _install_default_css()
 
@@ -911,11 +964,20 @@ def get_themes() -> Mapping[str, str]:
         return {}
 
     return {
-        theme_path.stem: resolver.resolve_static(
-            os.path.join(themes_loc, theme_path.name)
-        ).url
+        theme_path.stem: Theme(
+            url=resolver.resolve_static(os.path.join(themes_loc, theme_path.name)).url,
+            has_schemes=_has_both_schemes(theme_path.read_text(errors="replace")),
+        )
         for theme_path in sorted(themes_path.glob("*.css"))
     }
+
+
+_CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+_BOTH_SCHEMES = re.compile(r"color-scheme\s*:\s*(light\s+dark|dark\s+light)\b")
+
+
+def _has_both_schemes(css: str) -> bool:
+    return _BOTH_SCHEMES.search(_CSS_COMMENT.sub("", css)) is not None
 
 
 @cache_utils.register_function_cache("misc")

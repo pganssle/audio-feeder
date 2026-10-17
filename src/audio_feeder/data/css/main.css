@@ -3,7 +3,8 @@
    Themes are stylesheets in the themes/ directory, which are loaded after
    this one. Most of the look is set by the custom properties on :root, so a
    theme can be as small as a few of those, but a theme can override anything
-   here. */
+   here. A theme with "color-scheme: light dark" lets the colour scheme be
+   chosen in the menu, and needs dark colours like the ones below. */
 
 :root {
     --paper: #f2f2f2;
@@ -47,11 +48,21 @@
     --radius: 3px;
     --target: 2.25rem;
 
+    /* The theme has a light and a dark version, which also lets the colour
+       scheme be chosen in the menu */
     color-scheme: light dark;
 }
 
+/* Dark mode follows the system's, unless a colour scheme is chosen in the
+   menu, which puts data-scheme="light" or "dark" on <html>. A media query
+   can't be combined with a selector, so the dark colours are in two rules:
+   one for the system's dark mode and one for choosing dark. Keep them the
+   same.
+
+   The :where() keeps these rules exactly as specific as :root, so a theme's
+   :root rule still overrides them. */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:where(:not([data-scheme="light"])) {
         --paper: #161616;
         --surface: #2c2f31;
         --ink: #e6e6e6;
@@ -68,6 +79,35 @@
         --cloth-lightness: 30%;
         --cloth-ink: #e2e8ea;
     }
+}
+
+:root:where([data-scheme="dark"]) {
+    --paper: #161616;
+    --surface: #2c2f31;
+    --ink: #e6e6e6;
+    --muted: #a2a2a2;
+    --rule: #3f4244;
+    --entry-background: #1f2122;
+    --entry-background-alt: #282a2c;
+    --accent: #6dc1de;
+    --accent-ink: #0b1a20;
+    --exclude: #e48b62;
+    --exclude-ink: #1a1210;
+    --bar: #0c0e0f;
+    --bar-ink: #e5eaeb;
+    --cloth-lightness: 30%;
+    --cloth-ink: #e2e8ea;
+}
+
+/* The browser's own colours (form controls, scrollbars and system colours
+   like Canvas) follow the chosen scheme too. These are more specific than
+   :root, so that they win over a theme's "color-scheme: light dark". */
+:root[data-scheme="light"] {
+    color-scheme: light;
+}
+
+:root[data-scheme="dark"] {
+    color-scheme: dark;
 }
 
 /* Larger targets for touch screens */
@@ -154,12 +194,12 @@ button.primary {
 
 /* Controls are drawn on --surface, so they always use --ink for their text,
    whatever colour the text around them is */
-.fields input, .fields select, .theme_picker select, .theme_picker button,
-.page_jump_button {
+.fields input, .fields select, .appearance select, .appearance button,
+.scheme_toggle label, .page_jump_button {
     color: var(--ink);
 }
 
-.fields input, .fields select, .theme_picker select {
+.fields input, .fields select, .appearance select {
     width: 100%;
     min-height: var(--target);
     padding: 0.2rem 0.4rem;
@@ -307,13 +347,114 @@ button.primary {
 }
 
 .drawer_header h2 {
+    flex: 1;
     margin: 0;
     font: var(--display-style) 700 1.3rem var(--font-display);
 }
 
-.toggle_legend {
+/* The theme and colour scheme, at the top of the menu. The theme is on one
+   row and the colour scheme and the button on the next, or all three are on
+   one row if the theme doesn't have a colour scheme to choose. */
+.appearance {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+.appearance:has(.scheme_toggle) select {
+    grid-column: 2 / -1;
+}
+
+.appearance button {
+    min-height: var(--target);
+    padding: 0 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+/* The colour scheme is a row of radio buttons drawn as one segmented
+   button, with the radio buttons themselves hidden but still focusable */
+.scheme_toggle {
+    display: flex;
+    grid-column: 1 / 3;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.scheme_toggle legend, .scheme_toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    appearance: none;
+}
+
+.scheme_toggle label {
+    display: grid;
+    flex: 1;
+    place-content: center;
+    min-height: var(--target);
+    padding: 0 0.5rem;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+.scheme_toggle label + input + label {
+    border-left: 0;
+}
+
+.scheme_toggle label:first-of-type {
+    border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.scheme_toggle label:last-of-type {
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.scheme_toggle input:checked + label {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+}
+
+.scheme_toggle input:focus-visible + label {
+    position: relative;
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Above the folders, filters and tags is the key to their toggles */
+.browse_heading {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.75rem 1rem 0;
+}
+
+.browse_heading h3 {
     flex: 1;
     margin: 0;
+    color: var(--muted);
+    font: 700 0.8rem var(--font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.toggle_legend {
+    margin: 0;
+    color: var(--muted);
     font-size: 0.85rem;
 }
 
@@ -951,26 +1092,6 @@ a.nav_arrow:hover, .nav_link:hover {
     height: 1.1rem;
     fill: currentColor;
     stroke: none;
-}
-
-/* The theme picker is the last section of the menu */
-.theme_picker {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.theme_picker select {
-    flex: 1;
-}
-
-.theme_picker button {
-    min-height: var(--target);
-    padding: 0 0.75rem;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    background: var(--surface);
-    cursor: pointer;
 }
 
 /* Narrow screens

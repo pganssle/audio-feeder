@@ -317,7 +317,7 @@ def load(overwrite, output):
         books_out.append(book_out)
 
     books_out = sorted(
-        books_out, key=lambda x: x[book_data.index("authors")]["authors"][0]
+        books_out, key=lambda x: x[book_data.index("authors")]["authors"] or []
     )
 
     print(f"Writing output to {output}")

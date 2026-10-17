@@ -3,6 +3,7 @@
 import contextlib
 import json
 import pathlib
+import shutil
 from collections.abc import Iterator, Mapping, Sequence
 from typing import Any, Final, TypeAlias
 from unittest import mock
@@ -12,6 +13,7 @@ import pytest
 from audio_feeder import cache_utils
 from audio_feeder import database_handler as dh
 from audio_feeder import metadata_loader as mdl
+from audio_feeder import object_handler as oh
 from audio_feeder import updater
 
 
@@ -74,16 +76,36 @@ class FakeGoogleBooksLoader(mdl.GoogleBooksLoader):
         return self._response_map[key]
 
 
+GOOGLE_BOOKS_SEARCH_URL: Final[str] = "https://www.googleapis.com/books/v1/volumes"
+
+
+def google_books_search_key(query: str) -> SessionKey:
+    """The key in a response mapping for a Google Books search query."""
+    return (GOOGLE_BOOKS_SEARCH_URL, (("orderBy", "relevance"), ("q", query)))
+
+
+def example_response_mapping() -> Mapping[SessionKey, FakeResponse]:
+    return load_response_mapping(
+        pathlib.Path(__file__).parent / "data/example_google_books_responses.json"
+    )
+
+
 class FakeBookUpdater(updater.BookDatabaseUpdater):
-    def __init__(self, books_location: pathlib.Path, **kwargs):
+    def __init__(
+        self,
+        books_location: pathlib.Path,
+        *,
+        _extra_responses: Mapping[SessionKey, FakeResponse] | None = None,
+        **kwargs,
+    ):
         kwargs["metadata_loaders"] = kwargs.get(
             "metadata_loaders",
             (
                 FakeGoogleBooksLoader(
-                    _response_map=load_response_mapping(
-                        pathlib.Path(__file__).parent
-                        / "data/example_google_books_responses.json"
-                    )
+                    _response_map={
+                        **example_response_mapping(),
+                        **(_extra_responses or {}),
+                    }
                 ),
             ),
         )
@@ -91,10 +113,24 @@ class FakeBookUpdater(updater.BookDatabaseUpdater):
 
 
 @contextlib.contextmanager
-def patch_book_updater() -> Iterator[None]:
+def patch_book_updater(
+    extra_responses: Mapping[SessionKey, FakeResponse] | None = None,
+) -> Iterator[None]:
+    """Run updates offline, with canned Google Books responses.
+
+    :param extra_responses:
+        Responses to add to the ones in ``example_google_books_responses.json``.
+    """
     old_book_updater = updater.BookDatabaseUpdater
     try:
-        updater.BookDatabaseUpdater = FakeBookUpdater
+
+        class _BookUpdater(FakeBookUpdater):
+            def __init__(self, books_location: pathlib.Path, **kwargs) -> None:
+                super().__init__(
+                    books_location, _extra_responses=extra_responses, **kwargs
+                )
+
+        updater.BookDatabaseUpdater = _BookUpdater
         with mock.patch.object(
             mdl.requests, "get", return_value=FakeResponse(status_code=403)
         ):
@@ -278,3 +314,130 @@ def test_update_invalid(
 
     assert entry_paths() == []
     assert not updater.UPDATE_IN_PROGRESS
+
+
+###
+# Books whose directory names don't match the expected format (#104)
+UNPARSEABLE_FOUND: Final[str] = "Dracula"
+UNPARSEABLE_NOT_FOUND: Final[str] = "Some Recording (2007)"
+NOT_FOUND_RESPONSE: Final[FakeResponse] = FakeResponse(
+    json_contents={"kind": "books#volumes", "totalItems": 0}
+)
+EXAMPLE_AUTHORS: Final[frozenset[str]] = frozenset(
+    (
+        "Bram Stoker",
+        "H G Wells",
+        "Louisa May Alcott",
+        "Mary Shelley",
+        "Charles Y M Kelvin",
+        "Edith Wharton",
+        "Thomas de Quincey",
+    )
+)
+
+
+def unparseable_book_responses() -> Mapping[SessionKey, FakeResponse]:
+    """Google Books responses for the books added by add_unparseable_book.
+
+    Without an author, these are looked up by title alone.
+    """
+    examples = example_response_mapping()
+    return {
+        google_books_search_key(f"intitle:{UNPARSEABLE_FOUND}"): examples[
+            google_books_search_key("inauthor:Bram Stoker+intitle:Dracula")
+        ],
+        google_books_search_key(f"intitle:{UNPARSEABLE_NOT_FOUND}"): (
+            NOT_FOUND_RESPONSE
+        ),
+    }
+
+
+def add_unparseable_book(media_dir: pathlib.Path, name: str) -> pathlib.Path:
+    """Add a book in a directory whose name has no author.
+
+    :return:
+        The path of the new book, relative to the media directory.
+    """
+    rel_path = pathlib.Path("audiobooks/Fiction", name)
+    shutil.copytree(
+        media_dir / "audiobooks/Fiction/Bram Stoker - Dracula", media_dir / rel_path
+    )
+    return rel_path
+
+
+def book_for_path(path: pathlib.Path) -> oh.Book:
+    database = dh.load_database()
+    (entry,) = (e for e in database["entries"].values() if e.path == path)
+    book = database["books"][entry.data_id]
+    assert isinstance(book, oh.Book)
+    return book
+
+
+@pytest.mark.parametrize("name", [UNPARSEABLE_FOUND, UNPARSEABLE_NOT_FOUND])
+def test_update_unparseable_directory_name(
+    testgen_config: pathlib.Path,
+    media_dir: pathlib.Path,
+    name: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    path = add_unparseable_book(media_dir, name)
+    with patch_book_updater(unparseable_book_responses()):
+        updater.update(content_type="books")
+
+    # The update finishes, and every book is saved
+    assert entry_paths() == sorted(ALL_PATHS | {path})
+
+    # The book is listed under its directory name, with no author
+    book = book_for_path(path)
+    assert book.title == name
+    assert not book.authors
+    assert not book.author_ids
+
+    # ... and the user is told why
+    assert any(
+        record.levelname == "WARNING" and name in record.getMessage()
+        for record in caplog.records
+    )
+
+    # The other books still have their authors
+    dracula = book_for_path(pathlib.Path("audiobooks/Fiction/Bram Stoker - Dracula"))
+    assert dracula.authors == ["Bram Stoker"]
+
+
+def test_update_unparseable_directory_metadata(
+    testgen_config: pathlib.Path, media_dir: pathlib.Path
+) -> None:
+    found = add_unparseable_book(media_dir, UNPARSEABLE_FOUND)
+    not_found = add_unparseable_book(media_dir, UNPARSEABLE_NOT_FOUND)
+    with patch_book_updater(unparseable_book_responses()):
+        updater.update(content_type="books")
+
+    # Metadata is still looked up by title, but the author isn't filled in
+    # from a search that may well have matched some other book.
+    found_book = book_for_path(found)
+    assert found_book.google_id is not None
+    assert not found_book.authors
+
+    not_found_book = book_for_path(not_found)
+    assert not_found_book.google_id is None
+    assert not not_found_book.authors
+
+    # Neither one adds an author
+    authors = dh.load_database()["authors"]
+    assert {author.name for author in authors.values()} == EXAMPLE_AUTHORS
+
+
+def test_update_unparseable_directory_twice(
+    testgen_config: pathlib.Path, media_dir: pathlib.Path
+) -> None:
+    path = add_unparseable_book(media_dir, UNPARSEABLE_FOUND)
+    with patch_book_updater(unparseable_book_responses()):
+        updater.update(content_type="books")
+        book_id = book_for_path(path).id
+
+        # Updating again keeps the same book, rather than adding another one
+        updater.update(content_type="books")
+
+    assert book_for_path(path).id == book_id
+    assert entry_paths() == sorted(ALL_PATHS | {path})
+    assert len(dh.load_database()["books"]) == len(ALL_PATHS) + 1

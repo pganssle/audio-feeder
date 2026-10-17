@@ -1,5 +1,6 @@
 """Tests for audio_feeder.cli"""
 
+import os
 import pathlib
 from collections.abc import Iterator, Sequence
 from typing import Final
@@ -195,3 +196,30 @@ def test_install_existing(install_cwd: pathlib.Path, tmp_path: pathlib.Path) -> 
         "audiobooks.example"
     )
     assert list(install_cwd.iterdir()) == []
+
+
+def test_find_missing_books_without_author(
+    testgen_config: pathlib.Path, tmp_path: pathlib.Path
+) -> None:
+    # Books in directories with no author in the name are listed with no author
+    media_dir = testgen_config / "static/media"
+    found = test_updater.add_unparseable_book(media_dir, test_updater.UNPARSEABLE_FOUND)
+    not_found = test_updater.add_unparseable_book(
+        media_dir, test_updater.UNPARSEABLE_NOT_FOUND
+    )
+    with test_updater.patch_book_updater(test_updater.unparseable_book_responses()):
+        result = testing.CliRunner().invoke(cli.cli, ["update", "."])
+    assert result.exit_code == 0, result.output
+
+    output = tmp_path / "missing.yml"
+    result = testing.CliRunner().invoke(
+        cli.cli, ["find-missing-books", "load", "-yo", "-o", os.fspath(output)]
+    )
+    assert result.exit_code == 0, result.output
+
+    missing = {
+        book[2]["title"]: book[1]["authors"]
+        for book in yaml.safe_load(output.read_text())
+    }
+    assert missing[not_found.name] == []
+    assert found.name not in missing

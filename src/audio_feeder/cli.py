@@ -10,15 +10,21 @@ import click
 @click.group()
 def cli():
     """
-    Options are:
-        run
-        update
-        version
+    Serve a library of audiobooks as podcast feeds.
+
+    The subcommands set up a configuration directory, update the database from
+    the books on disk, run a development server and do a few maintenance tasks.
+    The database can also be updated from a running server, through its /update
+    URL, so a deployment that runs the app under a WSGI server (like the Docker
+    configuration) may only need this command for the initial setup.
     """
 
 
 @cli.command()
 def version():
+    """
+    Print the version of audio-feeder.
+    """
     from . import __version__
 
     print(f"audio_feeder version: {__version__}")
@@ -144,7 +150,7 @@ def update(
     "--config-dir",
     type=str,
     default=None,
-    help=("The configuration directory to use as a base for all"),
+    help="The configuration directory to install to.",
 )
 @click.option(
     "-n",
@@ -322,6 +328,10 @@ def load(overwrite, output):
     help="Where to load the missing books from.",
 )
 def update_missing_books(**kwargs):
+    """
+    Update the database with the books in a YAML file created by "load", for
+    books where any of the identifiers have been filled in.
+    """
     import yaml
 
     from . import database_handler as dh

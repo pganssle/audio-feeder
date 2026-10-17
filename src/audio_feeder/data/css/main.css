@@ -1,343 +1,288 @@
+/* audio-feeder's stylesheet, which is also the default theme ("Classic").
+
+   Themes are stylesheets in the themes/ directory, which are loaded after
+   this one. Most of the look is set by the custom properties on :root, so a
+   theme can be as small as a few of those, but a theme can override anything
+   here. */
+
+:root {
+    --paper: #f2f2f2;
+    --surface: #fbfbfb;
+    --ink: #1f1f1f;
+    --muted: #575757;
+    --rule: #c9c9c9;
+    --accent: #005a78;
+    --accent-ink: #ffffff;
+    --exclude: #9a3b14;
+    --exclude-ink: #ffffff;
+    --bar: #353535;
+    --bar-ink: #ffffff;
+    --qr-paper: #ffffff;
+
+    /* Books are on alternating bands of these colours, with this much
+       padding, and separated by this line */
+    --entry-background: #e5e5e5;
+    --entry-background-alt: #d5d5d5;
+    --entry-padding: 0.9rem;
+    --entry-rule: transparent;
+
+    /* Books without a cover get a cloth one, in a colour picked from their
+       ID with this saturation and lightness */
+    --cloth-saturation: 30%;
+    --cloth-lightness: 38%;
+    --cloth-ink: #f3f6f7;
+
+    --font-body: "Helvetica Neue", Helvetica, Arial, "Liberation Sans",
+        "Nimbus Sans", sans-serif;
+    --font-display: var(--font-body);
+    --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+        Consolas, "DejaVu Sans Mono", monospace;
+    /* The style of the wordmark, author names and other flourishes */
+    --display-style: normal;
+
+    /* The width of the page's column */
+    --measure: 100rem;
+    --page-width: min(90%, var(--measure));
+    --cover-width: 6.5rem;
+    --radius: 3px;
+    --target: 2.25rem;
+
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: #161616;
+        --surface: #2c2f31;
+        --ink: #e6e6e6;
+        --muted: #a2a2a2;
+        --rule: #3f4244;
+        --entry-background: #1f2122;
+        --entry-background-alt: #282a2c;
+        --accent: #6dc1de;
+        --accent-ink: #0b1a20;
+        --exclude: #e48b62;
+        --exclude-ink: #1a1210;
+        --bar: #0c0e0f;
+        --bar-ink: #e5eaeb;
+        --cloth-lightness: 30%;
+        --cloth-ink: #e2e8ea;
+    }
+}
+
+/* Larger targets for touch screens */
+@media (pointer: coarse) {
+    :root {
+        --target: 2.75rem;
+    }
+}
+
 /* Basics
 =============================================*/
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 html {
-  font-family: sans-serif;
-  -ms-text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 body {
-    font-size: 1.2 em;
-    font-family: Helvetica, Arial, sans-serif;
-    color: #000;
-    background-color: #f2f2f2;
     margin: 0;
-    margin-top: 0px;
-    margin-bottom: 15px;
-}
-
-pre {
-    overflow: auto;
+    background: var(--paper);
+    color: var(--ink);
+    font: 1.0625rem/1.5 var(--font-body);
 }
 
 a {
-    color: #005A78;
+    color: var(--accent);
+    text-underline-offset: 0.15em;
 }
 
 a:hover {
-    color: #004359;
+    text-decoration-thickness: 2px;
 }
 
-table {
-    border-collapse: collapse;
-    border-spacing: 0;
-}
-
-td, th {
-    padding:; 0;
-}
-
-/* Books
-=============================================*/
-/* Table */
-div.maintable {
-    margin: auto;
-    width: 90%;
-    display: flex;
-    flex-direction: column;
-}
-
-@media (max-width: 750px) {
-    div.maintable {
-        width: 100%;
-    }
-}
-
-div.entry_row {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: flex-start;
-}
-
-div.entry_row.even {
-  background-color: #adadad;
-}
-
-div.entry_row.odd {
-  background-color: #e5e5e5;
-}
-
-div.entry_body {
-    font-size: 1.1em;
-    padding: 5px;
-    width: 85%;
-    vertical-align: top;
-    flex-grow: 1;
-}
-
-div.entry_extra_feeds {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    max-width: 50%;
-}
-
-div.extra_feed {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    margin-right: 10px;
-}
-
-i.extra_feed_qr {
-    margin-right: 5px;
-}
-
-div.cover_col {
-    width: 15%;
-    padding-top: 20px;
-    vertical-align: top;
-    text-align: center;
-    flex-grow: 0;
-}
-
-img.cover_img {
-    width: 15vw;
-    max-height: 10vw;
-    object-fit: contain;
-}
-
-.qr_button {
-    background: none;
-    border: none;
-    padding: 0;
-    color: inherit;
+button, input, select {
     font: inherit;
-    cursor: pointer;
+    color: inherit;
 }
 
-.qr_link {
-    cursor: pointer;
-    text-decoration: underline;
-    font-weight: bold;
-    font-size: 1.5em;
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
-img.qr_img {
-  max-width: 50vw;
-  background-color: #fff;
-  padding: 2px;
-}
-
-
-a.entry_link {
-  color: #2f2f2f;
-  font-weight: bold;
-}
-
-/* Descriptions */
-h3.entry_title {
-    font-size: 1.3em;
-    font-weight: bold;
-    padding: 0px;
-    margin: 0px;
-}
-
-span.series_data {
-  font-size: 1.2em;
-  font-style: italic;
-}
-
-span.book_desc_field {
-  font-weight: bold;
-}
-
-span.hidden_expander_span {
-  display: inline;
-}
-
-span.hidden_expander_span a.read_more_link {
-  color: #000000;
-  text-decoration: underline;
-  font-weight: bold;
-}
-
-p.no_results {
-    margin: 40px 5%;
-    font-size: 1.3em;
-    text-align: center;
-}
-
-/* Navigation bar */
-div.navbar {
-    display: inline-flex;
-    flex-direction: row;
-    justify-content: center;
-}
-
-div.nav_arrow {
-    white-space: nowrap;
-    margin-left: 2%;
-    margin-right: 2%;
-    flex-grow: 0;
-}
-
-i.nav_arrow {
-    font-size: 3em;
-    font-weight: bold;
-}
-
-div.nav_links {
-    width: 100%;
-    font-size: 2em;
+/* The icons that the page uses with <use> */
+.sprite {
+    position: absolute;
+    width: 0;
+    height: 0;
     overflow: hidden;
-    text-align: center;
-    flex-grow: 1;
 }
 
-/* Page navigation ellipsis and page jump menu (#5) */
-span.nav_gap {
-    color: #777777;
+.icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-form.page_jump {
-    margin: 0 5% 10px 5%;
-    text-align: center;
+button.primary {
+    min-height: var(--target);
+    padding: 0.4rem 1.25rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+    cursor: pointer;
 }
 
-/* Breadcrumbs */
-div.breadcrumbs {
-    font-size: 1.3em;
-    margin: 5px 5% 10px 5%;
-}
-
-span.breadcrumb_separator {
-    margin-left: 0.3em;
-    margin-right: 0.3em;
-    color: #777777;
-}
-
-span.current_folder {
-    font-weight: bold;
-}
-
-/* Top nav bar */
-div.topnav {
-    position: relative;
-    margin-top: 0;
-    margin-bottom: 5px;
-    padding-left: 5%;
-    padding-right: 5%;
-    display: flex;
-    justify-content: flex-end;
+/* Fields in forms: labels on the left, inputs on the right */
+.fields {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 0.75rem;
     align-items: center;
-    flex-wrap: wrap;
-    flex-flow: row;
-    background-color: #353535;
-    padding-top:5px;
-    padding-bottom: 5px;
 }
 
-@media (max-width: 750px) {
-    div.topnav {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
+/* Controls are drawn on --surface, so they always use --ink for their text,
+   whatever colour the text around them is */
+.fields input, .fields select, .theme_picker select, .theme_picker button,
+.page_jump_button {
+    color: var(--ink);
 }
 
-div.topnav-icons {
+.fields input, .fields select, .theme_picker select {
+    width: 100%;
+    min-height: var(--target);
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+/* Top bar
+=============================================*/
+.topnav {
+    background: var(--bar);
+    color: var(--bar-ink);
+}
+
+.topnav_inner {
     display: flex;
-    flex-flow: row;
-    justify-content: flex-end;
-}
-
-.topnav-icon {
-    font-size: 2.5rem;
-    color: #fff;
-    margin-left: 30px;
-}
-
-.topnav-button-icon {
-    font-size: 2em;
-    color: #000;
-    margin-left: 5px;
-    background-color: transparent;
-    background-repeat: no-repeat;
-    border: 1px;
-    cursor: pointer;
-    overflow: hidden;
-    outline: none
+    align-items: center;
+    gap: 1rem;
+    width: var(--page-width);
+    margin: 0 auto;
+    padding: 0.25rem 0;
 }
 
 .topnav-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0 0.25rem;
+    border: 0;
     background: none;
-    border: none;
-    padding: 0;
     cursor: pointer;
 }
 
-.topnav-menu {
-    position: relative;
-    margin-left: 0;
-    margin-right: auto;
+.topnav-button:hover .button_label {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
-span.filter_count {
+.wordmark {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    color: inherit;
+    font: var(--display-style) 700 1.35rem/1 var(--font-display);
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+/* The logo is drawn in the bar's colours, unless it's an image */
+.wordmark .logo {
+    width: auto;
+    height: 1.6rem;
+}
+
+.wordmark svg.logo {
+    width: 2.1rem;
+    stroke-width: 1.8;
+}
+
+.filter_count {
     position: absolute;
-    top: -2px;
-    right: -10px;
-    min-width: 1.2rem;
-    padding: 0 3px;
+    top: 0.1rem;
+    left: 1.1rem;
+    min-width: 1.15rem;
+    padding: 0 0.25rem;
     border-radius: 0.6rem;
-    background-color: #005A78;
-    color: #fff;
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 0.8rem;
-    font-weight: bold;
-    line-height: 1.2rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.15rem;
+    text-align: center;
 }
 
 /* The sort menu is a popover, so it opens and closes when its button is
    clicked, and closes on Escape or a click outside of it. */
 .sort_menu {
     position: fixed;
-    inset: auto;
-    top: 3.5rem;
-    right: 5%;
+    inset: 3.5rem max(1rem, calc((100vw - var(--page-width)) / 2)) auto auto;
+    width: min(20rem, calc(100vw - 2rem));
     margin: 0;
-    background-color: #fff;
-    color: #000;
-    min-height: 50px;
-    min-width: 20%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #000;
+    padding: 1rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.2);
 }
 
-.sort_menu .options-line + .options-line {
-    margin-top: 5px;
+.sort_menu .fields {
+    margin-bottom: 1rem;
 }
 
+.sort_menu .primary {
+    width: 100%;
+}
+
+/* Browse drawer
+=============================================*/
 /* The browse drawer is a popover, so it opens and closes when the menu
    button is clicked, and closes on Escape or a click outside of it. */
 .browse_drawer {
     position: fixed;
     inset: 0 auto 0 0;
-    /* Leave some of the page visible beside the drawer, as somewhere to
-       tap to close it. */
-    width: min(32rem, 85vw);
+    /* Leave some of the page visible beside the drawer, as somewhere to tap
+       to close it. */
+    width: min(26rem, 85vw);
     height: 100%;
     max-height: none;
     margin: 0;
     padding: 0;
-    border: none;
-    border-right: 1px solid #000;
-    background-color: #fff;
-    color: #000;
+    border: 0;
+    border-right: 1px solid var(--rule);
+    background: var(--paper);
+    color: var(--ink);
     overflow-y: auto;
-    box-sizing: border-box;
+    overscroll-behavior: contain;
 }
 
 .browse_drawer:popover-open {
@@ -345,81 +290,98 @@ span.filter_count {
     flex-direction: column;
 }
 
-.browse_drawer::backdrop {
-    background-color: rgba(0, 0, 0, 0.4);
+.browse_drawer::backdrop, .modal-window::backdrop {
+    background: rgb(0 0 0 / 0.45);
 }
 
 .drawer_header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 5px 15px;
-    background-color: #353535;
-    color: #fff;
+    gap: 1rem;
+    padding: 0.25rem 0.75rem 0.25rem 1rem;
+    background: var(--bar);
+    color: var(--bar-ink);
 }
 
 .drawer_header h2 {
     margin: 0;
+    font: var(--display-style) 700 1.3rem var(--font-display);
 }
 
-.drawer_close {
-    color: #fff;
-    font-size: 2.5rem;
-    line-height: 1;
+.toggle_legend {
+    flex: 1;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.inc_key, .exc_key {
+    display: inline-grid;
+    place-content: center;
+    width: 1.2em;
+    height: 1.2em;
+    margin-left: 0.4em;
+    border-radius: 2px;
+    font-weight: 700;
+}
+
+.inc_key {
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+.exc_key {
+    background: var(--exclude);
+    color: var(--exclude-ink);
 }
 
 .drawer_section > summary {
-    padding: 10px 15px;
-    border-bottom: 1px solid #cccccc;
-    font-size: 1.3rem;
-    font-weight: bold;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    font: 700 1.05rem var(--font-display);
     cursor: pointer;
 }
 
 .drawer_section_body {
-    padding: 10px 15px;
-}
-
-.drawer_section_body .options-line {
-    margin-top: 8px;
-}
-
-.drawer_fieldset {
     margin: 0;
-    padding: 0;
-    border: none;
+    padding: 0.5rem 1rem 0.75rem;
 }
 
 .tag_match {
-    margin: 5px 0;
+    margin: 0.25rem 0 0.5rem;
 }
 
-ul.folder_tree,
-ul.folder_tree ul,
-ul.tag_list {
-    list-style: none;
+.tag_match label {
+    display: inline-block;
+    padding: 0.25rem;
+}
+
+ul.folder_tree, ul.folder_tree ul, ul.tag_list {
     margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-ul.tag_list {
-    padding-left: 0;
+ul.folder_tree {
+    padding: 0.5rem 1rem 0.75rem;
 }
 
 ul.folder_tree ul {
-    padding-left: 1.5rem;
+    padding-left: 1.25rem;
 }
 
 .drawer_row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 2rem;
-    font-size: 1.1rem;
+    gap: 0.3rem;
+    min-height: calc(var(--target) + 0.25rem);
 }
 
-/* Folders with subfolders are <summary> rows, with an arrow in place of
-   the usual disclosure marker (which doesn't work with flex layout), so
-   the folders without subfolders are indented to line up with them. */
+/* Folders with subfolders are <summary> rows, with an arrow in place of the
+   usual disclosure marker (which doesn't work with flex layout), so the
+   folders without subfolders are indented to line up with them. */
 summary.drawer_row {
     list-style: none;
     cursor: pointer;
@@ -432,6 +394,7 @@ summary.drawer_row::-webkit-details-marker {
 summary.drawer_row::before {
     content: "\25B8";
     width: 1rem;
+    color: var(--muted);
 }
 
 details[open] > summary.drawer_row::before {
@@ -439,167 +402,640 @@ details[open] > summary.drawer_row::before {
 }
 
 ul.folder_tree .drawer_row.leaf {
-    padding-left: calc(1rem + 8px);
+    padding-left: 1.3rem;
 }
 
 .row_name {
-    margin-right: 8px;
-}
-
-.row_name {
-    flex-grow: 1;
-}
-
-.drawer_row:has(.exclude input:checked) > .row_name {
-    text-decoration: line-through;
+    flex: 1;
+    margin-left: 0.4rem;
+    overflow-wrap: anywhere;
 }
 
 .row_count {
-    color: #777777;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
 }
 
-.toggle_pair {
-    display: inline-flex;
-    gap: 3px;
+.drawer_row:has(.exc:checked) > .row_name {
+    color: var(--muted);
+    text-decoration: line-through;
 }
 
-.toggle {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.6rem;
-    height: 1.6rem;
-    border: 1px solid #cccccc;
-    border-radius: 4px;
-    background-color: #f4f4f4;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.toggle.include:has(input:checked) {
-    border-color: #005A78;
-    background-color: #005A78;
-    color: #fff;
-}
-
-.toggle.exclude:has(input:checked) {
-    border-color: #7a2e0e;
-    background-color: #7a2e0e;
-    color: #fff;
-}
-
-.toggle:has(input:focus-visible) {
-    outline: 2px solid #005A78;
-    outline-offset: 1px;
-}
-
-.toggle input,
-.visually_hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
+/* The include and exclude toggles are checkboxes drawn as + and − buttons */
+input.inc, input.exc {
+    display: inline-grid;
+    place-content: center;
+    flex: none;
+    width: var(--target);
+    height: var(--target);
     margin: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 700;
+    cursor: pointer;
+    appearance: none;
+}
+
+input.inc::before {
+    content: "+";
+}
+
+input.exc::before {
+    content: "\2212";
+}
+
+input.inc:checked {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+input.exc:checked {
+    border-color: var(--exclude);
+    background: var(--exclude);
+    color: var(--exclude-ink);
 }
 
 .more_tags > summary {
-    margin-top: 5px;
-    color: #005A78;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0;
+    color: var(--accent);
     cursor: pointer;
 }
 
 .drawer_footer {
     position: sticky;
     bottom: 0;
-    margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 15px;
-    padding: 10px 15px;
-    border-top: 1px solid #cccccc;
-    background-color: #fff;
+    gap: 1.25rem;
+    margin-top: auto;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--rule);
+    background: var(--paper);
 }
 
-.options-line {
+/* Book list
+=============================================*/
+.maintable {
+    width: var(--page-width);
+    margin: 0 auto;
+}
+
+.breadcrumbs {
+    margin-top: 1rem;
+    color: var(--muted);
+}
+
+.breadcrumb_separator {
+    margin: 0 0.4em;
+}
+
+.current_folder {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.entry_row {
+    display: grid;
+    grid-template-columns: var(--cover-width) minmax(0, 1fr);
+    gap: 1.1rem;
+    padding: var(--entry-padding);
+    border-bottom: 1px solid var(--entry-rule);
+    background: var(--entry-background);
+}
+
+.entry_row:nth-of-type(even) {
+    background: var(--entry-background-alt);
+}
+
+/* When there's room, the feeds go beside the title rather than below it */
+.entry_row {
+    container-type: inline-size;
+}
+
+@container (min-width: 60rem) {
+    .entry_body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-content: start;
+        column-gap: 1.5rem;
+    }
+
+    .entry_title, .book_meta {
+        grid-column: 1;
+    }
+
+    .feeds {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: start;
+        justify-content: flex-end;
+        max-width: 36rem;
+        margin: 0;
+    }
+
+    .description {
+        grid-column: 1 / -1;
+    }
+}
+
+.cover_col {
+    container-type: inline-size;
+}
+
+.cover_img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: contain;
+    object-position: top;
+}
+
+/* A cloth binding with the title on it, for books without a cover */
+.cover_blank {
+    position: relative;
     display: flex;
-    flex-flow: row;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    padding: 0.5rem 0.35rem 0.5rem 0.7rem;
+    border-radius: 1px 3px 3px 1px;
+    background: hsl(calc(var(--n, 0) * 137deg) var(--cloth-saturation) var(--cloth-lightness));
+    box-shadow: inset 0.35rem 0 0 rgb(0 0 0 / 0.2),
+        inset 0.4rem 0 0 rgb(255 255 255 / 0.08);
+    color: var(--cloth-ink);
+    /* The title is sized to fit on the cover */
+    font: clamp(0.5rem, 12cqi, 0.85rem)/1.25 var(--font-display);
+    text-align: center;
 }
 
-.topnav-form {
-    font-size: 1.2rem;
-    text-align: right;
-
+/* audio-feeder's logo marks the cover as a generated one */
+.cover_mark {
+    position: absolute;
+    right: 8%;
+    bottom: 5%;
+    width: 22%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    opacity: 0.75;
+    stroke-width: 2;
 }
 
-.topnav-label {
-    font-size: 1.2rem;
-    font-weight: bold;
+.cover_blank span {
+    padding: 0.4em 0;
+    border-block: 1px solid currentColor;
+    overflow-wrap: anywhere;
+    hyphens: auto;
 }
 
-
-/* Popup */
-.modal-window {
-    position: fixed;
-    inset: auto;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+.entry_title {
     margin: 0;
-    border: none;
-    padding: 2em;
-    background: white;
+    font: 700 1.3rem/1.2 var(--font-display);
 }
 
-/* Larger targets for touch screens */
-@media (pointer: coarse) {
-    .drawer_section > summary {
-        padding: 15px;
-    }
-
-    .drawer_row {
-        min-height: 3rem;
-        font-size: 1.2rem;
-    }
-
-    .toggle_pair {
-        gap: 6px;
-    }
-
-    .toggle {
-        width: 2.75rem;
-        height: 2.75rem;
-        font-size: 1.4rem;
-    }
-
-    summary.drawer_row::before {
-        width: 1.5rem;
-    }
-
-    ul.folder_tree .drawer_row.leaf {
-        padding-left: calc(1.5rem + 8px);
-    }
-
-    .tag_match label {
-        display: inline-block;
-        padding: 10px 5px;
-    }
-
-    .more_tags > summary {
-        padding: 10px 0;
-    }
+.book_author {
+    display: block;
+    margin-top: 0.1rem;
+    color: var(--muted);
+    font-size: 1.05rem;
+    font-style: var(--display-style);
+    font-weight: 400;
 }
 
-/* On narrow screens, the page links take up too much space, so only show
-   the arrows and the current page. */
-@media (max-width: 750px) {
-    div.nav_links a.nav_link,
-    div.nav_links span.nav_gap {
+.book_meta {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0.3rem 0 0;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    list-style: none;
+}
+
+.book_meta li:not(:last-child)::after {
+    content: "\00B7";
+    margin: 0 0.45em;
+}
+
+.book_meta .series_data {
+    color: var(--ink);
+    font-style: italic;
+}
+
+.feeds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.6rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.feeds li {
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.feeds a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    padding: 0 0.6rem;
+    font-size: 0.95rem;
+    text-decoration: none;
+}
+
+.feeds a:hover {
+    text-decoration: underline;
+}
+
+.qr_button {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    border: 0;
+    border-left: 1px solid var(--rule);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.qr_button:hover {
+    color: var(--accent);
+}
+
+.qr_button .icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    stroke-width: 2.2;
+}
+
+/* QR codes are popovers, so clicking outside of one or pressing Escape
+   closes it */
+.modal-window {
+    width: fit-content;
+    height: fit-content;
+    margin: auto;
+    padding: 1.25rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--qr-paper);
+    color: #222222;
+    box-shadow: 0 1rem 3rem rgb(0 0 0 / 0.35);
+    text-align: center;
+}
+
+.qr_img {
+    display: block;
+    width: min(18rem, 75vw);
+    height: auto;
+    image-rendering: pixelated;
+}
+
+.modal-window p {
+    max-width: min(18rem, 75vw);
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+}
+
+.description {
+    margin-top: 0.5rem;
+    line-height: 1.45;
+}
+
+.description p {
+    margin: 0.5em 0;
+}
+
+/* Long descriptions are cut short, with the rest in a <details> that
+   continues the text in place when it's opened */
+.read_more, .read_more[open]::details-content {
+    display: inline;
+}
+
+.read_more > summary {
+    display: inline;
+    color: var(--accent);
+    cursor: pointer;
+    list-style: none;
+}
+
+.read_more > summary::-webkit-details-marker {
+    display: none;
+}
+
+.read_more[open] > summary {
+    display: none;
+}
+
+p.no_results {
+    margin: 3rem 0;
+    font: var(--display-style) 1.3rem var(--font-display);
+    text-align: center;
+}
+
+/* Page navigation */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    margin: 1.25rem 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.nav_links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.nav_arrow, .nav_link, .nav_current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--target);
+    min-height: var(--target);
+    padding: 0 0.4rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+}
+
+.nav_arrow {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+span.nav_arrow {
+    color: var(--rule);
+}
+
+a.nav_arrow:hover, .nav_link:hover {
+    background: var(--surface);
+}
+
+.nav_current {
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 600;
+}
+
+.nav_gap {
+    padding: 0 0.2rem;
+    color: var(--muted);
+}
+
+/* Above the list, the page links and the menu to jump to any page share a
+   row when there's room */
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem 1.5rem;
+    margin: 0.75rem 0;
+}
+
+.pager .navbar {
+    margin: 0;
+}
+
+/* The menu to jump to any page is a popover listing every page, labelled
+   with the range of sort keys on it. Its button shows the current page's
+   range. */
+.page_jump_button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: var(--target);
+    padding: 0 0.4rem 0 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+.page_jump_button .icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--muted);
+}
+
+/* The two ends of a range */
+.page_jump_button i, .page_list i {
+    font-style: normal;
+}
+
+.page_jump_button i::before, .page_list i::before {
+    content: "\2192";
+    margin: 0 0.35em;
+    color: var(--muted);
+}
+
+.page_jump {
+    width: min(46rem, calc(100vw - 2rem));
+    max-height: min(80vh, 42rem);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 1rem 3rem rgb(0 0 0 / 0.3);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.page_jump::backdrop {
+    background: rgb(0 0 0 / 0.3);
+}
+
+.page_jump h2 {
+    position: sticky;
+    top: 0;
+    margin: 0;
+    padding: 0.6rem 1rem;
+    background: var(--bar);
+    color: var(--bar-ink);
+    font: var(--display-style) 700 1.05rem var(--font-display);
+}
+
+.page_list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.15rem 1rem;
+    padding: 0.75rem;
+}
+
+.page_list button {
+    display: grid;
+    grid-template-columns: 2.6em minmax(0, 1fr);
+    align-items: baseline;
+    min-height: var(--target);
+    padding: 0.2rem 0.5rem 0.2rem 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* The page number, set off from the range by a hairline */
+.page_list b {
+    margin-right: 0.6em;
+    padding-right: 0.5em;
+    border-right: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 0.85em;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.page_list button:hover {
+    background: var(--entry-background);
+}
+
+.page_list button[aria-current] {
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+.page_list button[aria-current] b, .page_list button[aria-current] i::before {
+    border-color: currentColor;
+    color: inherit;
+}
+
+.visually_hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Footer
+=============================================*/
+.site_footer {
+    display: flex;
+    justify-content: center;
+    width: var(--page-width);
+    margin: 1rem auto 0;
+    padding: 1.25rem 0 2.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.site_footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: inherit;
+}
+
+.site_footer a:hover {
+    color: var(--accent);
+}
+
+/* The GitHub mark is a filled shape, unlike the other icons */
+.icon.github {
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: currentColor;
+    stroke: none;
+}
+
+/* The theme picker is the last section of the menu */
+.theme_picker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.theme_picker select {
+    flex: 1;
+}
+
+.theme_picker button {
+    min-height: var(--target);
+    padding: 0 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+/* Narrow screens
+=============================================*/
+@media (max-width: 40rem) {
+    :root {
+        --cover-width: 4.5rem;
+    }
+
+    body {
+        font-size: 1rem;
+    }
+
+    :root {
+        --page-width: 100%;
+    }
+
+    .topnav_inner, .site_footer {
+        padding-inline: 0.75rem;
+    }
+
+    /* The feeds and description go below the cover, across the whole
+       width */
+    .entry_row {
+        gap: 0 0.9rem;
+        padding: 1rem 0.75rem;
+    }
+
+    .entry_body {
+        display: contents;
+    }
+
+    .cover_col {
+        grid-row: 1 / span 2;
+        margin-bottom: 0.5rem;
+    }
+
+    .feeds, .description {
+        grid-column: 1 / -1;
+    }
+
+    .feeds {
+        gap: 0.3rem;
+    }
+
+    .feeds a {
+        padding: 0 0.45rem;
+        font-size: 0.9rem;
+    }
+
+    .qr_button {
+        padding: 0 0.35rem;
+    }
+
+    .entry_title {
+        font-size: 1.25rem;
+    }
+
+    .page_list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 0.5rem;
+    }
+
+    /* Only show the arrows and the current page */
+    .nav_link, .nav_gap {
         display: none;
     }
 }

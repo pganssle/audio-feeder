@@ -364,8 +364,10 @@ def chapter_split_jobs(
 
     file_infos = {file: file_probe.FileInfo.from_file(file) for file in files}
 
+    # A file without usable chapter information is treated as a single
+    # chapter, so a book without any gets a copy of each file.
     chapter_info = file_probe.get_multipath_chapter_info(
-        files, file_infos=file_infos, fall_back_to_durations=False
+        files, file_infos=file_infos, fall_back_to_durations=True
     )
 
     max_chapter = max(chapter.num for _, chapter in chapter_info)

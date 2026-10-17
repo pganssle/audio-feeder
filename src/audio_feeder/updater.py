@@ -389,7 +389,9 @@ class BookDatabaseUpdater:
 
         for entry_obj in entry_table.values():
             # Check if the entry cover path exists.
-            thumb_loc = os.path.join(cover_cache_path, f"{entry_obj.id}-thumb.png")
+            thumb_loc = os.path.join(
+                cover_cache_path, f"{entry_obj.id}{THUMBNAIL_SUFFIX}"
+            )
 
             regenerate_thumb = not _img_path_exists(thumb_loc)
 
@@ -933,6 +935,10 @@ def update(
 
 ###
 # Util
+#: The suffix of the thumbnail of each entry's cover image, after its ID
+THUMBNAIL_SUFFIX: Final[str] = "-thumb.jpg"
+
+
 def _pbar_stub(iterator_: Iterable[_T]) -> Iterable[_T]:
     return iterator_
 
@@ -964,7 +970,9 @@ def _generate_thumbnail(img_loc: PathType, thumb_loc: PathType) -> None:
 
     # Pillow floors the size anyway, but its type hints require int.
     img.thumbnail((int(w * scale), int(h * scale)))
-    img.save(thumb_loc)
+    # Thumbnails are shown on every page of the book list, so they're saved as
+    # JPEGs, which are much smaller than PNGs for photos and artwork.
+    img.save(thumb_loc, "JPEG", quality=82, optimize=True, progressive=True)
 
 
 def _get_img_ext(fobj: BinaryIO) -> str:

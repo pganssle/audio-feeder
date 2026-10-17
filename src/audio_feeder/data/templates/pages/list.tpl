@@ -274,7 +274,7 @@ function toggle_hidden(entry_id) {
     {% for entry in entries %}
         <div class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
             <div class="cover_col" id="{{ entry.id }}">
-                <img src="{{ entry.cover_url if not entry.cover_url is sameas none else default_cover }}" class="cover_img" />
+                <img src="{{ entry.thumb_url if not entry.thumb_url is sameas none else default_cover }}" class="cover_img" />
             <button type="button" class="qr_button qr_link" popovertarget="qr-{{ entry.id }}" title="QR code" aria-label="QR code"><i class="fa fa-qrcode"></i></button>
             {{ qr_popover("qr-%s" % entry.id, entry.qr_img_url) }}
             </div>

@@ -126,8 +126,12 @@ def books():
 
     nav_generator = _book_nav_generator(len(entries), request.endpoint)
 
-    # Retrieve or populate the specific sort cache
-    arg_sort = (entry_filter, tuple(sorted(sort_args.items())))
+    # Retrieve or populate the specific sort cache. The sort order doesn't
+    # depend on the page, so every page shares the same sorted list.
+    arg_sort = (
+        entry_filter,
+        tuple(sorted((k, v) for k, v in sort_args.items() if k != "page")),
+    )
     if arg_sort not in entry_cache:
         entries = get_sorted_entries(entries, sort_args)
         entry_cache[arg_sort] = entries

@@ -6,10 +6,10 @@ import logging
 import os
 import textwrap
 import threading
-from collections.abc import Mapping, MutableSequence, Sequence
+from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
-from typing import Any, cast
+from typing import Any, TypeAlias, cast
 from urllib.parse import urlencode
 
 import attrs
@@ -25,6 +25,7 @@ from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
 from audio_feeder import resources
 from audio_feeder import rss_feeds as rf
+from audio_feeder import text_normalization as tn
 from audio_feeder.config import read_from_config
 from audio_feeder.file_location import FileLocation
 from audio_feeder.resolver import get_resolver
@@ -598,13 +599,29 @@ def get_paged_entries(entry_list, sort_args):
     return entry_list[start_loc:end_loc]
 
 
+EntryObjects: TypeAlias = tuple[oh.Entry, oh.Book, Sequence[oh.Author]]
+
+
 def get_sorted_entries(entry_list, sort_args):
     """
     Retrieve a list of entries, sorted according to the sort arguments.
     """
-    order_by = sort_args["orderBy"]
-    sort_ascending = sort_args["sortAscending"]
+    return sort_entry_objects(
+        get_entry_objects(entry_list),
+        order_by=sort_args["orderBy"],
+        ascending=sort_args["sortAscending"],
+    )
 
+
+def sort_entry_objects(
+    entry_objects: Iterable[EntryObjects], order_by: str, ascending: bool = True
+) -> Sequence[EntryObjects]:
+    """Sort (entry, book, authors) triples by one of the sort options.
+
+    Text fields (authors, series and titles) are sorted without regard to case
+    or accents, and with numbers in numerical order; see
+    :func:`text_normalization.sort_key`.
+    """
     # Default sort order is author
     if order_by == "author":
         sort_order = ["author", "series", "title", "date_added", "last_modified"]
@@ -614,28 +631,34 @@ def get_sorted_entries(entry_list, sort_args):
         sort_order = ["date_added", "last_modified", "author", "series", "title"]
     elif order_by == "last_modified":
         sort_order = ["last_modified", "date_added", "author", "series", "title"]
+    else:
+        raise ValueError(f"Unknown sort option: {order_by!r}")
 
-    def _sort_key(el_e):
+    def _sort_key(el_e: EntryObjects) -> tuple[Any, ...]:
         ent_obj, data_obj, auth_objs = el_e
-        keys = {}
+        keys: dict[str, Any] = {}
 
-        keys["author"] = [auth_obj.sort_name or auth_obj.name for auth_obj in auth_objs]
+        keys["author"] = tuple(
+            tn.sort_key(auth_obj.sort_name or auth_obj.name or "")
+            for auth_obj in auth_objs
+        )
 
-        keys["title"] = data_obj.title
-        if data_obj.series_name:
-            keys["series"] = (data_obj.series_name, data_obj.series_number)
+        keys["title"] = tn.sort_key(data_obj.title or "")
+        # Despite the type annotations, in practice the series name and number
+        # are a single string and integer.
+        series_name = cast(str | None, data_obj.series_name)
+        if series_name:
+            keys["series"] = (tn.sort_key(series_name), data_obj.series_number or 0)
         else:
-            keys["series"] = ("", 0)
+            keys["series"] = (tn.sort_key(""), 0)
 
         keys["date_added"] = ent_obj.date_added
         keys["last_modified"] = ent_obj.last_modified
 
         # Replace None with an empty string
-        return tuple(keys[k] or "" for k in sort_order)
+        return tuple("" if keys[k] is None else keys[k] for k in sort_order)
 
-    return sorted(
-        get_entry_objects(entry_list), key=_sort_key, reverse=not sort_ascending
-    )
+    return sorted(entry_objects, key=_sort_key, reverse=not ascending)
 
 
 def get_entry_objects(entry_list):

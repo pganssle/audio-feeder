@@ -21,8 +21,20 @@ Changelog entries
 User-facing changes should come with a changelog entry, which is managed with
 `scriv <https://scriv.readthedocs.io/>`_. Running ``tox -e changelog`` creates
 a new fragment in ``changelog.d/``; uncomment the section for the kind of
-change (Features, Bugfixes or Misc), describe the change in a sentence or two
-of reStructuredText, and commit it with the rest of your changes. When a
+change (Features, Bugfixes or Misc; Major for changes that everyone
+upgrading needs to know about, such as a database upgrade or a newer minimum
+Python version; or Breaking changes for changes that can break an existing
+installation or customization), describe the change in a sentence or two of
+reStructuredText, and commit it with the rest of your changes. End the entry
+with links to the pull request and any issues it fixes, like this:
+
+.. code-block:: rst
+
+    - Fixed ... (PR `#108 <https://github.com/pganssle/audio-feeder/pull/108>`__;
+      fixes `#5 <https://github.com/pganssle/audio-feeder/issues/5>`__)
+
+The links are anonymous (with two underscores), since the same number can
+appear more than once in a release's notes. When a
 release is made, the fragments are collected into ``CHANGELOG.rst`` with
 ``tox -e changelog -- collect --version <version>``, under a heading with the
 version and the release date (e.g. ``Version 0.6.2 (2022-12-03)``); that file

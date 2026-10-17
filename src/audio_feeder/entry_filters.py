@@ -3,7 +3,6 @@
 import collections
 import datetime
 import enum
-import unicodedata
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from pathlib import PurePosixPath
 from typing import Protocol, Self
@@ -11,6 +10,7 @@ from typing import Protocol, Self
 import attrs
 
 from . import object_handler as oh
+from . import text_normalization as tn
 from ._db_types import ID
 
 
@@ -64,12 +64,6 @@ def _parse_text(value: str | None) -> str | None:
     if value is None:
         return None
     return value.strip() or None
-
-
-def _normalize(text: str) -> str:
-    """Normalize text for case- and accent-insensitive comparison."""
-    decomposed = unicodedata.normalize("NFKD", text.casefold())
-    return "".join(c for c in decomposed if not unicodedata.combining(c))
 
 
 def entry_location(entry: oh.Entry) -> PurePosixPath:
@@ -399,8 +393,8 @@ class EntryFilter:
             return False
 
         if self.author is not None:
-            author = _normalize(self.author)
-            if not any(author in _normalize(name) for name in book.authors or ()):
+            author = tn.normalize(self.author)
+            if not any(author in tn.normalize(name) for name in book.authors or ()):
                 return False
 
         return True

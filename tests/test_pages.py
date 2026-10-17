@@ -13,7 +13,9 @@ import pytest
 
 from audio_feeder import app as af_app
 from audio_feeder import database_handler as dh
+from audio_feeder import object_handler as oh
 from audio_feeder import pages, updater
+from audio_feeder._db_types import ID
 
 from . import test_updater
 
@@ -37,6 +39,111 @@ def test_sortable_args_per_page(
     args: Mapping[str, str], expected_per_page: int
 ) -> None:
     assert pages.get_sortable_args(args)["perPage"] == expected_per_page
+
+
+def _entry_objects(
+    title: str | None,
+    authors: Sequence[tuple[str, str | None]] = (),
+    series: tuple[str, int | None] | None = None,
+) -> pages.EntryObjects:
+    """An (entry, book, authors) triple; authors are (name, sort_name) pairs."""
+    series_name, series_number = series if series is not None else (None, None)
+    return (
+        oh.Entry(id=ID(1), path=pathlib.Path("Book"), data_id=ID(1)),
+        oh.Book(
+            id=ID(1),
+            title=title,
+            # In practice these are a single string and integer
+            series_name=series_name,  # type: ignore[arg-type]
+            series_number=series_number,  # type: ignore[arg-type]
+        ),
+        tuple(
+            oh.Author(id=ID(i), name=name, sort_name=sort_name)
+            for i, (name, sort_name) in enumerate(authors)
+        ),
+    )
+
+
+def _sorted_titles(
+    entry_objects: Sequence[pages.EntryObjects], order_by: str, ascending: bool = True
+) -> Sequence[str | None]:
+    # Sort a reversed copy, so that a no-op sort can't pass
+    return [
+        book.title
+        for _, book, _ in pages.sort_entry_objects(
+            reversed(entry_objects), order_by=order_by, ascending=ascending
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "order_by, entry_objects",
+    [
+        pytest.param(
+            "author",
+            (
+                _entry_objects("Perdido Street Station", [("", "Miéville, China")]),
+                _entry_objects("Ghost in the Wires", [("", "Mitnick, Kevin")]),
+                # Lower case sorts with upper case, not after it
+                _entry_objects("Whatever", [("van der Whatever", None)]),
+                _entry_objects("Germinal", [("Émile Zola", "Zola, Émile")]),
+            ),
+            id="author",
+        ),
+        pytest.param(
+            "author",
+            (
+                _entry_objects("No Author"),
+                _entry_objects("Some Author", [("Someone", None)]),
+            ),
+            id="author-missing",
+        ),
+        pytest.param(
+            "author",
+            (
+                # Books with no series sort before books in a series
+                _entry_objects("Standalone", [("A", None)]),
+                _entry_objects("Jo's Boys", [("A", None)], ("Little Women", None)),
+                _entry_objects("Little Women", [("A", None)], ("Little Women", 2)),
+                _entry_objects("Little Men", [("A", None)], ("Little Women", 10)),
+                _entry_objects("Ma", [("A", None)], ("mainly", 1)),
+            ),
+            id="series",
+        ),
+        pytest.param(
+            "title",
+            (
+                _entry_objects(None),
+                _entry_objects("a Tale of Two Cities"),
+                _entry_objects("Book 2"),
+                _entry_objects("Book 10"),
+                _entry_objects("Émile"),
+                _entry_objects("Emile Zola"),
+            ),
+            id="title",
+        ),
+        pytest.param(
+            "title",
+            (
+                _entry_objects("EMILE"),
+                _entry_objects("Emile"),
+                _entry_objects("Émile"),
+            ),
+            id="title-tie",
+        ),
+    ],
+)
+def test_sort_entry_objects(
+    order_by: str, entry_objects: Sequence[pages.EntryObjects]
+) -> None:
+    expected = [book.title for _, book, _ in entry_objects]
+    assert _sorted_titles(entry_objects, order_by) == expected
+    assert _sorted_titles(entry_objects, order_by, ascending=False) == expected[::-1]
+
+
+def test_sort_entry_objects_invalid_order() -> None:
+    with pytest.raises(ValueError):
+        pages.sort_entry_objects([_entry_objects("Book")], order_by="color")
 
 
 @pytest.fixture

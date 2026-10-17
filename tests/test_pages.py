@@ -12,6 +12,7 @@ import threading
 import urllib.parse
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Mapping, Sequence
+from typing import Any
 
 import attrs
 import flask.testing
@@ -1265,3 +1266,26 @@ def test_broken_chapter_info_indicator(
 
         # The QR code is still for the chapters feed
         assert 'aria-label="QR code for the chapters feed"' in feed
+
+
+def test_derived_feed_file_removed_while_serving(
+    client: flask.testing.FlaskClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # When rendering finishes, a background thread deletes the rendered feed's
+    # file so that it's regenerated, which can happen right after the page has
+    # written it; the page still has to return the feed.
+    e_id = _entry_id(_entries(_books(client))["Frankenstein"])
+    write_text = pathlib.Path.write_text
+
+    def write_then_remove(self: pathlib.Path, *args: Any, **kwargs: Any) -> int:
+        written = write_text(self, *args, **kwargs)
+        if self.name == f"{e_id}-chapters.xml":
+            self.unlink()
+        return written
+
+    monkeypatch.setattr(pathlib.Path, "write_text", write_then_remove)
+    response = client.get(f"/rss/derived/{e_id}-chapters.xml")
+    assert response.status_code == 200
+    channel = ET.fromstring(response.data).find("channel")
+    assert channel is not None
+    assert channel.findall("item")

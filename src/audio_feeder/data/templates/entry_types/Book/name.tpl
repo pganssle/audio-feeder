@@ -1,1 +1,1 @@
-<span class="book_author">{{ author_ }}</span> - <span class="book_title">{{ title }}</span>
+{% if author_ %}<span class="book_author">{{ author_ }}</span> - {% endif %}<span class="book_title">{{ title }}</span>

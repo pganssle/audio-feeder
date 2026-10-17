@@ -260,7 +260,7 @@ There's nothing here.
 {% endif %}
 </div>
 <div class="entry_body">
-<h2 class="entry_title"><span class="book_title">{{ entry.title }}</span> <span class="book_author">{{ entry.author }}</span></h2>
+<h2 class="entry_title"><span class="book_title">{{ entry.title }}</span>{% if entry.author %} <span class="book_author">{{ entry.author }}</span>{% endif %}</h2>
 {{ entry.meta }}
 <ul class="feeds">
 {{ feed(entry, "Original", entry.rss_url, "qr-%s" % entry.id, entry.qr_img_url) }}

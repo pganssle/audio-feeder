@@ -95,8 +95,12 @@ look like this:
         └── Nonfiction/
             └── Edith Wharton - The Writing of Fiction/
 
-At the moment, a book directory whose name doesn't match one of these formats
-makes the update fail, so it's worth checking the names before you start.
+A book directory whose name doesn't match one of these formats is still added,
+but with the whole directory name as its title and no author, and the update
+logs a warning naming the directory. Its metadata is still looked up from
+Google Books by title alone, but the author is never filled in from that
+search, since it may well have matched a different book. To give the book an
+author, rename the directory and update again.
 
 If the directory contains an image (a ``.png``, ``.jpg``, ``.svg``, ``.gif``,
 ``.tif`` or ``.bmp`` file), it's used as the book's cover, preferring a file

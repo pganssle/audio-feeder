@@ -1,1 +1,1 @@
-{%if authors | length > 1 %}{{ authors[0:-1] | join(', ') }} and {{authors[-1]}}{%else%}{{authors[0]}}{%endif%}
+{%if authors | length > 1 %}{{ authors[0:-1] | join(', ') }} and {{authors[-1]}}{%elif authors %}{{authors[0]}}{%endif%}

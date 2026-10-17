@@ -2,6 +2,8 @@
    room. */
 
 :root {
+    /* There's a dark version too */
+    color-scheme: light dark;
     --paper: #f3eee4;
     --surface: #fbf8f1;
     --ink: #221f1a;
@@ -29,8 +31,10 @@
     --display-style: italic;
 }
 
+/* The dark version, for the system's dark mode (unless light is chosen in the
+   menu) and for choosing dark; see main.css. Keep the two the same. */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:where(:not([data-scheme="light"])) {
         --paper: #1b1a17;
         --surface: #25231f;
         --ink: #ebe5d8;
@@ -45,6 +49,22 @@
         --cloth-lightness: 28%;
         --cloth-ink: #e9e1cf;
     }
+}
+
+:root:where([data-scheme="dark"]) {
+    --paper: #1b1a17;
+    --surface: #25231f;
+    --ink: #ebe5d8;
+    --muted: #a69e90;
+    --rule: #3d3933;
+    --accent: #7fc3da;
+    --accent-ink: #0f1a1e;
+    --exclude: #e08a62;
+    --exclude-ink: #1b1a17;
+    --bar: #0f0e0c;
+    --bar-ink: #ebe5d8;
+    --cloth-lightness: 28%;
+    --cloth-ink: #e9e1cf;
 }
 
 .wordmark {

@@ -1,13 +1,15 @@
 {# audio-feeder's logo: a book broadcasting, drawn in a 32x24 box #}
 {% set logo_path = "M3 4h9a2 2 0 0 1 2 2v14H5a2 2 0 0 1-2-2zm0 14a2 2 0 0 1 2-2h9M18 9a4 4 0 0 1 0 6m3-9a8.5 8.5 0 0 1 0 12m3-15a13 13 0 0 1 0 18" %}
+{# The colour scheme chosen in the menu, if the theme has both #}
+{% set forced_scheme = scheme if theme_has_schemes else none %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"{% if forced_scheme %} data-scheme="{{ forced_scheme }}"{% endif %}>
 <head>
 <meta charset="utf-8">
 <title>{% block title %}{{ pagetitle }}{% endblock %}</title>
 <meta name="description" content="List of content served">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="{{ forced_scheme or "light dark" }}">
 {% for stylesheet_link in stylesheet_links or () %}
 <link rel="stylesheet" href="{{ stylesheet_link }}">
 {% endfor %}
@@ -63,8 +65,30 @@ document.addEventListener("change", (event) => {
 {% endfor %}
 <div class="drawer_header">
 <h2>Menu</h2>
-<p class="toggle_legend"><span class="inc_key">+</span> include <span class="exc_key">&minus;</span> exclude</p>
 <button type="button" class="topnav-button drawer_close" popovertarget="browse-drawer" popovertargetaction="hide" aria-label="Close"><svg class="icon"><use href="#i-close"/></svg></button>
+</div>
+{# The theme and colour scheme have their own form (below), since forms can't be nested #}
+<div class="appearance" role="group" aria-label="Appearance">
+<label for="theme-select">Theme</label>
+<select id="theme-select" name="theme" form="theme-form">
+<option value="default"{{ " selected" if not theme else "" }}>Classic</option>
+{% for theme_name, theme_label in themes %}
+<option value="{{ theme_name|e }}"{{ " selected" if theme_name == theme else "" }}>{{ theme_label|e }}</option>
+{% endfor %}
+</select>
+{% if theme_has_schemes %}
+<fieldset class="scheme_toggle">
+<legend>Colour scheme</legend>
+{% for value in ("light", "dark", "system") %}
+<input type="radio" id="scheme-{{ value }}" name="scheme" value="{{ value }}" form="theme-form"{{ " checked" if value == (scheme or "system") else "" }}><label for="scheme-{{ value }}">{{ value|capitalize }}</label>
+{% endfor %}
+</fieldset>
+{% endif %}
+<button type="submit" form="theme-form">Use</button>
+</div>
+<div class="browse_heading">
+<h3>Browse</h3>
+<p class="toggle_legend"><span class="inc_key">+</span> include <span class="exc_key">&minus;</span> exclude</p>
 </div>
 {% if folder_tree or extra_folders %}
 <details class="drawer_section" open>
@@ -128,20 +152,6 @@ of the included tags</p>
 </div>
 </details>
 {% endif %}
-{# The theme has its own form (below), since forms can't be nested #}
-<details class="drawer_section">
-<summary>Appearance</summary>
-<div class="drawer_section_body theme_picker">
-<label for="theme-select">Theme</label>
-<select id="theme-select" name="theme" form="theme-form">
-<option value="default"{{ " selected" if not theme else "" }}>Classic</option>
-{% for theme_name, theme_label in themes %}
-<option value="{{ theme_name|e }}"{{ " selected" if theme_name == theme else "" }}>{{ theme_label|e }}</option>
-{% endfor %}
-</select>
-<button type="submit" form="theme-form">Use</button>
-</div>
-</details>
 <div class="drawer_footer">
 <a class="drawer_clear" href="{{ clear_filters_url|e }}">Clear filters</a>
 <button type="submit" class="primary">Apply</button>

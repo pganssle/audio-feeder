@@ -888,6 +888,170 @@ def test_custom_theme(
     assert _stylesheets(_books(client))[-1].endswith("/css/themes/my_own_theme.css")
 
 
+def _scheme_radios(page: str) -> dict[str, bool]:
+    """The colour scheme choices in the menu, and whether each is checked."""
+    parser = _InputParser()
+    parser.feed(page)
+    return {
+        attrs["value"] or "": "checked" in attrs
+        for attrs in parser.inputs
+        if attrs.get("type") == "radio" and attrs.get("name") == "scheme"
+    }
+
+
+def _html_scheme(page: str) -> str | None:
+    """The colour scheme forced on the page, if any."""
+    match = re.search(r'<html lang="en"(?: data-scheme="([^"]*)")?>', page)
+    assert match is not None
+    return match.group(1)
+
+
+def _assert_scheme(page: str, scheme: str | None) -> None:
+    """Check that the page is in ``scheme``, or follows the system for None."""
+    assert _html_scheme(page) == scheme
+    color_scheme = scheme or "light dark"
+    assert f'<meta name="color-scheme" content="{color_scheme}">' in page
+    checked = [
+        value for value, is_checked in _scheme_radios(page).items() if is_checked
+    ]
+    assert checked == [scheme or "system"]
+
+
+def test_scheme_follows_system_by_default(client: flask.testing.FlaskClient) -> None:
+    page = _books(client)
+    assert list(_scheme_radios(page)) == ["light", "dark", "system"]
+    _assert_scheme(page, None)
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+def test_choose_scheme(client: flask.testing.FlaskClient, scheme: str) -> None:
+    # Choosing a colour scheme keeps the rest of the URL, but drops the
+    # scheme, which is stored in a cookie
+    response = client.get(f"/books?scheme={scheme}&orderBy=title")
+    assert response.status_code == 302
+    assert response.location == "/books?orderBy=title"
+
+    cookie = client.get_cookie("scheme")
+    assert cookie is not None
+    assert cookie.value == scheme
+    _assert_scheme(_books(client), scheme)
+
+
+def test_choose_system_scheme(client: flask.testing.FlaskClient) -> None:
+    client.get("/books?scheme=dark")
+    _assert_scheme(_books(client), "dark")
+
+    client.get("/books?scheme=system")
+    assert client.get_cookie("scheme") is None
+    _assert_scheme(_books(client), None)
+
+
+@pytest.mark.parametrize("scheme", ["", "purple", "Dark", "default"])
+def test_unknown_scheme_is_ignored(
+    client: flask.testing.FlaskClient, scheme: str
+) -> None:
+    client.get("/books?scheme=dark")
+    response = client.get("/books?" + urlencode({"scheme": scheme}))
+    assert response.status_code == 302
+    assert response.location == "/books"
+    _assert_scheme(_books(client), "dark")
+
+
+@pytest.mark.parametrize("scheme", ["", "purple", "system"])
+def test_unknown_scheme_cookie_is_ignored(
+    client: flask.testing.FlaskClient, scheme: str
+) -> None:
+    client.set_cookie("scheme", scheme)
+    _assert_scheme(_books(client), None)
+
+
+def test_choose_theme_and_scheme(client: flask.testing.FlaskClient) -> None:
+    # The theme and the colour scheme are chosen with the same form
+    response = client.get("/books?theme=shelf&scheme=dark&orderBy=title")
+    assert response.status_code == 302
+    assert response.location == "/books?orderBy=title"
+
+    page = _books(client)
+    assert _stylesheets(page)[-1].endswith("/css/themes/shelf.css")
+    _assert_scheme(page, "dark")
+
+
+@pytest.mark.parametrize(
+    "theme, has_schemes",
+    [
+        ("default", True),
+        ("shelf", True),
+        ("plain", True),
+        ("card_catalog", False),
+        ("tape_deck", False),
+    ],
+)
+def test_scheme_toggle_only_for_themes_with_schemes(
+    client: flask.testing.FlaskClient, theme: str, has_schemes: bool
+) -> None:
+    client.get("/books?scheme=dark")
+    client.get(f"/books?theme={theme}")
+    page = _books(client)
+    if has_schemes:
+        _assert_scheme(page, "dark")
+    else:
+        # A theme with only one colour scheme has no choice to offer, and
+        # isn't forced into the other one
+        assert _scheme_radios(page) == {}
+        assert _html_scheme(page) is None
+        assert '<meta name="color-scheme" content="light dark">' in page
+
+    # The chosen scheme is kept for when the theme changes back
+    client.get("/books?theme=default")
+    _assert_scheme(_books(client), "dark")
+
+
+@pytest.mark.parametrize(
+    "css, has_schemes",
+    [
+        (":root { color-scheme: light dark; --accent: hotpink; }", True),
+        (":root {\n    color-scheme:dark   light;\n}", True),
+        (":root { --accent: hotpink; }", False),
+        (":root { color-scheme: light; }", False),
+        (":root { color-scheme: dark; }", False),
+        ("/* color-scheme: light dark */ :root { color-scheme: dark; }", False),
+    ],
+)
+def test_custom_theme_schemes(
+    client: flask.testing.FlaskClient,
+    testgen_config: pathlib.Path,
+    css: str,
+    has_schemes: bool,
+) -> None:
+    # A theme offers the choice of colour scheme by saying that it has both
+    themes_dir = testgen_config / "static/css/themes"
+    themes_dir.mkdir(parents=True, exist_ok=True)
+    (themes_dir / "my_own_theme.css").write_text(css)
+
+    client.get("/books?theme=my_own_theme&scheme=light")
+    page = _books(client)
+    assert bool(_scheme_radios(page)) == has_schemes
+    assert _html_scheme(page) == ("light" if has_schemes else None)
+
+
+def test_appearance_is_at_top_of_menu(client: flask.testing.FlaskClient) -> None:
+    page = _books(client, folder="audiobooks/Fiction")
+    drawer = _form(page, "browse-drawer")
+    header = drawer.index('<div class="drawer_header">')
+    theme_select = drawer.index(
+        '<select id="theme-select" name="theme" form="theme-form">'
+    )
+    assert header < theme_select < drawer.index("<summary>Folders</summary>")
+
+    # The theme and colour scheme (the select, three radio buttons and the
+    # button) are submitted with the theme form rather than with the filters,
+    # which the theme form keeps
+    appearance = drawer[theme_select : drawer.index('<div class="browse_heading">')]
+    assert appearance.count('form="theme-form"') == 5
+    assert '<button type="submit" form="theme-form">Use</button>' in appearance
+    assert ("folder", "audiobooks/Fiction") in _hidden(_form(page, "theme-form"))
+
+
 def test_stale_stylesheets_are_not_used(
     client: flask.testing.FlaskClient, testgen_config: pathlib.Path
 ) -> None:

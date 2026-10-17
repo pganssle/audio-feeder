@@ -77,12 +77,21 @@ def books():
     The main page for listing audiobooks
     """
     # Forms submit their empty fields as empty parameters, which have no
-    # effect, so redirect to the same page without them for a tidier URL.
+    # effect, so redirect to the same page without them for a tidier URL. The
+    # theme picker sets the theme in a cookie, so it's also dropped.
     params = list(request.args.items(multi=True))
-    if any(not value for _, value in params):
-        nonempty = [(name, value) for name, value in params if value]
-        query = "?" + urlencode(nonempty) if nonempty else ""
-        return flask.redirect(request.path + query)
+    if "theme" in request.args or any(not value for _, value in params):
+        kept = [(name, value) for name, value in params if value and name != "theme"]
+        query = "?" + urlencode(kept) if kept else ""
+        response = flask.redirect(request.path + query)
+        if "theme" in request.args:
+            _set_theme_cookie(response, request.args["theme"])
+        return response
+
+    theme = request.cookies.get(THEME_COOKIE)
+    themes = get_themes()
+    if theme not in themes:
+        theme = None
 
     sort_args = get_sortable_args(request.args)
     try:
@@ -228,7 +237,11 @@ def books():
         "filter_count": entry_filter.criteria_count(),
         "breadcrumbs": _breadcrumbs(entry_filter, sort_args, root),
         "stylesheet_links": get_css_links(),
-        "favicon": None,
+        "site_title": read_from_config("site_title"),
+        "site_logo": _site_logo_url(),
+        "themes": [(name, _theme_label(name)) for name in themes],
+        "theme": theme,
+        "theme_link": themes[theme] if theme is not None else None,
     }
 
     # Apply the template
@@ -784,13 +797,15 @@ def get_sortable_args(args):
 
 @functools.cache
 def get_list_template() -> Template:
-    template = _get_template(
+    # The page is sent on every request, so drop the indentation and newlines
+    # around template tags, which would otherwise make up a lot of it.
+    return _get_template(
         "pages_templates_loc",
         "list.tpl",
         resource_default="audio_feeder.data.templates.pages",
+        trim_blocks=True,
+        lstrip_blocks=True,
     )
-
-    return template
 
 
 @functools.cache
@@ -803,48 +818,117 @@ def get_feed_template() -> Template:
 
 
 def _get_template(
-    loc_entry: str, template_name: str, resource_default: str | None = None
+    loc_entry: str,
+    template_name: str,
+    resource_default: str | None = None,
+    **template_options: Any,
 ) -> Template:
     template_loc = read_from_config(loc_entry) / template_name
 
     if template_loc.exists():
-        return Template(template_loc.read_text())
+        return Template(template_loc.read_text(), **template_options)
     elif resource_default is not None:
-        return Template(resources.get_text_resource(resource_default, template_name))
+        return Template(
+            resources.get_text_resource(resource_default, template_name),
+            **template_options,
+        )
     else:
         raise FileNotFoundError(f"Could not find template: {template_loc}")
 
 
-def get_renderer(rss_renderer=False):
-    renderer = getattr(get_renderer, "_renderer", {})
-    if rss_renderer not in renderer:
-        resolver = get_resolver()
+@cache_utils.register_function_cache("misc")
+@functools.cache
+def get_renderer(rss_renderer: bool = False) -> pg.EntryRenderer:
+    kwargs = {}
+    if rss_renderer:
+        kwargs["entry_templates_config"] = "rss_entry_templates_loc"
 
-        kwargs = {}
-        if rss_renderer:
-            kwargs["entry_templates_config"] = "rss_entry_templates_loc"
-
-        renderer[rss_renderer] = pg.EntryRenderer(resolver=resolver, **kwargs)
-
-        get_renderer._renderer = renderer
-
-    return renderer[rss_renderer]
+    return pg.EntryRenderer(resolver=get_resolver(), **kwargs)
 
 
+def _site_logo_url() -> str | None:
+    """The URL of the logo in the top bar.
+
+    This is ``None`` for audio-feeder's own logo, and the empty string for no
+    logo.
+    """
+    logo: str | None = read_from_config("site_logo")
+    if not logo or "://" in logo or logo.startswith("/"):
+        return logo
+    return get_resolver().resolve_static(logo).url
+
+
+THEME_COOKIE = "theme"
+_THEMES_DIR = "themes"
+
+
+def _set_theme_cookie(response: Response, theme: str) -> None:
+    if theme in get_themes():
+        # The theme is a preference for this browser, so it lasts a long time
+        response.set_cookie(
+            THEME_COOKIE, theme, max_age=10 * 365 * 24 * 60 * 60, samesite="Lax"
+        )
+    else:
+        # Choosing the default theme (or one that doesn't exist) goes back to
+        # the default
+        response.delete_cookie(THEME_COOKIE, samesite="Lax")
+
+
+def _theme_label(name: str) -> str:
+    return name.replace("_", " ").capitalize()
+
+
+@cache_utils.register_function_cache("misc")
+@functools.cache
+def _install_default_css() -> None:
+    """Copy the package's stylesheets into the static directory."""
+    if read_from_config("disable_default_css"):
+        return
+
+    css_path = get_resolver().resolve_static(read_from_config("css_loc")).path
+    assert css_path is not None
+    resources.update_resource("audio_feeder.data.css", css_path)
+
+
+@cache_utils.register_function_cache("misc")
+@functools.cache
+def get_themes() -> Mapping[str, str]:
+    """The available themes, mapped to the URL of each one's stylesheet.
+
+    Themes are the stylesheets in the ``themes`` directory of the CSS
+    directory, which has the themes that come with audio-feeder, and to which
+    more can be added. A theme is applied on top of the default stylesheets.
+    """
+    _install_default_css()
+
+    resolver = get_resolver()
+    themes_loc = os.path.join(read_from_config("css_loc"), _THEMES_DIR)
+    themes_path = resolver.resolve_static(themes_loc).path
+    if themes_path is None or not themes_path.is_dir():
+        return {}
+
+    return {
+        theme_path.stem: resolver.resolve_static(
+            os.path.join(themes_loc, theme_path.name)
+        ).url
+        for theme_path in sorted(themes_path.glob("*.css"))
+    }
+
+
+@cache_utils.register_function_cache("misc")
 @functools.cache
 def get_css_links() -> Sequence[str]:
     resolver = get_resolver()
     css_loc = read_from_config("css_loc")
     css_locs: MutableSequence[str] = []
     if not read_from_config("disable_default_css"):
-        static_path = read_from_config("static_media_path")
-        default_loc = resolver.resolve_static(css_loc)
-        default_path = default_loc.path
-        assert default_path is not None
-        resources.update_resource("audio_feeder.data.css", default_path)
+        _install_default_css()
+        # Only the package's own stylesheets are used, since the directory can
+        # have stylesheets left over from older versions.
         css_locs.extend(
-            os.fspath(fpath.relative_to(static_path))
-            for fpath in default_path.rglob("*.css")
+            os.path.join(css_loc, child.name)
+            for child in resources.get_children("audio_feeder.data.css")
+            if child.is_file() and child.name.endswith(".css")
         )
 
     css_locs.extend(

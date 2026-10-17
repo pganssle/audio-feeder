@@ -1,0 +1,93 @@
+/* Plain: the browser's own look, with blue links and serif text, light or
+   dark to match the system. */
+
+:root {
+    --paper: Canvas;
+    --surface: Canvas;
+    --ink: CanvasText;
+    /* GrayText is too faint to read, so this is a mix of the text and
+       background colours instead */
+    --muted: color-mix(in srgb, CanvasText 62%, Canvas);
+    --rule: GrayText;
+    --accent: LinkText;
+    --accent-ink: Canvas;
+    --exclude: #c0392b;
+    --exclude-ink: #ffffff;
+    --bar: Canvas;
+    --bar-ink: CanvasText;
+    --cloth-saturation: 0%;
+    --cloth-lightness: 45%;
+
+    --font-body: serif;
+    --font-display: serif;
+    --measure: 80rem;
+    --cover-width: 5rem;
+    --entry-background: transparent;
+    --entry-background-alt: transparent;
+    --entry-padding: 1.25rem 0;
+    --entry-rule: var(--rule);
+    --radius: 0;
+}
+
+body {
+    line-height: 1.4;
+}
+
+.topnav {
+    border-bottom: 1px solid var(--rule);
+}
+
+.wordmark {
+    font-style: normal;
+    font-weight: 700;
+}
+
+.entry_title, .drawer_header h2, .drawer_section > summary {
+    font-weight: 700;
+}
+
+.book_author {
+    font-style: normal;
+}
+
+/* The feeds are plain links, like [Original] [QR] */
+.feeds li, .qr_button {
+    border: 0;
+    background: none;
+}
+
+.feeds li::before {
+    content: "[";
+}
+
+.feeds li::after {
+    content: "]";
+}
+
+.feeds li::before, .feeds li::after {
+    align-self: center;
+}
+
+.feeds a {
+    padding: 0;
+    text-decoration: underline;
+}
+
+.qr_button {
+    padding: 0 0 0 0.3rem;
+    color: var(--accent);
+}
+
+.cover_blank {
+    border: 1px solid var(--rule);
+    background: none;
+    box-shadow: none;
+    color: var(--ink);
+}
+
+button.primary {
+    border: 1px solid ButtonBorder;
+    background: ButtonFace;
+    color: ButtonText;
+    font-weight: 400;
+}

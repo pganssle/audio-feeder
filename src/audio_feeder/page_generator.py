@@ -72,6 +72,12 @@ class EntryRenderer:
 
         out["description"] = type_dict["description"].render(**data_dict)
 
+        # Any other templates for this type (e.g. the title or the metadata
+        # shown on the book list) are available to the page by name.
+        for name, template in type_dict.items():
+            if name not in out:
+                out[name] = template.render(**data_dict)
+
         out["cover_url"] = None
         cover_path = None
 

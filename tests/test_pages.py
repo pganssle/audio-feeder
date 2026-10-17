@@ -2,11 +2,12 @@
 
 import datetime
 import html
+import html.parser
 import pathlib
 import re
 import threading
 from collections.abc import Iterator, Mapping, Sequence
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlencode
 
 import flask.testing
 import pytest
@@ -179,24 +180,39 @@ def _listed(page: str) -> set[str]:
     }
 
 
+class _InputParser(html.parser.HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.inputs: list[Mapping[str, str | None]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "input":
+            self.inputs.append(dict(attrs))
+
+
+def _checkbox_inputs(page: str, name: str) -> list[Mapping[str, str | None]]:
+    """The attributes of the checkboxes named ``name``, in order."""
+    parser = _InputParser()
+    parser.feed(page)
+    return [
+        attrs
+        for attrs in parser.inputs
+        if attrs.get("type") == "checkbox" and attrs.get("name") == name
+    ]
+
+
 def _checked(page: str, name: str) -> set[str]:
     """The values of the checked checkboxes named ``name``."""
     return {
-        html.unescape(value)
-        for value in re.findall(
-            rf'<input type="checkbox" name="{name}" value="([^"]*)" checked>', page
-        )
+        attrs["value"] or ""
+        for attrs in _checkbox_inputs(page, name)
+        if "checked" in attrs
     }
 
 
 def _checkboxes(page: str, name: str) -> list[str]:
     """The values of all the checkboxes named ``name``, in order."""
-    return [
-        html.unescape(value)
-        for value in re.findall(
-            rf'<input type="checkbox" name="{name}" value="([^"]*)"', page
-        )
-    ]
+    return [attrs["value"] or "" for attrs in _checkbox_inputs(page, name)]
 
 
 def _folder_counts(page: str) -> dict[str, int]:
@@ -523,7 +539,7 @@ def test_no_page_navigation_without_results(
 
 def _nav_items(page: str) -> list[str]:
     """The items in the first page navigation bar: page numbers or "…"."""
-    match = re.search(r'<div class="nav_links">(.*?)</div>', page, re.S)
+    match = re.search(r'<span class="nav_links">(.*?)</span>\n', page, re.S)
     assert match is not None
     return re.sub(r"<[^>]*>", " ", match.group(1)).split()
 
@@ -544,13 +560,13 @@ def test_page_navigation_ellipsis(
     page = _books(client, perPage="1", page=current)
     assert _nav_items(page) == expected
     # The ellipsis isn't a link, and isn't marked as the current page either
-    assert ('<span class="nav_gap">…</span>' in page) is ("…" in expected)
+    assert ('class="nav_gap" aria-hidden="true">…</span>' in page) is ("…" in expected)
     assert not re.search(rf'class="nav_link"[^>]*page={current}\D', page)
 
 
 def _page_jump(page: str) -> str:
     forms = re.findall(
-        r'<form class="page_jump" method="get" action="/books">(.*?)</form>',
+        r'<form class="page_jump" [^>]*action="/books" popover>(.*?)</form>',
         page,
         re.S,
     )
@@ -560,11 +576,20 @@ def _page_jump(page: str) -> str:
 
 
 def _page_options(form: str) -> list[tuple[str, bool, str]]:
-    """The (value, selected, label) of each option in the page jump menu."""
+    """The (value, selected, label) of each page in the page jump menu.
+
+    Labels are written as e.g. "1. Ab → Cd".
+    """
     return [
-        (value, bool(selected), html.unescape(label))
-        for value, selected, label in re.findall(
-            r'<option value="(\d+)"( selected)?>([^<]*)</option>', form
+        (
+            value,
+            bool(current),
+            html.unescape(f"{number}. {start}" + (f" → {end}" if end else "")),
+        )
+        for value, current, number, start, end in re.findall(
+            r'<button name="page" value="(\d+)"( aria-current="page")?>'
+            r"<b>(\d+)</b><span>([^<]*)(?:<i>([^<]*)</i>)?</span></button>",
+            form,
         )
     ]
 
@@ -578,8 +603,11 @@ def test_page_jump_lists_every_page(client: flask.testing.FlaskClient) -> None:
         ("2", False, "2. Little M → Little W"),
         ("3", False, "3. The I → The W"),
     ]
-    assert '<select name="page">' in form
-    assert '<button type="submit">Go</button>' in form
+    # Each page is its own button, so the menu needs no JavaScript
+    assert form.count('name="page"') == len(_page_options(form))
+
+    # The menu's button shows the current page's range
+    assert '<span>Fr<i>Ho</i></span><svg class="icon">' in page
 
 
 def test_page_jump_keeps_filters(client: flask.testing.FlaskClient) -> None:
@@ -696,3 +724,218 @@ def test_qr_codes_are_popovers(client: flask.testing.FlaskClient) -> None:
 
     # Each feed has its own QR code
     assert len(set(popovers.values())) == len(popovers)
+
+
+def _entries(page: str) -> dict[str, str]:
+    """The markup of each book on a page, by title."""
+    return {
+        html.unescape(title): entry
+        for entry in re.findall(r'<article class="entry_row".*?</article>', page, re.S)
+        for title in re.findall(r'<span class="book_title">([^<]*)</span>', entry)
+    }
+
+
+def test_covers(
+    client: flask.testing.FlaskClient, testgen_config: pathlib.Path
+) -> None:
+    entries = _entries(_books(client))
+    assert entries.keys() == set(FICTION + NONFICTION)
+
+    static_path = testgen_config / "static"
+    database = dh.get_database()
+    shown_sizes = {}
+    for title, entry in entries.items():
+        entry_id = re.search(r'data-id="(\d+)"', entry)
+        assert entry_id is not None
+        cover_images = database["entries"][int(entry_id.group(1))].cover_images
+        src = re.search(r'<img src="([^"]*)" class="cover_img"', entry)
+
+        if not cover_images:
+            # Books without a cover get one with their title on it
+            assert src is None
+            assert (
+                f'class="cover_img cover_blank" aria-hidden="true">'
+                f"<span>{html.escape(title)}</span>"
+            ) in entry
+            continue
+
+        # The list shows the cover or its thumbnail, whichever is smaller
+        assert src is not None
+        shown = static_path / unquote(src.group(1).split("/static/", 1)[1])
+        cover = static_path / cover_images[0]
+        thumbnail = (
+            static_path / f"images/entry_cover_cache/{entry_id.group(1)}-thumb.jpg"
+        )
+        assert shown in (cover, thumbnail)
+        assert shown.stat().st_size == min(
+            cover.stat().st_size, thumbnail.stat().st_size
+        )
+        shown_sizes[shown] = shown.stat().st_size
+
+    # The test books include ones without covers, and ones where the cover
+    # and the thumbnail are each the smaller one
+    assert 0 < len(shown_sizes) < len(entries)
+    assert any(path.name.endswith("-thumb.jpg") for path in shown_sizes)
+    assert not all(path.name.endswith("-thumb.jpg") for path in shown_sizes)
+
+
+def test_book_details(client: flask.testing.FlaskClient) -> None:
+    entry = _entries(_books(client))["Little Men"]
+    assert '<span class="book_author">Louisa May Alcott</span>' in entry
+    assert '<li class="series_data">Little Women, book 2</li>' in entry
+
+
+def test_minimal_javascript(client: flask.testing.FlaskClient) -> None:
+    # Everything but keeping the include and exclude toggles for a folder or
+    # tag exclusive of each other works without JavaScript.
+    page = _books(client)
+    assert page.count("<script") == 1
+    assert not re.search(r"\son[a-z]+=|javascript:", page)
+
+
+def _stylesheets(page: str) -> list[str]:
+    return re.findall(r'<link rel="stylesheet" href="([^"]*)">', page)
+
+
+def _theme_options(page: str) -> dict[str, str]:
+    select = re.search(
+        r'<select id="theme-select" name="theme" form="theme-form">(.*?)</select>',
+        page,
+        re.S,
+    )
+    assert select is not None
+    return dict(
+        re.findall(r'<option value="([^"]*)"[^>]*>([^<]*)</option>', select.group(1))
+    )
+
+
+def test_theme_choices(client: flask.testing.FlaskClient) -> None:
+    assert _theme_options(_books(client)) == {
+        "default": "Classic",
+        "card_catalog": "Card catalog",
+        "plain": "Plain",
+        "shelf": "Shelf",
+        "tape_deck": "Tape deck",
+    }
+
+
+@pytest.mark.parametrize("theme", ["card_catalog", "plain", "shelf", "tape_deck"])
+def test_choose_theme(
+    client: flask.testing.FlaskClient, testgen_config: pathlib.Path, theme: str
+) -> None:
+    default_stylesheets = _stylesheets(_books(client))
+
+    # Choosing a theme keeps the rest of the URL, but drops the theme, which is
+    # stored in a cookie
+    response = client.get(f"/books?theme={theme}&orderBy=title")
+    assert response.status_code == 302
+    assert response.location == "/books?orderBy=title"
+
+    page = _books(client)
+    *stylesheets, theme_stylesheet = _stylesheets(page)
+    assert stylesheets == default_stylesheets
+    assert theme_stylesheet.endswith(f"/css/themes/{theme}.css")
+    assert (testgen_config / f"static/css/themes/{theme}.css").exists()
+    assert f'<option value="{theme}" selected>' in page
+
+
+def test_choose_default_theme(client: flask.testing.FlaskClient) -> None:
+    default_stylesheets = _stylesheets(_books(client))
+    client.get("/books?theme=plain")
+    assert _stylesheets(_books(client)) != default_stylesheets
+
+    client.get("/books?theme=default")
+    page = _books(client)
+    assert _stylesheets(page) == default_stylesheets
+    assert '<option value="default" selected>' in page
+
+
+@pytest.mark.parametrize("theme", ["", "nonexistent", "../main"])
+def test_unknown_theme_is_ignored(
+    client: flask.testing.FlaskClient, theme: str
+) -> None:
+    default_stylesheets = _stylesheets(_books(client))
+    client.set_cookie("theme", theme)
+    assert _stylesheets(_books(client)) == default_stylesheets
+
+
+def test_custom_theme(
+    client: flask.testing.FlaskClient, testgen_config: pathlib.Path
+) -> None:
+    # Themes added to the themes directory can be chosen like the built-in ones
+    themes_dir = testgen_config / "static/css/themes"
+    themes_dir.mkdir(parents=True, exist_ok=True)
+    (themes_dir / "my_own_theme.css").write_text(":root { --accent: hotpink; }")
+
+    assert _theme_options(_books(client))["my_own_theme"] == "My own theme"
+    client.get("/books?theme=my_own_theme")
+    assert _stylesheets(_books(client))[-1].endswith("/css/themes/my_own_theme.css")
+
+
+def test_stale_stylesheets_are_not_used(
+    client: flask.testing.FlaskClient, testgen_config: pathlib.Path
+) -> None:
+    # Stylesheets left over from older versions aren't included in the page
+    css_dir = testgen_config / "static/css"
+    css_dir.mkdir(parents=True, exist_ok=True)
+    (css_dir / "fontawesome-subset.css").write_text(".fa { color: red; }")
+
+    stylesheets = _stylesheets(_books(client))
+    assert stylesheets
+    assert not any("fontawesome" in stylesheet for stylesheet in stylesheets)
+
+
+def _wordmark(page: str) -> str:
+    match = re.search(r'<a class="wordmark" href="/books">(.*?)</a>', page)
+    assert match is not None
+    return match.group(1)
+
+
+@pytest.mark.parametrize(
+    "site_logo, expected_logo",
+    [
+        # audio-feeder's own logo
+        (None, '<svg class="icon logo" aria-hidden="true"><use href="#i-logo"/></svg>'),
+        # No logo
+        ("", ""),
+        # Paths are relative to the static directory, and URLs are used as-is
+        (
+            "images/logo.png",
+            '<img class="logo" src="http://localhost:80/static/images/logo.png" alt="">',
+        ),
+        (
+            "https://example.com/logo.svg",
+            '<img class="logo" src="https://example.com/logo.svg" alt="">',
+        ),
+    ],
+)
+def test_site_title_and_logo(
+    client: flask.testing.FlaskClient,
+    monkeypatch: pytest.MonkeyPatch,
+    site_logo: str | None,
+    expected_logo: str,
+) -> None:
+    settings = {"site_title": "Our <Audiobooks>", "site_logo": site_logo}
+    read_from_config = pages.read_from_config
+    monkeypatch.setattr(
+        pages,
+        "read_from_config",
+        lambda field: settings[field] if field in settings else read_from_config(field),
+    )
+
+    page = _books(client)
+    assert _wordmark(page) == f"{expected_logo}<span>Our &lt;Audiobooks&gt;</span>"
+
+    # The logo is also the favicon
+    favicons = re.findall(r'<link rel="icon"[^>]* href="([^"]*)">', page)
+    if site_logo is None:
+        assert len(favicons) == 1
+        assert favicons[0].startswith("data:image/svg+xml,")
+    elif site_logo:
+        assert favicons == [re.search(r'src="([^"]*)"', expected_logo).group(1)]
+    else:
+        assert favicons == []
+
+
+def test_default_site_title(client: flask.testing.FlaskClient) -> None:
+    assert _wordmark(_books(client)).endswith("<span>audio-feeder</span>")

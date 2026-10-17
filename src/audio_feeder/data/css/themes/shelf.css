@@ -1,0 +1,61 @@
+/* Shelf: warm paper, old-style serifs and cloth bindings, like a reading
+   room. */
+
+:root {
+    --paper: #f3eee4;
+    --surface: #fbf8f1;
+    --ink: #221f1a;
+    --muted: #6d665b;
+    --rule: #d8cfbf;
+    --accent: #005a78;
+    --accent-ink: #ffffff;
+    --exclude: #9a3b14;
+    --exclude-ink: #ffffff;
+    --bar: #2a2824;
+    --bar-ink: #f3eee4;
+    --entry-background: transparent;
+    --entry-background-alt: transparent;
+    --entry-padding: 1.5rem 0;
+    --entry-rule: var(--rule);
+    --measure: 54rem;
+    --cloth-saturation: 32%;
+    --cloth-lightness: 36%;
+    --cloth-ink: #f5efe1;
+
+    --font-body: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "Fira Sans",
+        "Noto Sans", Cantarell, source-sans-pro, sans-serif;
+    --font-display: "Iowan Old Style", "Palatino Linotype", "URW Palladio L",
+        P052, Palatino, Georgia, serif;
+    --display-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: #1b1a17;
+        --surface: #25231f;
+        --ink: #ebe5d8;
+        --muted: #a69e90;
+        --rule: #3d3933;
+        --accent: #7fc3da;
+        --accent-ink: #0f1a1e;
+        --exclude: #e08a62;
+        --exclude-ink: #1b1a17;
+        --bar: #0f0e0c;
+        --bar-ink: #ebe5d8;
+        --cloth-lightness: 28%;
+        --cloth-ink: #e9e1cf;
+    }
+}
+
+.wordmark {
+    font-weight: 400;
+    font-size: 1.4rem;
+}
+
+.entry_title {
+    font-weight: 600;
+}
+
+.cover_img {
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.25));
+}

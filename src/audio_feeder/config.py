@@ -252,6 +252,14 @@ class Configuration:
     # If true, this will not inject the default CSS files.
     disable_default_css: bool = False
 
+    # The name shown in the top bar of the book list
+    site_title: str = "audio-feeder"
+
+    # A logo shown next to the name in the top bar: a path relative to the
+    # static directory, or a URL. If it isn't set, audio-feeder's own logo is
+    # shown, and if it's an empty string, there's no logo.
+    site_logo: str | None = None
+
     # Relative to static
     media_path: str = "media"
     site_images_loc: str = "images/site-images"

@@ -105,7 +105,7 @@ def test_get_resource(tmp_path: Path) -> None:
     [
         "audio_feeder.data.css",
         "audio_feeder.data.site",
-        "audio_feeder.data.site.fonts",
+        "audio_feeder.data.css.themes",
         "audio_feeder.data.templates",
         "audio_feeder.data.templates.entry_types",
         "audio_feeder.data.templates.entry_types.Book",

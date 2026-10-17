@@ -295,6 +295,21 @@ def _read_file_info(fpath: pathlib.Path) -> FFProbeReturnJSON:
     return ffprobe_info
 
 
+def has_broken_chapters(file_info: FileInfo) -> bool:
+    """Whether a file has chapter information that can't be used.
+
+    The chapter information is bad if any chapter starts after the end of the
+    file, in which case :func:`get_multipath_chapter_info` treats the file as
+    a single chapter, the same as a file without any chapter information. A
+    file without any chapter information doesn't have broken chapters.
+    """
+    duration = file_info.format_info.duration
+    if file_info.chapters is None or duration is None:
+        return False
+
+    return any(chapter.start_time > duration for chapter in file_info.chapters)
+
+
 def get_multipath_chapter_info(
     fpaths: Iterable[pathlib.Path],
     /,
@@ -313,10 +328,7 @@ def get_multipath_chapter_info(
             file_info = FileInfo.from_file(fpath)
 
         format_info = file_info.format_info
-        if file_info.chapters and not any(
-            (format_info.duration is not None) and (c.start_time) > format_info.duration
-            for c in file_info.chapters
-        ):  # If a chapter starts after the file ends, the metadata is bad
+        if file_info.chapters and not has_broken_chapters(file_info):
             for chapter in file_info.chapters:
                 if chapter_num is None:
                     chapter_num = chapter.num

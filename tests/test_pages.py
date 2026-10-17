@@ -461,3 +461,30 @@ def test_extra_folders_relative_to_library_root(
     page = _books(client, folder="audiobooks/Fiction", author="alcott")
     assert _checked(page, "folder") == {"audiobooks/Fiction"}
     assert '<span class="row_name">Fiction</span>' in page
+
+
+def _qr_popovers(page: str) -> dict[str, str]:
+    """The QR code popovers on a page, mapped to the image each one shows."""
+    return {
+        popover_id: html.unescape(src)
+        for popover_id, src in re.findall(
+            r'<div class="modal-window" id="([^"]*)" popover><img src="([^"]*)"',
+            page,
+        )
+    }
+
+
+def test_qr_codes_are_popovers(client: flask.testing.FlaskClient) -> None:
+    # The QR codes are popovers, which the browser closes when clicking outside
+    # of them or pressing Escape, and toggles from the button that opens them.
+    page = _books(client)
+    popovers = _qr_popovers(page)
+    targets = re.findall(r'<button type="button" [^>]*popovertarget="(qr-[^"]*)"', page)
+
+    # At least the default feed and the single-file feed for every book
+    assert len(targets) >= 2 * len(FICTION + NONFICTION)
+    assert sorted(targets) == sorted(popovers)
+    assert all(popovers.values())
+
+    # Each feed has its own QR code
+    assert len(set(popovers.values())) == len(popovers)

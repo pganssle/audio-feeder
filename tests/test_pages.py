@@ -12,9 +12,11 @@ from collections.abc import Iterator, Mapping, Sequence
 from urllib.parse import unquote, urlencode
 
 import flask.testing
+import jinja2
 import pytest
 
 from audio_feeder import app as af_app
+from audio_feeder import config
 from audio_feeder import database_handler as dh
 from audio_feeder import object_handler as oh
 from audio_feeder import pages, updater
@@ -149,8 +151,7 @@ def test_sort_entry_objects_invalid_order() -> None:
         pages.sort_entry_objects([_entry_objects("Book")], order_by="color")
 
 
-@pytest.fixture
-def client(testgen_config: pathlib.Path) -> Iterator[flask.testing.FlaskClient]:
+def _start_server() -> flask.testing.FlaskClient:
     with test_updater.patch_book_updater():
         updater.update(content_type="books")
 
@@ -161,7 +162,12 @@ def client(testgen_config: pathlib.Path) -> Iterator[flask.testing.FlaskClient]:
         if thread.name.endswith("(warm_caches)"):
             thread.join()
 
-    yield app.test_client()
+    return app.test_client()
+
+
+@pytest.fixture
+def client(testgen_config: pathlib.Path) -> Iterator[flask.testing.FlaskClient]:
+    yield _start_server()
 
 
 def _books(client: flask.testing.FlaskClient, **params: str | Sequence[str]) -> str:
@@ -978,3 +984,40 @@ def test_rss_feed_title_and_description(
     assert "ISBN" in description
     assert "1605206288" in description
     assert "least actually read" in description
+
+
+class _RecordingTemplate:
+    """Records the data each page is rendered with."""
+
+    def __init__(self, template: jinja2.Template) -> None:
+        self.template = template
+        self.page_data: list[Mapping[str, object]] = []
+
+    def render(self, page_data: Mapping[str, object]) -> str:
+        self.page_data.append(page_data)
+        return self.template.render(page_data)
+
+
+def test_default_cover_exists(
+    testgen_config: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # In an existing installation, the default cover may not be where the page
+    # says it is (e.g. if it was installed into the wrong place); starting the
+    # server puts it there.
+    static_path = config.read_from_config("static_media_path")
+    site_images = static_path / config.read_from_config("site_images_loc")
+    assert not (site_images / "default_cover.svg").exists()
+
+    client = _start_server()
+    template = _RecordingTemplate(pages.get_list_template())
+    monkeypatch.setattr(pages, "get_list_template", lambda: template)
+    _books(client)
+
+    (page_data,) = template.page_data
+    default_cover = page_data["default_cover"]
+    assert isinstance(default_cover, str)
+    static_url = config.read_from_config("static_media_url").rstrip("/") + "/"
+    assert default_cover.startswith(static_url)
+    cover_path = static_path / unquote(default_cover.removeprefix(static_url))
+    assert cover_path == site_images / "default_cover.svg"
+    assert cover_path.is_file()

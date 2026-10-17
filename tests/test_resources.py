@@ -126,3 +126,14 @@ def test_site_images_exists(tmp_path: Path) -> None:
     resources.copy_resource("audio_feeder.data.site", tmp_path)
     assert (tmp_path / "site-images").exists()
     assert list((tmp_path / "site-images").iterdir())
+
+
+@pytest.mark.parametrize(
+    "site_images_loc", ["images/site-images", "site-images", "my/site/images"]
+)
+def test_update_site_data(tmp_path: Path, site_images_loc: str) -> None:
+    static_path = tmp_path / "static"
+    resources.update_site_data(static_path, site_images_loc)
+
+    assert (static_path / site_images_loc / "default_cover.svg").is_file()
+    assert not list((static_path / site_images_loc).glob("*.py"))

@@ -1,5 +1,7 @@
 ``audio-feeder`` is a Flask-based web-app that hosts your audiobooks (or other audio content) as RSS feeds compatible with podcatchers.
 
+The full documentation is at https://audio-feeder.readthedocs.io/.
+
 Features
 ========
 
@@ -7,76 +9,35 @@ Features
     :width: 800px
     :alt: The main list interface
 
-The main interface lists all your audiobooks once the database is updated (either by using ``audio-feeder update`` or by visiting the ``/update`` url. The default interface should also work well on mobile:
+``audio-feeder`` finds the books in a directory on disk, looks up their metadata from Google Books, and lists them in a web page that also works well on mobile, from which you can subscribe to each book's feed.
+
+- Books can be browsed by the folders they're organized in, and filtered by tag, language, author and the date they were added.
+- In addition to a feed of the files as they are on disk, each book can have "rendered" feeds generated with ``ffmpeg``: the whole book merged into a single file, one file per chapter, or segments of about an hour each.
+- Each feed has a QR code, so that you can browse the list from a computer and scan the feed you want from your phone.
 
 .. image:: docs/images/screenshots/list_mobile.jpg
     :width: 400px
     :alt: The mobile list interface
 
-Rendered feeds
-**************
-For each entry, ``audio-feeder`` can also generate "rendered" feeds, depending on what metadata is available:
-
-- Single file: This feed consists of a single file; if the original directory contains multiple files, they will be merged together using ``ffmpeg``. If chapter information is not available in the original files, each file will be considered a separate "chapter".
-
-- Chapters: This feed has one file per chapter; it is only available if explicit chapter metadata is available in the file (e.g. in an ``m4b`` file, or using Overdrive MediaMarkers).
-
-- Segmented: This is a feed that splits up and recombines files in such a way as to create files that are ~1 hour long (preferring longer files to shorter files). Files will only be split up along chapter boundaries, but they can be combined from files without chapter information. This mode is available if the original entry has more than one file, or if it has chapter information (or both).
-
-QR Codes
-********
-
-Each feed has an associated QR code, so that you can easily browse the list from a computer, but scan the individual feeds from your phone. In the default front-end, QR codes are displayed via modal pop-ups:
-
-
-.. image:: docs/images/screenshots/list_p0_qr.jpg
-    :width: 800px
-    :alt: Demonstration of the QR code mobile.
-
-
-Display options
-***************
-
-The user can customize things like the sort order and the number of entries per page:
-
-.. image:: docs/images/screenshots/settings_pulldown.jpg
-    :width: 800px
-    :alt: Demonstration of the settings pulldown
-
-
 Installation and use
 ====================
 
-Probably the easiest way to deploy this is via docker. For your convenience, I have created `a repository with a docker-compose configuration <https://github.com/pganssle/audio_feeder_docker>`_. It uses ``nginx`` to serve static media files, and ``gunicorn`` to deploy the application.
+``audio-feeder`` requires ``ffmpeg`` with at least the ``aac`` codec (the tests also require the ``libmp3lame`` codec). Install it with ``pip install audio-feeder`` or ``uv tool install audio-feeder``, and create a server directory with:
 
-If you want to test it out locally, you can use ``tox -e start_server`` to run a test server. This will create a temporary server directory at ``/tmp/audio_feeder_server``, and you can play around with, and you can mount your audiobook directory at ``/tmp/audio_feeder_server/static/media`` to have it work on your own audiobooks (bind mount, symlink or hard link should work just fine).
+.. code-block:: console
 
-In a ``virtualenv`` with ``audio-feeder`` installed, you can run ``audio-feeder --help`` to see the various command line tools bundled with the application.
+    $ audio-feeder install --config-dir ~/audiobook_server
 
-Updating the database
-*********************
+Then put your books in ``~/audiobook_server/static/media``, and from ``~/audiobook_server``, load them into the database and start the server:
 
-Running ``audio-feeder update`` (or visiting the ``/update`` url) searches the directories in the ``content_paths`` setting of the configuration file for audiobooks and adds them to the database. The directories are relative to the media directory (``static/media`` in the configuration directory by default), and by default the whole media directory is searched:
+.. code-block:: console
 
-.. code-block:: yaml
+    $ audio-feeder update
+    $ audio-feeder run
 
-    content_paths:
-      books:
-      - .
+See `the documentation <https://audio-feeder.readthedocs.io/>`_ for how to lay out your books, the configuration settings and how to deploy it. Probably the easiest way to deploy it is via Docker, using the docker-compose configuration in the `audio_feeder_docker repository <https://github.com/pganssle/audio_feeder_docker>`_.
 
-To only search some directories, list them under ``books``, e.g.:
-
-.. code-block:: yaml
-
-    content_paths:
-      books:
-      - audiobooks
-      - kids/audiobooks
-
-The directories must be inside the media directory, but symbolic links are followed, so you can add directories from elsewhere by linking to them from the media directory.
-
-To update a single directory instead, pass it to ``audio-feeder update``, e.g. ``audio-feeder update audiobooks/Fiction``.
-
+To try it out on some example books, run ``tox -e start_server`` from a checkout of this repository.
 
 Note
 =====
@@ -84,12 +45,6 @@ Note
 While the state of this is getting much closer to something production-ready, I am emphatically *not* a front-end developer, and I don't have extremely high confidence in the security of this project. Use at your own risk (and if you do come up with some security and/or usability improvements, please do send a PR).
 
 This is only tested on Linux, but it may also work on other platforms.
-
-Dependencies
-============
-
-In addition to the python dependencies specified in ``pyproject.toml``, this project also requires installing ``ffmpeg`` with at least the ``aac`` codec, and the tests also require the ``libmp3lame`` codec.
-
 
 License
 =======

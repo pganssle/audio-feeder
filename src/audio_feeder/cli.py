@@ -237,8 +237,8 @@ def install(config_dir, config_name):
                 raise
 
     # Copy all package data as appropriate
-    resources.update_resource(
-        "audio_feeder.data.site", pathlib.Path(config_obj["static_media_path"])
+    resources.update_site_data(
+        pathlib.Path(config_obj["static_media_path"]), config_obj["site_images_loc"]
     )
 
 

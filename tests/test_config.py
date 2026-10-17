@@ -1,6 +1,8 @@
 import datetime
 import os
 import pathlib
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 
@@ -98,3 +100,67 @@ def test_metadata_retry_from_file(tmp_path: pathlib.Path) -> None:
     conf.to_file(round_trip_loc)
     round_trip = config.Configuration.from_file(round_trip_loc)
     assert round_trip.metadata_retry == conf.metadata_retry
+
+
+def test_content_paths_default(tmp_path: pathlib.Path) -> None:
+    # By default, the whole media directory contains books
+    conf = config.Configuration(tmp_path / "config.yml")
+    assert conf.content_paths == {"books": (pathlib.Path("."),)}
+
+
+def test_content_paths_written_to_file(tmp_path: pathlib.Path) -> None:
+    config_loc = tmp_path / "config.yml"
+    config.Configuration(config_loc).to_file(config_loc)
+
+    assert "content_paths:\n  books:\n  - .\n" in config_loc.read_text()
+
+
+@pytest.mark.parametrize(
+    "yaml_value, expected",
+    [
+        ("{books: audiobooks}", {"books": (pathlib.Path("audiobooks"),)}),
+        ("{books: [audiobooks]}", {"books": (pathlib.Path("audiobooks"),)}),
+        (
+            "{books: [audiobooks, /mnt/books], courses: courses}",
+            {
+                "books": (pathlib.Path("audiobooks"), pathlib.Path("/mnt/books")),
+                "courses": (pathlib.Path("courses"),),
+            },
+        ),
+        ("{books: []}", {"books": ()}),
+        ("{books: null}", {"books": ()}),
+        ("{}", {}),
+    ],
+)
+def test_content_paths_from_file(
+    tmp_path: pathlib.Path,
+    yaml_value: str,
+    expected: Mapping[str, Sequence[pathlib.Path]],
+) -> None:
+    config_loc = tmp_path / "config.yml"
+    config_loc.write_text(f"content_paths: {yaml_value}\n")
+    conf = config.Configuration.from_file(config_loc)
+
+    assert conf.content_paths == expected
+
+    # The setting survives a round trip through the file
+    round_trip_loc = tmp_path / "round_trip.yml"
+    conf.to_file(round_trip_loc)
+    round_trip = config.Configuration.from_file(round_trip_loc)
+    assert round_trip.content_paths == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"books": "audiobooks"},
+        {"books": pathlib.Path("audiobooks")},
+        {"books": ["audiobooks"]},
+        {"books": (pathlib.Path("audiobooks"),)},
+    ],
+)
+def test_content_paths_from_python(
+    tmp_path: pathlib.Path, value: Mapping[str, Any]
+) -> None:
+    conf = config.Configuration(tmp_path / "config.yml", content_paths=value)
+    assert conf.content_paths == {"books": (pathlib.Path("audiobooks"),)}

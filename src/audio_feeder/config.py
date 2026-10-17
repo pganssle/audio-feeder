@@ -191,6 +191,28 @@ def _metadata_retry(
     }
 
 
+def _content_paths(
+    value: Mapping[str, PathType | Sequence[PathType] | None],
+) -> Mapping[str, Sequence[Path]]:
+    """Convert the directories containing each type of content.
+
+    Each content type maps to a single path, a sequence of paths or nothing.
+    """
+
+    def to_paths(paths: PathType | Sequence[PathType] | None) -> Sequence[Path]:
+        if paths is None:
+            return ()
+        if isinstance(paths, (str, os.PathLike)):
+            return (Path(paths),)
+        return tuple(map(Path, paths))
+
+    return {content_type: to_paths(paths) for content_type, paths in value.items()}
+
+
+def _default_content_paths() -> Mapping[str, Sequence[Path]]:
+    return {"books": (Path("."),)}
+
+
 @attrs.define(slots=False)
 class Configuration:
     config_location: Path
@@ -257,6 +279,15 @@ class Configuration:
     # without an entry, and settings that aren't specified, use the defaults.
     metadata_retry: Mapping[str, MetadataRetryConfig] = attrs.field(
         factory=dict, converter=_metadata_retry
+    )
+
+    # The directories containing each type of content (currently only
+    # `books`), relative to the media directory, which `audio-feeder update`
+    # searches for content. Each type can have one directory or a list of
+    # them. They must be inside the media directory, but can contain symbolic
+    # links to directories elsewhere.
+    content_paths: Mapping[str, Sequence[Path]] = attrs.field(
+        factory=_default_content_paths, converter=_content_paths
     )
 
     _ReplacementsMapType = Mapping[str, str]
@@ -346,6 +377,11 @@ class Configuration:
                 value = list(value)
             elif field.name == "metadata_retry":
                 value = {source: config.to_yaml() for source, config in value.items()}
+            elif field.name == "content_paths":
+                value = {
+                    content_type: list(map(os.fspath, paths))
+                    for content_type, paths in value.items()
+                }
 
             out_dict[field.name] = value
 

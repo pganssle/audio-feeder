@@ -9,7 +9,7 @@ can subscribe to each book's feed.
 
 .. image:: images/screenshots/list_entry_p0.jpg
     :width: 800px
-    :alt: The main list interface
+    :alt: The book list
 
 Each book has its own feed containing the files as they are on disk, and
 ``audio-feeder`` can also generate "rendered" feeds from them with ``ffmpeg``:
@@ -35,6 +35,7 @@ want with your phone. See :doc:`feeds` for the details.
    installation
    usage
    browsing
+   themes
    feeds
    configuration
    cli

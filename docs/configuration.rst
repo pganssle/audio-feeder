@@ -171,7 +171,8 @@ The following locations are relative to ``static_media_path`` on disk and to
 ``cover_cache_path``
     Default: ``images/entry_cover_cache``
 
-    Where book covers and their thumbnails are stored.
+    Where the covers downloaded from metadata sources, and the thumbnails of
+    every book's cover, are stored.
 
 ``qr_cache_path``
     Default: ``images/qr_cache``
@@ -182,15 +183,18 @@ The following locations are relative to ``static_media_path`` on disk and to
 ``site_images_loc``
     Default: ``images/site-images``
 
-    The directory of images used by the site itself, e.g. ``default_cover.svg``,
-    which is shown for books that don't have a cover.
+    The directory of images used by the site itself. The book list doesn't
+    currently use any of them: books that don't have a cover get one drawn by
+    the page instead.
 
 ``css_loc``
     Default: ``css``
 
-    The directory of CSS files. The default stylesheets are copied here from
-    the package the first time the book list is shown after the server
-    starts.
+    The directory of CSS files. The default stylesheets, and the built-in
+    themes in a ``themes`` subdirectory, are copied here from the package the
+    first time the book list is shown after the server starts. Stylesheets
+    that you add to ``themes`` can be chosen like the built-in themes; see
+    :ref:`custom-themes`.
 
 .. _content-paths:
 
@@ -231,11 +235,26 @@ for content are relative to ``media_path``:
 Appearance
 ----------
 
+See :doc:`themes` for how to change the look of the book list.
+
+``site_title``
+    Default: ``audio-feeder``
+
+    The name shown in the top bar of the book list.
+
+``site_logo``
+    Default: ``null``
+
+    The logo shown next to the name in the top bar, which is also the page's
+    favicon: a path relative to the static directory, or a URL. If it isn't
+    set, audio-feeder's own logo is used, and if it's an empty string, there's
+    no logo.
+
 ``base_truncation_point``
     Default: ``500``
 
     Roughly how many characters of a book's description to show in the book
-    list before hiding the rest behind a "Read More" link. The cut is moved
+    list before hiding the rest behind a "more" link. The cut is moved
     forward to the end of the word it falls in, and descriptions that are no
     longer than this are shown in full.
 
@@ -246,14 +265,17 @@ Appearance
     the book list. Covers are scaled down, keeping their aspect ratio, to fit
     within these, and they are never scaled up. A ``0`` or ``null`` means that
     dimension isn't limited. Changing this isn't applied to thumbnails that
-    already exist.
+    already exist. Thumbnails are saved as JPEGs, and the book list shows each
+    book's thumbnail unless its cover is the smaller of the two files, as
+    covers from Google Books often are.
 
 ``extra_css_files``
     Default: ``[]``
 
     A list of additional CSS files to include in the page, as paths relative to
     ``css_loc``. They are included after the default stylesheets, so they can
-    override them.
+    override them, and before the chosen theme, so a theme can override them
+    in turn.
 
 ``disable_default_css``
     Default: ``false``
@@ -294,7 +316,10 @@ found in them, the default is used.
 
     The directory of templates for each entry in the book list, with a
     subdirectory for each type of entry (e.g. ``Book``) containing a template
-    for each field (``name.tpl``, ``author.tpl`` and ``description.tpl``).
+    for each field. Books have ``name.tpl``, ``title.tpl``, ``author.tpl``,
+    ``meta.tpl`` (the line of details under the author) and
+    ``description.tpl``, and any other template in the directory is available
+    to ``list.tpl`` by name.
     If the subdirectory for a type exists, the templates in it are used
     instead of all of the defaults for that type.
 

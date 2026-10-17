@@ -56,74 +56,6 @@ function toggle_hidden(entry_id) {
         ellipsis.style.display = "inline";
     }
 }
-
-// Modal opening function
-const qr_img_urls = new Map([
-{% for entry in entries %}
-    [ {{entry.id}} + null, "{{ entry.qr_img_url }}" ],
-    [ {{entry.id}} + "SINGLEFILE", "{{ entry.rendered_qr_img_urls['SINGLEFILE'] }}"],
-    {% if entry.has_chapter_info %}
-        [ {{entry.id}} + "CHAPTERS", "{{ entry.rendered_qr_img_urls['CHAPTERS'] }}"],
-    {% endif %}
-    {% if entry.segmentable %}
-        [ {{entry.id}} + "SEGMENTED", "{{ entry.rendered_qr_img_urls['SEGMENTED'] }}"],
-    {% endif %}
-{% endfor %}
-]);
-let modal_divs = new Map();
-let active_modal = null;
-const qr_container = document.querySelector("body");
-let overlay = null;
-
-function get_overlay() {
-    if (overlay === null) {
-        overlay = document.querySelector("#div-overlay");
-    }
-    return overlay;
-}
-
-function make_qr_modal(entry_id, mode=null) {
-    const modal_div = document.createElement("div");
-    let attribute_id = "qr-" + entry_id;
-    if (mode !== null) {
-        attribute_id = attribute_id + "-" + mode;
-    }
-    modal_div.setAttribute("id", attribute_id);
-    modal_div.setAttribute("class", "modal-window");
-
-    const qr_img = document.createElement("img");
-    const img_key = entry_id + mode;
-
-    qr_img.setAttribute("src", qr_img_urls.get(img_key));
-    qr_img.setAttribute("class", "qr_img");
-
-    modal_div.appendChild(qr_img);
-    qr_container.appendChild(modal_div);
-    return modal_div;
-}
-
-function toggle_modal(entry_id, mode=null) {
-    if (active_modal === null) {
-        active_modal = [entry_id, mode];
-    } else {
-        active_modal = null;
-    }
-
-    const entry_key = entry_id + mode;
-    let modal_div;
-    if (!modal_divs.has(entry_key)) {
-        modal_div = make_qr_modal(entry_id, mode);
-        modal_divs.set(entry_key, modal_div);
-    } else {
-        modal_div = modal_divs.get(entry_key);
-    }
-
-    get_overlay().classList.toggle("overlay-active");
-    modal_div.classList.toggle("show-modal");
-}
-
-
-window.addEventListener("click", (event) => { if (event.target === get_overlay() && active_modal !== null) {toggle_modal(...active_modal);}});
 </script>
 
 {% block topnav %}
@@ -312,6 +244,9 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
     {% endif %}
     {% endblock %}
     {% block mainlist %}
+    {% macro qr_popover(id, url) -%}
+    <div class="modal-window" id="{{ id }}" popover><img src="{{ url }}" class="qr_img" loading="lazy" alt="QR code"></div>
+    {%- endmacro %}
     {% if not entries %}
     <p class="no_results">
         There's nothing here.
@@ -322,22 +257,26 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
         <div class="entry_row {{ loop.cycle('odd', 'even') }}" id="{{ entry.id }}">
             <div class="cover_col" id="{{ entry.id }}">
                 <img src="{{ entry.cover_url if not entry.cover_url is sameas none else default_cover }}" class="cover_img" />
-            <a class="qr_link" onclick="toggle_modal({{entry.id}})"><i class="fa fa-qrcode"></i></a>
+            <button type="button" class="qr_button qr_link" popovertarget="qr-{{ entry.id }}" title="QR code" aria-label="QR code"><i class="fa fa-qrcode"></i></button>
+            {{ qr_popover("qr-%s" % entry.id, entry.qr_img_url) }}
             </div>
             <div class="entry_body" id="{{ entry.id }}">
                 <h3 class="entry_title"><a class="entry_link" href="{{ entry.rss_url }}">{{ entry.name }}</a></h3>
                 <div class="entry_extra_feeds">
                     <div class="extra_feed">
-                        <a onclick="toggle_modal({{ entry.id }}, 'SINGLEFILE')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'singlefile' }}"> Single File</a>
+                        <button type="button" class="qr_button" popovertarget="qr-{{ entry.id }}-SINGLEFILE" title="Single File QR code" aria-label="Single File QR code"><i class="fa fa-qrcode extra_feed_qr"></i></button><a href="{{ entry.derived_rss_url % 'singlefile' }}"> Single File</a>
+                        {{ qr_popover("qr-%s-SINGLEFILE" % entry.id, entry.rendered_qr_img_urls['SINGLEFILE']) }}
                     </div>
                     {% if entry.has_chapter_info %}
                     <div class="extra_feed">
-                    <a onclick="toggle_modal({{ entry.id }}, 'CHAPTERS')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'chapters' }}"> Chapters</a>
+                    <button type="button" class="qr_button" popovertarget="qr-{{ entry.id }}-CHAPTERS" title="Chapters QR code" aria-label="Chapters QR code"><i class="fa fa-qrcode extra_feed_qr"></i></button><a href="{{ entry.derived_rss_url % 'chapters' }}"> Chapters</a>
+                    {{ qr_popover("qr-%s-CHAPTERS" % entry.id, entry.rendered_qr_img_urls['CHAPTERS']) }}
                     </div>
                     {% endif %}
                     {% if entry.segmentable %}
                     <div class="extra_feed">
-                    <a onclick="toggle_modal({{ entry.id }}, 'SEGMENTED')"><i class="fa fa-qrcode extra_feed_qr"></i></a><a href="{{ entry.derived_rss_url % 'segmented' }}"> Segmented</a>
+                    <button type="button" class="qr_button" popovertarget="qr-{{ entry.id }}-SEGMENTED" title="Segmented QR code" aria-label="Segmented QR code"><i class="fa fa-qrcode extra_feed_qr"></i></button><a href="{{ entry.derived_rss_url % 'segmented' }}"> Segmented</a>
+                    {{ qr_popover("qr-%s-SEGMENTED" % entry.id, entry.rendered_qr_img_urls['SEGMENTED']) }}
                     </div>
                     {% endif %}
                 </div>
@@ -347,11 +286,9 @@ window.addEventListener("click", (event) => { if (event.target === get_overlay()
             </div>
         </div>
     {% endfor %}
-    <div class="qr_holder" id="qr_container"></div>
     {% endblock %}
     {{ self.navbar() }}
     </div>
-    <div class="overlay" id="div-overlay"/>
 {% block botnav %}{% endblock %}
 </body>
 </html>

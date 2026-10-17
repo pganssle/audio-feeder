@@ -109,7 +109,16 @@ img.cover_img {
     object-fit: contain;
 }
 
-a.qr_link {
+.qr_button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.qr_link {
     cursor: pointer;
     text-decoration: underline;
     font-weight: bold;
@@ -525,40 +534,16 @@ ul.folder_tree .drawer_row.leaf {
 
 
 /* Popup */
-.show-modal {
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto;
-}
-
 .modal-window {
-    display: inline-block;
     position: fixed;
+    inset: auto;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    visibility: hidden;
-    z-index: 999;
-    opacity: 0;
+    margin: 0;
+    border: none;
     padding: 2em;
     background: white;
-}
-
-.overlay {
-    visibility: collapse;
-    opacity: 0;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    z-index=100;
-}
-
-.overlay-active {
-    visibility: visible;
-    opacity: 50%;
-    background-color: "grey";
 }
 
 /* Larger targets for touch screens */

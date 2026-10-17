@@ -113,7 +113,7 @@ select = [
 [tool.scriv]
 format = "rst"
 categories = ["Features", "Bugfixes", "Misc"]
-entry_title_template = "Version {{ version }}"
+entry_title_template = "Version {{ version }} ({{ date.strftime('%Y-%m-%d') }})"
 
 ## Coverage
 [tool.coverage.paths]

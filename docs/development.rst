@@ -23,8 +23,10 @@ User-facing changes should come with a changelog entry, which is managed with
 a new fragment in ``changelog.d/``; uncomment the section for the kind of
 change (Features, Bugfixes or Misc), describe the change in a sentence or two
 of reStructuredText, and commit it with the rest of your changes. When a
-release is made, the fragments are collected into ``CHANGELOG.rst``, which is
-what the :doc:`changelog` page shows. CI checks that every pull request adds a
+release is made, the fragments are collected into ``CHANGELOG.rst`` with
+``tox -e changelog -- collect --version <version>``, under a heading with the
+version and the release date (e.g. ``Version 0.6.2 (2022-12-03)``); that file
+is what the :doc:`changelog` page shows. CI checks that every pull request adds a
 fragment; for changes that don't need one (e.g. refactoring or CI changes),
 add the ``skip-changelog`` label to the pull request.
 

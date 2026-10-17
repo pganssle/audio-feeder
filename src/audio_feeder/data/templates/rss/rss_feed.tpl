@@ -19,10 +19,14 @@
         <pubDate>{{ pub_date }}</pubDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <podcast:locked>yes</podcast:locked>
+        {% if author %}
         <podcast:person>{{ author }}</podcast:person>
+        {% endif %}
 
         <itunes:summary>{{ channel_desc }}</itunes:summary>
+        {% if author %}
         <itunes:author>{{ author }}</itunes:author>
+        {% endif %}
         <itunes:explicit>No</itunes:explicit>
 
         {% for item in items %}

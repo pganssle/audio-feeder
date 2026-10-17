@@ -61,6 +61,22 @@ def test_ab_loader_audio_info(path, exp_audio_info):
 
 
 @pytest.mark.parametrize(
+    "path",
+    [
+        "Fiction/Dracula",
+        "Fiction/Bram Stoker-Dracula",
+        "Fiction/Bram Stoker -Dracula",
+        "Fiction/Bram Stoker – Dracula",
+        "Fiction/ - Dracula",
+        "",
+    ],
+)
+def test_ab_loader_audio_info_no_match(path: str) -> None:
+    with pytest.raises(dp.NoAudiobookInformation, match="does not match the format"):
+        dp.AudiobookLoader.parse_audio_info(path)
+
+
+@pytest.mark.parametrize(
     "sorted_str_list",
     [
         ("abc123", "abc234", "abc1234"),

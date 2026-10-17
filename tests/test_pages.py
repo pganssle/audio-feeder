@@ -954,7 +954,7 @@ def test_unknown_scheme_is_ignored(
     client: flask.testing.FlaskClient, scheme: str
 ) -> None:
     client.get("/books?scheme=dark")
-    response = client.get("/books?" + urlencode({"scheme": scheme}))
+    response = client.get("/books?" + urllib.parse.urlencode({"scheme": scheme}))
     assert response.status_code == 302
     assert response.location == "/books"
     _assert_scheme(_books(client), "dark")

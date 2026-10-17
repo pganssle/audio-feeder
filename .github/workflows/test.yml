@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toxenv: ["build", "lint", "typing"]
+        toxenv: ["build", "docs", "lint", "typing"]
 
     steps:
     - uses: actions/checkout@v7
@@ -51,6 +51,7 @@ jobs:
         cache-dependency-glob: |
           pyproject.toml
           tox.ini
+          docs/requirements.txt
     - name: Install tox
       run: uv tool install tox --with tox-uv
     - name: Run ${{ matrix.toxenv }}

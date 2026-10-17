@@ -82,7 +82,7 @@ class BookDatabaseUpdater:
 
     def __init__(
         self,
-        books_location: PathType,
+        books_location: PathType | Iterable[PathType],
         *,
         entry_table: TableName = TableName("entries"),
         table: TableName | None = None,
@@ -93,7 +93,11 @@ class BookDatabaseUpdater:
     ):
         self.table = table or self.BOOK_TABLE_NAME
         self.entry_table = entry_table
-        self.books_location = books_location
+        self.books_locations: Sequence[pathlib.Path] = (
+            (pathlib.Path(books_location),)
+            if isinstance(books_location, (str, os.PathLike))
+            else tuple(map(pathlib.Path, books_location))
+        )
         self.book_loader = book_loader
         self.metadata_loaders = metadata_loaders
         self.id_handler = id_handler
@@ -104,10 +108,17 @@ class BookDatabaseUpdater:
             self.executor = futures.ThreadPoolExecutor(thread_name_prefix="updater")
 
     def load_book_paths(self) -> Sequence[pathlib.Path]:
-        aps = dp.load_all_audio(self.books_location)
         media_loc = read_from_config("media_loc")
 
-        return [ap.relative_to(media_loc.path) for ap in aps]
+        # dict.fromkeys drops books found in more than one of the locations
+        # (e.g. when one location is inside another) while keeping the order.
+        return list(
+            dict.fromkeys(
+                ap.relative_to(media_loc.path)
+                for books_location in self.books_locations
+                for ap in dp.load_all_audio(books_location)
+            )
+        )
 
     def update_db_entries(
         self, database: MutableDatabase, check_hashes: bool = False
@@ -772,7 +783,7 @@ def _clear_update_output() -> None:
 
 
 def _update_books(
-    update_path: str,
+    update_paths: Sequence[pathlib.Path],
     progress_bar: ProgressBarFunc | None = None,
     reload_metadata: bool = False,
     check_hashes: bool = False,
@@ -781,11 +792,12 @@ def _update_books(
     Trigger an update to the database.
     """
 
-    _log_update_output("Updating audiobooks from all directories.")
-    path = get_resolver().resolve_media(update_path).path
-    assert path is not None
+    _log_update_output(
+        "Updating audiobooks from: "
+        + ", ".join(os.fspath(update_path) for update_path in update_paths)
+    )
 
-    book_updater = BookDatabaseUpdater(path)
+    book_updater = BookDatabaseUpdater(update_paths)
 
     OpFunction = Callable[[Any], Any]
     ops: Sequence[tuple[OpFunction, str]] = [
@@ -808,44 +820,115 @@ def _update_books(
         (book_updater.update_cover_images, "Updating cover images"),
     ]
 
+    _log_update_output("Loading existing database")
+    db = dh.load_database()
+
+    for op, log_output in ops:
+        _log_update_output(log_output)
+        op(db)
+
+    dh.save_database(db)
+    cache_utils.clear_caches("books")
+    _log_update_output("Reloading database")
+    dh.get_database(refresh=True)
+
+
+class _ContentUpdater(Protocol):
+    def __call__(
+        self,
+        update_paths: Sequence[pathlib.Path],
+        progress_bar: ProgressBarFunc | None = None,
+        reload_metadata: bool = False,
+        check_hashes: bool = False,
+    ) -> None: ...
+
+
+_CONTENT_UPDATERS: Final[Mapping[str, _ContentUpdater]] = {"books": _update_books}
+
+
+def _resolve_content_path(path: PathType) -> pathlib.Path:
+    """Resolve a path relative to the media directory.
+
+    The path may also be absolute, but either way it must be inside the media
+    directory, since paths in the database are stored relative to it.
+    """
+    media_path: pathlib.Path = read_from_config("media_loc").path
+    resolved = pathlib.Path(os.path.normpath(media_path / path))
+    if not resolved.is_relative_to(media_path):
+        raise ValueError(
+            f"Content path {os.fspath(path)!r} is not inside the media "
+            f"directory ({media_path}); use a symbolic link inside the media "
+            "directory to add content from elsewhere."
+        )
+    return resolved
+
+
+def update(
+    content_type: str | None = None,
+    path: PathType | None = None,
+    progress_bar: ProgressBarFunc | None = None,
+    reload_metadata: bool = False,
+    check_hashes: bool = False,
+) -> None:
+    """Update the database from the content on disk.
+
+    :param content_type:
+        The type of content to update (e.g. ``"books"``). If not specified,
+        every type of content is updated, or, if ``path`` is specified, the
+        path is assumed to contain books.
+
+    :param path:
+        A directory to search for content, relative to the media directory (or
+        absolute, but inside the media directory). If not specified, the
+        directories configured in the ``content_paths`` setting are used.
+    """
     try:
-        _log_update_output("Loading existing database")
-        db = dh.load_database()
+        content_paths: Mapping[str, Sequence[PathType]]
+        if path is not None:
+            content_paths = {content_type or "books": (path,)}
+        else:
+            configured: Mapping[str, Sequence[pathlib.Path]] = read_from_config(
+                "content_paths"
+            )
+            if content_type is None:
+                content_paths = configured
+            elif content_type in configured:
+                content_paths = {content_type: configured[content_type]}
+            else:
+                content_paths = {}
 
-        for op, log_output in ops:
-            _log_update_output(log_output)
-            op(db)
+        if content_type is not None and content_type not in _CONTENT_UPDATERS:
+            raise ValueError(f"Unknown content type: {content_type}")
+        if unknown := content_paths.keys() - _CONTENT_UPDATERS.keys():
+            raise ValueError(
+                "Unknown content types in content_paths: " + ", ".join(sorted(unknown))
+            )
 
-        dh.save_database(db)
-        cache_utils.clear_caches("books")
-        _log_update_output("Reloading database")
-        dh.get_database(refresh=True)
+        resolved_paths = {
+            c_type: tuple(map(_resolve_content_path, paths))
+            for c_type, paths in content_paths.items()
+        }
+
+        if not any(resolved_paths.values()):
+            _log_update_output(
+                "No directories to update are configured in content_paths"
+                + (f" for {content_type}." if content_type is not None else ".")
+            )
+            return
+
+        for c_type, paths in resolved_paths.items():
+            if paths:
+                _CONTENT_UPDATERS[c_type](
+                    update_paths=paths,
+                    progress_bar=progress_bar,
+                    reload_metadata=reload_metadata,
+                    check_hashes=check_hashes,
+                )
     finally:
         _clear_update_output()
 
         global UPDATE_IN_PROGRESS
         UPDATE_IN_PROGRESS = False
-
-
-def update(
-    content_type: str | None = None,
-    path: str | None = None,
-    progress_bar: ProgressBarFunc | None = None,
-    reload_metadata: bool = False,
-    check_hashes: bool = False,
-) -> None:
-    if path is None:
-        path = "."
-
-    if content_type is None or content_type == "books":
-        _update_books(
-            update_path=path,
-            progress_bar=progress_bar,
-            reload_metadata=reload_metadata,
-            check_hashes=check_hashes,
-        )
-    else:
-        raise ValueError(f"Unknown content type: {content_type}")
 
 
 ###

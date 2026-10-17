@@ -80,10 +80,11 @@ def run(host, port, config, profile):
     "-t",
     "--content-type",
     type=str,
-    default="books",
+    default=None,
     help=(
-        "The type of content to load from the directories. Options:"
-        + "  b / books: Audiobooks"
+        "The type of content to update. By default, every type of content in"
+        " the content_paths setting is updated, or, if PATH is given, PATH is"
+        " assumed to contain books. Options: books (audiobooks)."
     ),
 )
 @click.option(
@@ -97,13 +98,27 @@ def run(host, port, config, profile):
     is_flag=True,
     help="Passed if the updater should re-check hashes existing in the database",
 )
-@click.argument("path", metavar="PATH", type=str, required=True)
-def update(content_type, reload_metadata, check_hashes, path):
+@click.argument(
+    "path",
+    metavar="[PATH]",
+    type=click.Path(path_type=pathlib.Path),
+    required=False,
+)
+def update(
+    content_type: str | None,
+    reload_metadata: bool,
+    check_hashes: bool,
+    path: pathlib.Path | None,
+):
     """
-    Add a specific path to the databases, loading all content and updating the
-    database where necessary.
+    Update the database from the content on disk, loading all content and
+    updating the database where necessary.
 
-    The path at PATH will be recursively searched for data.
+    By default, the directories listed in the content_paths setting in the
+    configuration file are searched for content. If PATH is given, only PATH
+    (relative to the media directory) is searched instead.
+
+    Directories are searched recursively, following symbolic links.
     """
     from progressbar import ETA, Bar, ProgressBar, Timer
 

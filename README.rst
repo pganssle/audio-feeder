@@ -53,6 +53,30 @@ If you want to test it out locally, you can use ``tox -e start_server`` to run a
 
 In a ``virtualenv`` with ``audio-feeder`` installed, you can run ``audio-feeder --help`` to see the various command line tools bundled with the application.
 
+Updating the database
+*********************
+
+Running ``audio-feeder update`` (or visiting the ``/update`` url) searches the directories in the ``content_paths`` setting of the configuration file for audiobooks and adds them to the database. The directories are relative to the media directory (``static/media`` in the configuration directory by default), and by default the whole media directory is searched:
+
+.. code-block:: yaml
+
+    content_paths:
+      books:
+      - .
+
+To only search some directories, list them under ``books``, e.g.:
+
+.. code-block:: yaml
+
+    content_paths:
+      books:
+      - audiobooks
+      - kids/audiobooks
+
+The directories must be inside the media directory, but symbolic links are followed, so you can add directories from elsewhere by linking to them from the media directory.
+
+To update a single directory instead, pass it to ``audio-feeder update``, e.g. ``audio-feeder update audiobooks/Fiction``.
+
 
 Note
 =====

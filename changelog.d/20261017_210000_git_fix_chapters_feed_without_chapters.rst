@@ -1,3 +1,8 @@
+Features
+--------
+
+- The "Chapters" button in the book list has a small warning sign on it when some of the book's chapter information is broken (i.e. a chapter starts after the end of its file), since those files are treated as a single chapter each in the chapters feed.
+
 Bugfixes
 --------
 

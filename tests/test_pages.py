@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Mapping, Sequence
 from urllib.parse import unquote, urlencode
 
+import attrs
 import flask.testing
 import pytest
 
@@ -1039,3 +1040,71 @@ def test_derived_feed_redirects_to_original(
         assert [r.location for r in response.history] == [f"/rss/{e_id}.xml"]
         assert response.status_code == 200
         assert response.data == original.data
+
+
+def _chapters_feed(entry: str) -> str | None:
+    """The chapters feed's button in a book's markup, if it has one."""
+    feed = re.search(r'<li><a href="[^"]*-chapters\.xml">.*?</li>', entry)
+    return None if feed is None else feed.group(0)
+
+
+def _break_chapters(title: str) -> None:
+    """Make every chapter of this book start after the end of its file."""
+    database = dh.get_database()
+    (entry,) = (
+        entry
+        for entry in database["entries"].values()
+        if dh.get_data_obj(entry, database).title == title
+    )
+    assert entry.file_metadata
+
+    broken = {}
+    for path, file_info in entry.file_metadata.items():
+        duration = file_info.format_info.duration
+        assert duration is not None and file_info.chapters
+        broken[path] = attrs.evolve(
+            file_info,
+            chapters=[
+                attrs.evolve(chapter, start_time=duration + 1, end_time=duration + 2)
+                for chapter in file_info.chapters
+            ],
+        )
+    entry.file_metadata = broken
+
+
+# Dracula's second file has a chapter that starts after the end of the file
+BROKEN_CHAPTERS = ("Dracula",)
+
+
+@pytest.mark.parametrize(
+    "broken_titles",
+    [
+        pytest.param(BROKEN_CHAPTERS, id="some-broken"),
+        # A book with broken chapter information in every file still links to
+        # the chapters feed, even though it redirects to the original feed
+        pytest.param(("Dracula", "Little Women"), id="every-file-broken"),
+    ],
+)
+def test_broken_chapter_info_indicator(
+    client: flask.testing.FlaskClient, broken_titles: Sequence[str]
+) -> None:
+    for title in set(broken_titles) - set(BROKEN_CHAPTERS):
+        _break_chapters(title)
+
+    for title, entry in _entries(_books(client)).items():
+        feed = _chapters_feed(entry)
+        if title in NO_CHAPTERS:
+            assert feed is None
+            continue
+
+        assert feed is not None
+        if title in broken_titles:
+            assert (
+                '<svg class="icon feed_warning" role="img"><title>Some of this '
+                "book's chapter information is broken"
+            ) in html.unescape(feed)
+        else:
+            assert "feed_warning" not in feed
+
+        # The QR code is still for the chapters feed
+        assert 'aria-label="QR code for the chapters feed"' in feed

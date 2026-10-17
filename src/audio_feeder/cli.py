@@ -148,9 +148,12 @@ def update(
 @click.option(
     "-c",
     "--config-dir",
-    type=str,
+    type=click.Path(file_okay=False, path_type=pathlib.Path),
     default=None,
-    help="The configuration directory to install to.",
+    help=(
+        "The configuration directory to install to. It is created if it"
+        " doesn't exist."
+    ),
 )
 @click.option(
     "-n",
@@ -159,7 +162,7 @@ def update(
     default=None,
     help="The name to use for the configuration file. Default is config.yml",
 )
-def install(config_dir, config_name):
+def install(config_dir: pathlib.Path | None, config_name: str | None) -> None:
     """
     Installs the feeder configuration and populates the initial file structures
     with the default package data.
@@ -170,7 +173,9 @@ def install(config_dir, config_name):
     from . import config, resources
 
     # Assign a configuration directory
-    if config_dir is None:
+    if config_dir is not None:
+        config_dir.mkdir(parents=True, exist_ok=True)
+    else:
         for config_dir in config.config_dirs(with_pwd=False):
             if not config_dir.exists():
                 try:
@@ -188,11 +193,12 @@ def install(config_dir, config_name):
             raise OSError("Failed to create any configuration directories.")
 
     config_name = config_name or config.CONFIG_NAMES[0]
-    config_loc = os.path.join(config_dir, config_name)
+    config_loc = config_dir / config_name
 
-    # Initialize the configuration
-    config.init_config(config_loc)
-    config_obj = config.get_configuration()
+    # Initialize the configuration. This has to use the configuration loaded
+    # from config_loc, not get_configuration(), which searches the default
+    # locations (starting with the current directory) for a config file.
+    config_obj = config.init_config(config_loc)
 
     # Write the configuration to file
     config_obj.to_file(config_loc)

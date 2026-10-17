@@ -1,0 +1,488 @@
+/* Cyberspace: a home page from the first years of the web, floating over a
+   wireframe floor. Everything is in VT323, a terminal font, in green on black;
+   the books are bevelled panels, the buttons stand out of the page and press
+   in, the counters are hit counters, and the links are bright and underlined.
+   Dark only.
+
+   VT323 is bundled in cyberspace/VT323.woff2 (about 6 KB, subset to Latin),
+   under the SIL Open Font License in cyberspace/OFL.txt, and is only
+   downloaded when this theme is chosen. */
+
+@font-face {
+    font-family: "VT323";
+    src: url("cyberspace/VT323.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    color-scheme: dark;
+    --paper: #000000;
+    --surface: #06170a;
+    --ink: #a8eaa8;
+    --muted: #68b56e;
+    --rule: #1f5a28;
+    --accent: #3dff5a;
+    --accent-ink: #031207;
+    --exclude: #ffb627;
+    --exclude-ink: #1a1000;
+    --bar: #031008;
+    --bar-ink: #a8eaa8;
+    --qr-paper: #e9efe9;
+    --cloth-ink: var(--ink);
+    /* Secondary links, and the colour the bevels are cut from */
+    --link-alt: #6ff0ff;
+    --bevel: #36a847;
+    --grid: rgb(61 255 90 / 0.26);
+
+    --font-body: "VT323", ui-monospace, "Cascadia Mono", Menlo, Consolas,
+        "DejaVu Sans Mono", "Liberation Mono", monospace;
+    --font-display: var(--font-body);
+    --font-mono: var(--font-body);
+    --display-style: normal;
+    --measure: 84rem;
+    --radius: 0;
+    --entry-background: var(--surface);
+    --entry-background-alt: var(--surface);
+    --entry-padding: 1rem 1.1rem 1.1rem;
+    accent-color: var(--accent);
+}
+
+/* VT323 is narrow and low, so everything is set larger than usual */
+body {
+    background-color: var(--paper);
+    font-size: 1.3rem;
+    line-height: 1.3;
+}
+
+/* The wireframe floor, receding under the page */
+body::after {
+    content: "";
+    position: fixed;
+    z-index: -1;
+    inset: auto 0 0;
+    height: 150vh;
+    background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    transform: perspective(60rem) rotateX(58deg);
+    transform-origin: 50% 100%;
+    -webkit-mask-image: linear-gradient(transparent 5%, #000000 45%);
+    mask-image: linear-gradient(transparent 5%, #000000 45%);
+    pointer-events: none;
+}
+
+::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+a {
+    text-decoration-thickness: 1px;
+}
+
+/* Secondary links are the other colour, like a page you've already been to */
+.book_meta a, .read_more > summary, .more_tags > summary, .site_footer a,
+.drawer_clear {
+    color: var(--link-alt);
+}
+
+.site_footer a:hover {
+    color: var(--link-alt);
+}
+
+/* Buttons stand out of the page, and press in when they're on
+=============================================*/
+.topnav-button, .feeds li, button.primary, .theme_picker button,
+.page_jump_button, input.inc, input.exc, .nav_arrow, .nav_link, .nav_current,
+.page_list button {
+    border: 2px outset var(--bevel);
+    background: var(--surface);
+}
+
+.topnav-button {
+    min-height: 2.5rem;
+    margin: 0.3rem 0;
+    padding: 0 0.6rem;
+}
+
+.topnav-button:hover .button_label {
+    text-decoration: none;
+}
+
+.topnav-button:hover, .feeds li:hover, button.primary:hover,
+.theme_picker button:hover, .page_jump_button:hover, .nav_link:hover,
+a.nav_arrow:hover, .page_list button:hover, input.inc:hover, input.exc:hover {
+    background: #0b2a12;
+}
+
+.topnav-button:active, .feeds li:active, button.primary:active,
+.theme_picker button:active, .page_jump_button:active, .nav_link:active,
+a.nav_arrow:active, .page_list button:active {
+    border-style: inset;
+}
+
+.drawer_close {
+    margin-left: auto;
+}
+
+button.primary {
+    padding: 0.3rem 1.25rem;
+    color: var(--accent);
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* Fields are sunk into the page */
+.fields input, .fields select, .theme_picker select {
+    border: 2px inset var(--bevel);
+    background: var(--paper);
+}
+
+/* Counters, like the hit counter at the bottom of a home page */
+.row_count, .filter_count {
+    padding: 0 0.3em;
+    border: 2px inset var(--bevel);
+    border-radius: 0;
+    background: var(--paper);
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    line-height: 1.2;
+}
+
+.filter_count {
+    top: -0.55rem;
+    left: auto;
+    right: -0.55rem;
+    min-width: 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.1;
+}
+
+/* Top bar
+=============================================*/
+.topnav {
+    border-bottom: 3px ridge var(--bevel);
+}
+
+.topnav_inner {
+    padding: 0.35rem 0;
+}
+
+/* The wordmark is the site's banner: big, extruded, with a cursor */
+.wordmark {
+    gap: 0.6rem;
+    min-width: 0;
+    color: var(--accent);
+    font-size: 2.1rem;
+    letter-spacing: 0.03em;
+    text-shadow: 2px 2px 0 #157a28, 4px 4px 0 #073d12;
+}
+
+.wordmark svg.logo {
+    width: 2.6rem;
+    filter: drop-shadow(2px 2px 0 #157a28);
+}
+
+.wordmark span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wordmark span::after {
+    content: "_";
+    margin-left: 0.05em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .wordmark span::after {
+        animation: blink 1.2s steps(1) infinite;
+    }
+
+    @keyframes blink {
+        50% {
+            opacity: 0;
+        }
+    }
+}
+
+.drawer_header h2, .page_jump h2 {
+    color: var(--accent);
+    font-size: 1.6rem;
+    font-weight: 400;
+    text-shadow: 2px 2px 0 #073d12;
+}
+
+.drawer_header h2 {
+    margin-right: 0.5rem;
+}
+
+.inc_key, .exc_key {
+    border-radius: 0;
+}
+
+.toggle_legend {
+    font-size: 1.1rem;
+}
+
+/* Book list
+=============================================*/
+.breadcrumbs {
+    margin-top: 1.25rem;
+    font-size: 1.2rem;
+}
+
+/* Each book is a panel */
+.entry_row {
+    margin: 1rem 0;
+    border: 3px outset var(--bevel);
+}
+
+.entry_title {
+    font-size: 1.85rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+.book_author {
+    margin-top: 0.15rem;
+    color: var(--muted);
+    font-size: 1.35rem;
+}
+
+.book_meta {
+    font-size: 1.15rem;
+}
+
+.book_meta .series_data {
+    font-style: normal;
+}
+
+.description {
+    max-width: 78ch;
+    line-height: 1.3;
+}
+
+/* The covers are framed */
+.cover_img {
+    border: 2px outset var(--bevel);
+}
+
+/* Books without a cover get their title on a panel instead */
+.cover_blank {
+    border: 3px ridge var(--bevel);
+    border-radius: 0;
+    background: var(--paper);
+    box-shadow: none;
+    font-size: clamp(0.5rem, 11cqi, 0.85rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.cover_blank span {
+    border-color: var(--rule);
+}
+
+.cover_mark {
+    color: var(--muted);
+    opacity: 1;
+}
+
+.feeds {
+    gap: 0.5rem;
+}
+
+.feeds a {
+    padding: 0 0.6rem;
+    font-size: 1.2rem;
+}
+
+.feeds a:hover {
+    text-decoration: none;
+}
+
+.qr_button {
+    padding: 0 0.45rem;
+    border-left: 2px groove var(--bevel);
+    color: var(--ink);
+}
+
+.qr_button:hover {
+    color: var(--accent);
+}
+
+p.no_results {
+    font-size: 1.6rem;
+}
+
+/* Page navigation */
+.navbar {
+    gap: 0.35rem;
+}
+
+.nav_links {
+    gap: 0.35rem;
+}
+
+.nav_arrow, .nav_link, .nav_current {
+    font-size: 1.3rem;
+    text-decoration: none;
+}
+
+span.nav_arrow {
+    border-style: solid;
+    border-color: var(--rule);
+    color: var(--rule);
+}
+
+.nav_current {
+    border-style: inset;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 400;
+}
+
+.page_jump_button {
+    padding: 0 0.5rem 0 0.75rem;
+    font-size: 1.2rem;
+}
+
+.page_list {
+    gap: 0.4rem 0.75rem;
+}
+
+.page_list button {
+    padding: 0.2rem 0.5rem;
+    font-size: 1.2rem;
+}
+
+.page_list button[aria-current] {
+    border-style: inset;
+}
+
+/* Menus and popovers
+=============================================*/
+.sort_menu, .page_jump, .modal-window {
+    border: 3px outset var(--bevel);
+    box-shadow: none;
+}
+
+.modal-window {
+    border-color: #b9c2b9;
+}
+
+.modal-window p {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+}
+
+.browse_drawer {
+    border-right: 3px outset var(--bevel);
+}
+
+.browse_drawer::backdrop, .page_jump::backdrop, .modal-window::backdrop {
+    background: rgb(0 0 0 / 0.65);
+}
+
+.drawer_header, .page_jump h2 {
+    border-bottom: 3px ridge var(--bevel);
+}
+
+.drawer_section > summary {
+    border-bottom: 2px groove var(--bevel);
+    color: var(--accent);
+    font-size: 1.35rem;
+    font-weight: 400;
+}
+
+.fields {
+    font-size: 1.2rem;
+}
+
+.tag_match {
+    font-size: 1.15rem;
+}
+
+input.inc, input.exc {
+    color: var(--ink);
+    font-size: 1.3rem;
+    font-weight: 400;
+}
+
+input.inc:checked, input.exc:checked {
+    border-style: inset;
+}
+
+input.inc:checked {
+    border-color: var(--accent);
+}
+
+input.exc:checked {
+    border-color: var(--exclude);
+}
+
+.drawer_footer {
+    border-top: 3px ridge var(--bevel);
+}
+
+.theme_picker button {
+    font-size: 1.2rem;
+}
+
+/* Footer
+=============================================*/
+.site_footer {
+    font-size: 1.15rem;
+}
+
+.site_footer::before {
+    content: "Best viewed in any browser \2014";
+    margin-right: 0.4em;
+}
+
+/* Narrow screens
+=============================================*/
+@media (max-width: 40rem) {
+    body {
+        font-size: 1.25rem;
+    }
+
+    .entry_row {
+        margin-inline: 0.5rem;
+        padding: 0.9rem 0.75rem 1rem;
+    }
+
+    .entry_title {
+        font-size: 1.7rem;
+    }
+
+    .topnav_inner {
+        gap: 0.5rem;
+    }
+
+    .wordmark {
+        gap: 0.4rem;
+        font-size: 1.6rem;
+        letter-spacing: 0;
+        text-shadow: 2px 2px 0 #157a28;
+    }
+
+    .wordmark svg.logo {
+        width: 2rem;
+    }
+
+    .topnav-button {
+        padding: 0 0.4rem;
+    }
+
+    .feeds a {
+        padding: 0 0.5rem;
+        font-size: 1.15rem;
+    }
+}

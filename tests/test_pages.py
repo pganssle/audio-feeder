@@ -1461,7 +1461,7 @@ def test_derived_feed_file_removed_while_serving(
     def write_then_remove(self: pathlib.Path, *args: Any, **kwargs: Any) -> int:
         written = write_text(self, *args, **kwargs)
         if self.name == f"{e_id}-chapters.xml":
-            self.unlink()
+            self.unlink(missing_ok=True)
         return written
 
     monkeypatch.setattr(pathlib.Path, "write_text", write_then_remove)

@@ -14,5 +14,8 @@ src/audio_feeder/_version.py
 
 venv/
 
+# Documentation build output
+docs/_build/
+
 # Detritus from profling
 *.profile/

@@ -194,12 +194,14 @@ def load_feed_items(
         futures.Future[tuple[FileLocation, fp.FileInfo, str | None]]
     ] = []
     file_metadata: MutableMapping[FileLocation, tuple[fp.FileInfo, str | None]] = {}
+    file_locs: MutableSequence[FileLocation] = []
     for file in audio_files:
         fname = file.relative_to(audio_dir.path)
 
         file_loc = FileLocation(
             rel_path=fname, url_base=audio_dir.url, path_base=audio_dir.path
         )
+        file_locs.append(file_loc)
 
         m_rel_path = file.relative_to(media_path)
         if entry_obj.file_hashes and m_rel_path in entry_obj.file_hashes:
@@ -223,13 +225,13 @@ def load_feed_items(
         file_loc, metadata, file_hash = f.result()
         file_metadata[file_loc] = (metadata, file_hash)
 
+    # The metadata is loaded out of order, so put it back in the order returned
+    # by the loader, which is the order the items should appear in the feed.
     return feed_items_from_metadata(
         entry_obj,
         data_obj,
         audio_dir,
-        file_metadata={
-            k: v for k, v in sorted(file_metadata.items(), key=lambda x: x[0].path)  # type: ignore
-        },
+        file_metadata={file_loc: file_metadata[file_loc] for file_loc in file_locs},
         resolver=resolver,
     )
 

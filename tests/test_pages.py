@@ -1,16 +1,19 @@
 """Tests for audio_feeder.pages"""
 
 import datetime
+import email.utils
 import html
 import html.parser
+import itertools
 import pathlib
 import re
 import shutil
 import threading
+import urllib.parse
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Mapping, Sequence
-from urllib.parse import unquote, urlencode
 
+import attrs
 import flask.testing
 import jinja2
 import pytest
@@ -18,6 +21,7 @@ import pytest
 from audio_feeder import app as af_app
 from audio_feeder import config
 from audio_feeder import database_handler as dh
+from audio_feeder import directory_parser
 from audio_feeder import object_handler as oh
 from audio_feeder import pages, updater
 from audio_feeder._db_types import ID
@@ -171,7 +175,7 @@ def client(testgen_config: pathlib.Path) -> Iterator[flask.testing.FlaskClient]:
 
 
 def _books(client: flask.testing.FlaskClient, **params: str | Sequence[str]) -> str:
-    response = client.get("/books?" + urlencode(params, doseq=True))
+    response = client.get("/books?" + urllib.parse.urlencode(params, doseq=True))
     assert response.status_code == 200
     return response.get_data(as_text=True)
 
@@ -769,7 +773,7 @@ def test_covers(
 
         # The list shows the cover or its thumbnail, whichever is smaller
         assert src is not None
-        shown = static_path / unquote(src.group(1).split("/static/", 1)[1])
+        shown = static_path / urllib.parse.unquote(src.group(1).split("/static/", 1)[1])
         cover = static_path / cover_images[0]
         thumbnail = (
             static_path / f"images/entry_cover_cache/{entry_id.group(1)}-thumb.jpg"
@@ -949,15 +953,20 @@ def test_default_site_title(client: flask.testing.FlaskClient) -> None:
     assert _wordmark(_books(client)).endswith("<span>audio-feeder</span>")
 
 
-def _feed_channel(client: flask.testing.FlaskClient, title: str) -> ET.Element:
-    """The ``<channel>`` of the RSS feed of the book with this title."""
+def _entry(title: str) -> oh.Entry:
     database = dh.get_database()
-    (entry_id,) = (
-        entry_id
-        for entry_id, entry in database["entries"].items()
-        if dh.get_data_obj(entry, database).title == title
+    (book_id,) = (book.id for book in database["books"].values() if book.title == title)
+    (entry,) = (
+        entry
+        for entry in database["entries"].values()
+        if entry.table == "books" and entry.data_id == book_id
     )
-    response = client.get(f"/rss/{entry_id}.xml")
+    return entry
+
+
+def _feed_channel(client: flask.testing.FlaskClient, url: str) -> ET.Element:
+    """The ``<channel>`` of the RSS feed at this URL."""
+    response = client.get(url, follow_redirects=True)
     assert response.status_code == 200
     channel = ET.fromstring(response.get_data()).find("channel")
     assert channel is not None
@@ -971,7 +980,7 @@ def test_rss_feed_title_and_description(
     # server normally doesn't, and uses the ones in the package
     shutil.rmtree(testgen_config / "templates")
 
-    channel = _feed_channel(client, "The Invisible Man")
+    channel = _feed_channel(client, f"/rss/{_entry('The Invisible Man').id}.xml")
 
     # The feed uses the RSS templates rather than the book list's, so the
     # title is plain text
@@ -1018,6 +1027,112 @@ def test_default_cover_exists(
     assert isinstance(default_cover, str)
     static_url = config.read_from_config("static_media_url").rstrip("/") + "/"
     assert default_cover.startswith(static_url)
-    cover_path = static_path / unquote(default_cover.removeprefix(static_url))
+    cover_path = static_path / urllib.parse.unquote(
+        default_cover.removeprefix(static_url)
+    )
     assert cover_path == site_images / "default_cover.svg"
     assert cover_path.is_file()
+
+
+@attrs.frozen
+class _FeedItem:
+    file_name: str
+    pub_date: datetime.datetime
+    guid: str
+
+
+def _feed_items(client: flask.testing.FlaskClient, url: str) -> Sequence[_FeedItem]:
+    items = []
+    for item in _feed_channel(client, url).iter("item"):
+        enclosure = item.find("enclosure")
+        pub_date = item.findtext("pubDate")
+        guid = item.findtext("guid")
+        assert enclosure is not None and pub_date and guid
+        url_path = urllib.parse.urlsplit(enclosure.attrib["url"]).path
+        items.append(
+            _FeedItem(
+                file_name=pathlib.PurePosixPath(urllib.parse.unquote(url_path)).name,
+                pub_date=email.utils.parsedate_to_datetime(pub_date),
+                guid=guid,
+            )
+        )
+    return tuple(items)
+
+
+def _assert_items_in_order(items: Sequence[_FeedItem]) -> None:
+    # Podcast apps order episodes by publication date, so the publication
+    # dates must increase in the same order as the files.
+    assert items
+    pub_dates = [item.pub_date for item in items]
+    assert all(earlier < later for earlier, later in itertools.pairwise(pub_dates))
+    assert len({item.guid for item in items}) == len(items)
+
+    file_names = [item.file_name for item in items]
+    sort_key = directory_parser.AudiobookLoader.natural_sort_key
+    assert file_names == sorted(file_names, key=sort_key)
+
+
+@pytest.mark.parametrize("title", FICTION + NONFICTION)
+def test_rss_feed_order(
+    client: flask.testing.FlaskClient, testgen_config: pathlib.Path, title: str
+) -> None:
+    entry = _entry(title)
+    items = _feed_items(client, f"/rss/{entry.id}.xml")
+
+    _assert_items_in_order(items)
+    audio_files = directory_parser.AudiobookLoader.audio_files(
+        testgen_config / "static/media" / entry.path
+    )
+    assert [item.file_name for item in items] == [path.name for path in audio_files]
+
+
+@pytest.mark.parametrize(
+    "title, mode",
+    [
+        *((title, "singlefile") for title in FICTION + NONFICTION),
+        *((title, "segmented") for title in FICTION + NONFICTION),
+        # These are the only test books with chapter metadata that splits their
+        # files into more than one chapter: Frankenstein and Confessions have
+        # chapters embedded in their m4b files, and Little Women has them in
+        # "OverDrive MediaMarkers" tags. Each of Dracula's files is a single
+        # chapter, so its chapters feed just redirects to the default feed
+        # (covered by test_rss_feed_order), and the other books have no chapter
+        # metadata at all.
+        *(
+            (title, "chapters")
+            for title in (
+                "Frankenstein",
+                "Little Women",
+                "Confessions of an English Opium Eater",
+            )
+        ),
+    ],
+)
+def test_derived_rss_feed_order(
+    client: flask.testing.FlaskClient, title: str, mode: str
+) -> None:
+    entry = _entry(title)
+    _assert_items_in_order(_feed_items(client, f"/rss/derived/{entry.id}-{mode}.xml"))
+
+
+@pytest.fixture
+def unpadded_client(testgen_config: pathlib.Path) -> flask.testing.FlaskClient:
+    # Remove the zero padding from the file numbers, so that a lexicographic
+    # sort would put e.g. 10 before 2.
+    book_dir = testgen_config / "static/media/audiobooks/Fiction"
+    for path in (book_dir / "H G Wells - The Invisible Man").glob("*.mp3"):
+        path.rename(path.with_name(re.sub(r"_0+(\d)", r"_\1", path.name)))
+
+    return _start_server()
+
+
+def test_rss_feed_order_natural_sort(
+    unpadded_client: flask.testing.FlaskClient,
+) -> None:
+    entry = _entry("The Invisible Man")
+    items = _feed_items(unpadded_client, f"/rss/{entry.id}.xml")
+
+    _assert_items_in_order(items)
+    assert [item.file_name for item in items] == [
+        f"invisibleman_{i}_wells_64kb.mp3" for i in range(1, 12)
+    ]

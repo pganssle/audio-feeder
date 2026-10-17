@@ -842,6 +842,9 @@ def get_renderer(rss_renderer: bool = False) -> pg.EntryRenderer:
     kwargs = {}
     if rss_renderer:
         kwargs["entry_templates_config"] = "rss_entry_templates_loc"
+        kwargs["entry_templates_resource"] = (
+            "audio_feeder.data.templates.rss.entry_types"
+        )
 
     return pg.EntryRenderer(resolver=get_resolver(), **kwargs)
 

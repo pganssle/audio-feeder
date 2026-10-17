@@ -37,9 +37,17 @@ class EntryRenderer:
         "truncation_point",
     )
 
-    def __init__(self, resolver, entry_templates_config="entry_templates_loc"):
+    def __init__(
+        self,
+        resolver,
+        entry_templates_config="entry_templates_loc",
+        entry_templates_resource="audio_feeder.data.templates.entry_types",
+    ):
         self.resolver = resolver
         self.entry_templates_loc = read_from_config(entry_templates_config)
+        # The package's own templates, used for types of entries that the
+        # entry templates directory doesn't have templates for
+        self.entry_templates_resource = entry_templates_resource
 
     def render(self, entry_obj, data_obj):
         """
@@ -192,7 +200,7 @@ class EntryRenderer:
                 for fpath in type_dir.glob("*.tpl"):
                     type_dict[fpath.stem] = Template(fpath.read_text())
             else:
-                resource = f"audio_feeder.data.templates.entry_types.{type_name}"
+                resource = f"{self.entry_templates_resource}.{type_name}"
                 for child in resources.get_children(resource):
                     if child.is_dir() or not child.name.endswith(".tpl"):
                         continue

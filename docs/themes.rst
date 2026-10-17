@@ -2,10 +2,16 @@ Themes and appearance
 =====================
 
 The book list comes with five themes, which change how it looks without
-changing what's on it. Each person picks their own in the "Appearance" section
-of the menu, and the choice is stored in a cookie, so it applies to that
-browser only: you can use one theme on your computer and another on your phone,
-and other people using the same server keep whatever theme they chose.
+changing what's on it. Each person picks their own at the top of the menu, and
+the choice is stored in a cookie, so it applies to that browser only: you can
+use one theme on your computer and another on your phone, and other people
+using the same server keep whatever theme they chose.
+
+Themes that have both a light and a dark version (Classic, Shelf and Plain)
+follow the system's dark mode setting, and next to the theme there's a choice
+of "Light", "Dark" or "System" to always use one of them instead. This is
+remembered in the same way as the theme, and kept when switching to a theme
+that only has one version, so it applies again when switching back.
 
 The page itself is the same whichever theme is chosen, and each theme is one
 small stylesheet, so switching between them doesn't make the page any slower to
@@ -16,8 +22,8 @@ Built-in themes
 
 Classic
     The default. It keeps the colours and layout of the original book list
-    (the dark bar, the teal links and the alternating grey bands), and switches
-    to a dark version when your system is set to dark mode.
+    (the dark bar, the teal links and the alternating grey bands), and has a
+    dark version.
 
     .. image:: images/screenshots/themes/classic.jpg
         :width: 800px
@@ -67,7 +73,7 @@ Writing your own theme
 
 A theme is a stylesheet in the ``themes`` directory of the CSS directory
 (``static/css/themes/`` with the default settings), and any stylesheet you put
-there shows up in the "Appearance" menu, named after its file: ``night_bus.css``
+there shows up in the menu's list of themes, named after its file: ``night_bus.css``
 is listed as "Night bus". The list of themes is read when the server starts, so
 restart it after adding one.
 
@@ -132,6 +138,50 @@ still overrides them.
 Everything other than the custom properties is part of the page's markup,
 which is more likely to change between releases, so a theme that restyles
 other things may need updating when you upgrade.
+
+Light and dark versions
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The Night bus theme above is dark only, so it says ``color-scheme: dark``,
+which also makes the browser draw its own controls and scrollbars in dark
+colours. A theme that only sets ``color-scheme: light`` or
+``color-scheme: dark``, or doesn't set it at all, is shown as it is, and the
+menu doesn't offer the "Light", "Dark" and "System" choice with it.
+
+To offer that choice, give the theme a dark version and say that it has both
+with ``color-scheme: light dark``. The colour scheme that's chosen is put on
+the page's ``<html>`` element as ``data-scheme="light"`` or
+``data-scheme="dark"``, and isn't there when following the system, so the dark
+colours need to go in two rules, one for the system's dark mode (unless light
+has been chosen) and one for choosing dark:
+
+.. code-block:: css
+
+    /* static/css/themes/harbour.css, which shows up as "Harbour" */
+    :root {
+        color-scheme: light dark;
+        --paper: #eef3f6;
+        --accent: #1d5f8a;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-scheme="light"])) {
+            --paper: #0e1a22;
+            --accent: #7cc4ec;
+        }
+    }
+
+    :root:where([data-scheme="dark"]) {
+        --paper: #0e1a22;
+        --accent: #7cc4ec;
+    }
+
+The ``:where()`` keeps these rules from being more specific than ``:root``, so
+they're applied in the order they're written, after the light colours. Any
+custom properties that the theme doesn't set come from Classic, in its light or
+dark version, and audio-feeder takes care of ``color-scheme`` itself when a
+scheme has been chosen. The menu finds ``color-scheme: light dark`` when it
+reads the list of themes, so restart the server after adding it.
 
 The name and the logo
 ---------------------

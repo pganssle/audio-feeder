@@ -19,14 +19,15 @@ The menu
     :alt: The menu open on a phone
     :align: right
 
-The menu has three sections for filtering the list: the folder tree, a few
-filters on the books' metadata, and the tags. Changes take effect when you
-click "Apply", and "Clear filters" goes back to showing every book. The menu
-button shows the number of filters that are active, counting each included or
-excluded folder or tag separately.
+The top of the menu chooses the theme and, for themes with a light and a dark
+version, whether to use the light one, the dark one, or whichever matches the
+system; click "Use" to switch. These are described in :doc:`themes`.
 
-Its last section, "Appearance", chooses the theme, which is described in
-:doc:`themes`.
+Below that, under "Browse", are three sections for filtering the list: the
+folder tree, a few filters on the books' metadata, and the tags. Changes take
+effect when you click "Apply", and "Clear filters" goes back to showing every
+book. The menu button shows the number of filters that are active, counting
+each included or excluded folder or tag separately.
 
 When no books match the filters, the page says so, with a link to clear them.
 

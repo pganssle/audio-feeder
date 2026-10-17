@@ -164,3 +164,65 @@ def test_content_paths_from_python(
 ) -> None:
     conf = config.Configuration(tmp_path / "config.yml", content_paths=value)
     assert conf.content_paths == {"books": (pathlib.Path("audiobooks"),)}
+
+
+def test_init_config_env_var_missing_falls_back(
+    config_defaults: pathlib.Path,
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    missing_config = tmp_path / "config.yml"
+    monkeypatch.setenv("AUDIO_FEEDER_CONFIG", os.fspath(missing_config))
+    monkeypatch.setenv("AF_CONFIG_DIR", os.fspath(config_defaults.parent))
+
+    expected_msg = (
+        "Could not find config file from environment variable "
+        f"AUDIO_FEEDER_CONFIG: {missing_config}, "
+        f"using {config_defaults} instead."
+    )
+    with pytest.warns(RuntimeWarning) as record:
+        conf = config.init_config()
+
+    assert [str(w.message) for w in record] == [expected_msg]
+    assert conf.config_location == config_defaults
+    assert conf == config.Configuration.from_file(config_defaults)
+    assert not missing_config.exists()
+
+
+@pytest.mark.parametrize("env_config_dir_exists", [True, False])
+def test_init_config_env_var_missing_falls_back_to_baseline(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    env_config_dir_exists: bool,
+) -> None:
+    env_config_dir = tmp_path / "env_config_dir"
+    if env_config_dir_exists:
+        env_config_dir.mkdir()
+    missing_config = env_config_dir / "config.yml"
+
+    config_dir = tmp_path / "config_dir"
+    config_dir.mkdir()
+
+    monkeypatch.setenv("AUDIO_FEEDER_CONFIG", os.fspath(missing_config))
+    monkeypatch.setenv("AF_CONFIG_DIR", os.fspath(config_dir))
+
+    expected_msg = (
+        "Could not find config file from environment variable "
+        f"AUDIO_FEEDER_CONFIG: {missing_config}, using baseline configuration."
+    )
+    with pytest.warns(RuntimeWarning) as record:
+        conf = config.init_config()
+
+    assert [str(w.message) for w in record] == [expected_msg]
+
+    # The baseline configuration is written to the location from the
+    # environment variable if possible, otherwise to the first writable
+    # default location.
+    if env_config_dir_exists:
+        new_config_loc = missing_config
+    else:
+        new_config_loc = config_dir / "config.yml"
+
+    assert conf == config.Configuration(new_config_loc)
+    assert new_config_loc.exists()
+    assert missing_config.exists() == env_config_dir_exists

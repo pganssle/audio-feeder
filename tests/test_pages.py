@@ -5,7 +5,9 @@ import html
 import html.parser
 import pathlib
 import re
+import shutil
 import threading
+import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Mapping, Sequence
 from urllib.parse import unquote, urlencode
 
@@ -939,3 +941,40 @@ def test_site_title_and_logo(
 
 def test_default_site_title(client: flask.testing.FlaskClient) -> None:
     assert _wordmark(_books(client)).endswith("<span>audio-feeder</span>")
+
+
+def _feed_channel(client: flask.testing.FlaskClient, title: str) -> ET.Element:
+    """The ``<channel>`` of the RSS feed of the book with this title."""
+    database = dh.get_database()
+    (entry_id,) = (
+        entry_id
+        for entry_id, entry in database["entries"].items()
+        if dh.get_data_obj(entry, database).title == title
+    )
+    response = client.get(f"/rss/{entry_id}.xml")
+    assert response.status_code == 200
+    channel = ET.fromstring(response.get_data()).find("channel")
+    assert channel is not None
+    return channel
+
+
+def test_rss_feed_title_and_description(
+    client: flask.testing.FlaskClient, testgen_config: pathlib.Path
+) -> None:
+    # The test configuration has a copy of every template, but an installed
+    # server normally doesn't, and uses the ones in the package
+    shutil.rmtree(testgen_config / "templates")
+
+    channel = _feed_channel(client, "The Invisible Man")
+
+    # The feed uses the RSS templates rather than the book list's, so the
+    # title is plain text
+    assert channel.findtext("title") == "H G Wells - The Invisible Man"
+
+    # ...and the description has the book's details as well as its
+    # description
+    description = channel.findtext("description")
+    assert description is not None
+    assert "ISBN" in description
+    assert "1605206288" in description
+    assert "least actually read" in description

@@ -327,7 +327,13 @@ def derived_rss_feed(e_id, mode):
 
     renderer.update_access_time()
 
-    if not renderer.rss_file.exists():
+    # When rendering finishes, the feed's file is deleted (in a background
+    # thread) so that it's regenerated with the rendered files, so it can
+    # disappear at any point; read it once, and use the contents we have
+    # rather than reading it again.
+    try:
+        rss_file_contents = renderer.rss_file.read_text()
+    except FileNotFoundError:
         file_metadata = renderer.read_file_metadata()
         file_metadata_loc = {
             FileLocation(
@@ -349,9 +355,8 @@ def derived_rss_feed(e_id, mode):
 
         rss_file_contents = _render_rss_feed(entry_obj, renderer.data_obj, feed_items)
         renderer.rss_file.write_text(rss_file_contents)
-    else:
-        rss_file_contents = renderer.rss_file.read_text()
-    return Response(renderer.rss_file.read_text(), mimetype="application/xml")
+
+    return Response(rss_file_contents, mimetype="application/xml")
 
 
 @root.route("/rss/<int:e_id>.xml")

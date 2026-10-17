@@ -1,4 +1,0 @@
-Bugfixes
---------
-
-- The options menu now opens and closes when the gear icon is clicked, instead of when the mouse hovers over it, so it no longer closes while selecting from one of its drop-down lists. It can also be closed with Escape or by clicking outside of it. (`#89 <https://github.com/pganssle/audio-feeder/issues/89>`_)

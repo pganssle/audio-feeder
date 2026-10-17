@@ -1,6 +1,0 @@
-Misc
-----
-
-- Added a documentation site at https://audio-feeder.readthedocs.io/, covering installation, setting up a library, browsing and filtering in the web interface, the feeds, every configuration setting and the command line interface. (`#75 <https://github.com/pganssle/audio-feeder/issues/75>`_)
-
-- Fixed the help text of several command line commands, which was stale or missing.

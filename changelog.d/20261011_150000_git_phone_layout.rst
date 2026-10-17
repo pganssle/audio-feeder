@@ -1,4 +1,0 @@
-Features
---------
-
-- The book list is now laid out for the width of the screen on phones, rather than being shrunk down from a desktop-sized page. On touch screens the browse drawer has larger buttons, and on narrow screens the page navigation shows only the arrows and the current page.

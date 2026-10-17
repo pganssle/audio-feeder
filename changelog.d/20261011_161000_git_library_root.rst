@@ -1,4 +1,0 @@
-Misc
-----
-
-- When every book is below a single folder (such as ``audiobooks/``), that folder is no longer shown in the breadcrumbs, the page title or the browse drawer, since it would be the same as showing everything. Folder filters in URLs still use the full path, so that links keep working if more top-level folders are added.

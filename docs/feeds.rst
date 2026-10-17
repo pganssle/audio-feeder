@@ -21,9 +21,15 @@ Single file
     This feed is always available.
 
 Chapters
-    This feed has one file per chapter. It is only available if the original
-    files have explicit chapter metadata, e.g. in an ``m4b`` file or from
-    Overdrive MediaMarkers.
+    This feed has one file per chapter. The book list only links to it if
+    the original files have explicit chapter metadata, e.g. in an ``m4b``
+    file or from Overdrive MediaMarkers, but the feed works for any book. A
+    file without chapter information, or with chapter information that can't
+    be used (a chapter that starts after the end of the file), is treated as
+    a single chapter, so for a book without any usable chapter information,
+    this feed redirects to the original feed (see below).
+    When some of a book's chapter information can't be used, the book list
+    shows a small warning sign on its "Chapters" button.
 
 Segmented
     This feed splits up and recombines the files so that each one is about

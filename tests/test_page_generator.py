@@ -8,8 +8,11 @@ import hypothesis
 import pytest
 from hypothesis import strategies as st
 
+from audio_feeder import file_probe
+from audio_feeder import object_handler as oh
 from audio_feeder import page_generator as pg
 from audio_feeder import resolver
+from audio_feeder._db_types import ID
 
 
 def test_load_type_without_templates(testgen_config: pathlib.Path) -> None:
@@ -239,3 +242,58 @@ def test_page_range_labels_only_reads_page_boundaries() -> None:
 
     assert len(labels) == 4
     assert sorted(seen) == [0, 24, 25, 49, 50, 74, 75, 99]
+
+
+def _file_info(*chapter_starts: float) -> file_probe.FileInfo:
+    """A minute long file with chapters starting at these times."""
+    return file_probe.FileInfo(
+        format_info=file_probe.FormatInfo(duration=60.0),
+        chapters=[
+            file_probe.ChapterInfo(num=num, start_time=start, end_time=start + 10)
+            for num, start in enumerate(chapter_starts, 1)
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "file_infos, has_chapter_info, broken_chapter_info",
+    [
+        (None, False, False),
+        ((), False, False),
+        ((_file_info(), _file_info()), False, False),
+        ((_file_info(0.0, 30.0), _file_info()), True, False),
+        ((_file_info(0.0, 30.0), _file_info(0.0, 30.0)), True, False),
+        # Broken chapter information is still chapter information, so the
+        # book list links to the chapters feed and says that it's broken
+        ((_file_info(0.0, 30.0), _file_info(0.0, 90.0)), True, True),
+        ((_file_info(), _file_info(0.0, 90.0)), True, True),
+        ((_file_info(90.0),), True, True),
+    ],
+)
+def test_render_chapter_info(
+    testgen_config: pathlib.Path,
+    file_infos: Sequence[file_probe.FileInfo] | None,
+    has_chapter_info: bool,
+    broken_chapter_info: bool,
+) -> None:
+    files = None
+    file_metadata = None
+    if file_infos is not None:
+        files = [pathlib.Path(f"Part{i:02}.mp3") for i in range(len(file_infos))]
+        file_metadata = dict(zip(files, file_infos))
+
+    entry = oh.Entry(
+        id=ID(1),
+        path=pathlib.Path("Book"),
+        type="Book",
+        data_id=ID(1),
+        files=files,
+        file_metadata=file_metadata,
+    )
+    rendered = pg.EntryRenderer(resolver.get_resolver()).render(
+        entry, oh.Book(id=ID(1), title="Book", authors=["Some Author"])
+    )
+
+    assert rendered["has_chapter_info"] is has_chapter_info
+    assert rendered["broken_chapter_info"] is broken_chapter_info
+    assert ("CHAPTERS" in rendered["rendered_qr_img_urls"]) is has_chapter_info

@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Mapping, Sequence
 from urllib.parse import unquote, urlencode
 
+import attrs
 import flask.testing
 import pytest
 
@@ -737,6 +738,12 @@ def _entries(page: str) -> dict[str, str]:
     }
 
 
+def _entry_id(entry: str) -> int:
+    entry_id = re.search(r'data-id="(\d+)"', entry)
+    assert entry_id is not None
+    return int(entry_id.group(1))
+
+
 def test_covers(
     client: flask.testing.FlaskClient, testgen_config: pathlib.Path
 ) -> None:
@@ -747,9 +754,8 @@ def test_covers(
     database = dh.get_database()
     shown_sizes = {}
     for title, entry in entries.items():
-        entry_id = re.search(r'data-id="(\d+)"', entry)
-        assert entry_id is not None
-        cover_images = database["entries"][int(entry_id.group(1))].cover_images
+        entry_id = _entry_id(entry)
+        cover_images = database["entries"][entry_id].cover_images
         src = re.search(r'<img src="([^"]*)" class="cover_img"', entry)
 
         if not cover_images:
@@ -765,9 +771,7 @@ def test_covers(
         assert src is not None
         shown = static_path / unquote(src.group(1).split("/static/", 1)[1])
         cover = static_path / cover_images[0]
-        thumbnail = (
-            static_path / f"images/entry_cover_cache/{entry_id.group(1)}-thumb.jpg"
-        )
+        thumbnail = static_path / f"images/entry_cover_cache/{entry_id}-thumb.jpg"
         assert shown in (cover, thumbnail)
         assert shown.stat().st_size == min(
             cover.stat().st_size, thumbnail.stat().st_size
@@ -978,3 +982,129 @@ def test_rss_feed_title_and_description(
     assert "ISBN" in description
     assert "1605206288" in description
     assert "least actually read" in description
+
+
+# Books without any chapter information, and those of them that are one file
+NO_CHAPTERS = (
+    "The Invisible Man",
+    "Little Men",
+    "The Writing of Fiction",
+    "How to Decode CMYK Images",
+)
+UNSEGMENTABLE = ("The Writing of Fiction", "How to Decode CMYK Images")
+RENDER_MODES = ("singlefile", "chapters", "segmented")
+
+
+@pytest.mark.parametrize("mode", RENDER_MODES)
+@pytest.mark.parametrize("title", FICTION + NONFICTION)
+def test_derived_feed(client: flask.testing.FlaskClient, title: str, mode: str) -> None:
+    entry = _entries(_books(client))[title]
+    e_id = _entry_id(entry)
+    feed_path = f"rss/derived/{e_id}-{mode}.xml"
+
+    response = client.get(f"/{feed_path}")
+    if response.status_code == 302:
+        # Rendered feeds that would be identical to the original redirect to it
+        assert response.location == f"/rss/{e_id}.xml"
+    else:
+        assert response.status_code == 200
+        assert response.mimetype == "application/xml"
+        channel = ET.fromstring(response.data).find("channel")
+        assert channel is not None
+        assert channel.findall("item")
+
+    # The book list may link to rendered feeds that redirect to the original
+    # (e.g. Dracula's chapters feed), but any feed it doesn't link to
+    # redirects
+    if feed_path not in entry:
+        assert response.status_code == 302
+
+
+@pytest.mark.parametrize(
+    "title, mode",
+    [
+        *((title, "chapters") for title in NO_CHAPTERS),
+        *((title, "segmented") for title in UNSEGMENTABLE),
+    ],
+)
+def test_derived_feed_redirects_to_original(
+    client: flask.testing.FlaskClient, title: str, mode: str
+) -> None:
+    e_id = _entry_id(_entries(_books(client))[title])
+    original = client.get(f"/rss/{e_id}.xml")
+    assert original.status_code == 200
+
+    # Later requests, which don't need to start rendering, redirect as well
+    for _ in range(2):
+        response = client.get(f"/rss/derived/{e_id}-{mode}.xml", follow_redirects=True)
+        assert [r.location for r in response.history] == [f"/rss/{e_id}.xml"]
+        assert response.status_code == 200
+        assert response.data == original.data
+
+
+def _chapters_feed(entry: str) -> str | None:
+    """The chapters feed's button in a book's markup, if it has one."""
+    feed = re.search(r'<li><a href="[^"]*-chapters\.xml">.*?</li>', entry)
+    return None if feed is None else feed.group(0)
+
+
+def _break_chapters(title: str) -> None:
+    """Make every chapter of this book start after the end of its file."""
+    database = dh.get_database()
+    (entry,) = (
+        entry
+        for entry in database["entries"].values()
+        if dh.get_data_obj(entry, database).title == title
+    )
+    assert entry.file_metadata
+
+    broken = {}
+    for path, file_info in entry.file_metadata.items():
+        duration = file_info.format_info.duration
+        assert duration is not None and file_info.chapters
+        broken[path] = attrs.evolve(
+            file_info,
+            chapters=[
+                attrs.evolve(chapter, start_time=duration + 1, end_time=duration + 2)
+                for chapter in file_info.chapters
+            ],
+        )
+    entry.file_metadata = broken
+
+
+# Dracula's second file has a chapter that starts after the end of the file
+BROKEN_CHAPTERS = ("Dracula",)
+
+
+@pytest.mark.parametrize(
+    "broken_titles",
+    [
+        pytest.param(BROKEN_CHAPTERS, id="some-broken"),
+        # A book with broken chapter information in every file still links to
+        # the chapters feed, even though it redirects to the original feed
+        pytest.param(("Dracula", "Little Women"), id="every-file-broken"),
+    ],
+)
+def test_broken_chapter_info_indicator(
+    client: flask.testing.FlaskClient, broken_titles: Sequence[str]
+) -> None:
+    for title in set(broken_titles) - set(BROKEN_CHAPTERS):
+        _break_chapters(title)
+
+    for title, entry in _entries(_books(client)).items():
+        feed = _chapters_feed(entry)
+        if title in NO_CHAPTERS:
+            assert feed is None
+            continue
+
+        assert feed is not None
+        if title in broken_titles:
+            assert (
+                '<svg class="icon feed_warning" role="img"><title>Some of this '
+                "book's chapter information is broken"
+            ) in html.unescape(feed)
+        else:
+            assert "feed_warning" not in feed
+
+        # The QR code is still for the chapters feed
+        assert 'aria-label="QR code for the chapters feed"' in feed

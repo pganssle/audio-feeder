@@ -528,7 +528,23 @@ class BookDatabaseUpdater:
             raise ValueError(f"Could not resolve {path}")
 
         # First load title and author from the path.
-        audio_info = self.book_loader.parse_audio_info(loc.path)
+        audio_info: Mapping[str, Any]
+        try:
+            audio_info = self.book_loader.parse_audio_info(loc.path)
+        except dp.NoAudiobookInformation:
+            # Rather than leaving the book out entirely, list it under the
+            # name of its directory, with no author, so that it can still be
+            # found (and the metadata can still be looked up by title).
+            logging.warning(
+                "Could not parse the author and title from the name of %s; "
+                "using the directory name as the title.",
+                loc.path,
+            )
+            audio_info = {
+                "authors": [],
+                "series": (None, None),
+                "title": loc.path.name,
+            }
         audio_cover = self.book_loader.audio_cover(loc.path)
 
         # Load books by title and author into a cache if necessary

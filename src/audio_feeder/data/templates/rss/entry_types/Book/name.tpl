@@ -1,1 +1,1 @@
-{{ author_ }} - {{ title }}
+{% if author_ %}{{ author_ }} - {% endif %}{{ title }}

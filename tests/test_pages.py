@@ -6,7 +6,9 @@ import pathlib
 import re
 import threading
 from collections.abc import Iterator, Mapping, Sequence
+from typing import Final
 from urllib.parse import urlencode
+from xml.etree import ElementTree
 
 import flask.testing
 import pytest
@@ -147,8 +149,22 @@ def test_sort_entry_objects_invalid_order() -> None:
 
 
 @pytest.fixture
-def client(testgen_config: pathlib.Path) -> Iterator[flask.testing.FlaskClient]:
-    with test_updater.patch_book_updater():
+def unparseable_books() -> Sequence[str]:
+    """Books to add in directories whose names have no author.
+
+    Override this by parametrizing it to add books for the ``client``.
+    """
+    return ()
+
+
+@pytest.fixture
+def client(
+    testgen_config: pathlib.Path, unparseable_books: Sequence[str]
+) -> Iterator[flask.testing.FlaskClient]:
+    for name in unparseable_books:
+        test_updater.add_unparseable_book(testgen_config / "static/media", name)
+
+    with test_updater.patch_book_updater(test_updater.unparseable_book_responses()):
         updater.update(content_type="books")
 
     app = af_app.create_app(load_db=True, populate_qr_cache=False, block=True)
@@ -595,3 +611,82 @@ def test_qr_codes_are_popovers(client: flask.testing.FlaskClient) -> None:
 
     # Each feed has its own QR code
     assert len(set(popovers.values())) == len(popovers)
+
+
+###
+# Books whose directory names don't match the expected format (#104)
+ITUNES_NS: Final[str] = "http://www.itunes.com/dtds/podcast-1.0.dtd"
+PODCAST_NS: Final[str] = "https://podcastindex.org/namespace/1.0"
+UNPARSEABLE_BOOKS: Final[tuple[str, ...]] = (
+    test_updater.UNPARSEABLE_FOUND,
+    test_updater.UNPARSEABLE_NOT_FOUND,
+)
+
+
+def _entry_names(page: str) -> set[str]:
+    """The rendered names (author and title) of the books listed on a page."""
+    return set(re.findall(r'<a class="entry_link" href="[^"]*">(.*?)</a>', page))
+
+
+def _entry_id(name: str) -> ID:
+    entries = dh.get_database()["entries"].values()
+    (entry,) = (e for e in entries if e.path.name == name)
+    return entry.id
+
+
+@pytest.mark.parametrize("unparseable_books", [UNPARSEABLE_BOOKS])
+@pytest.mark.parametrize("order_by", ["author", "title", "date_added"])
+def test_books_unparseable_directory_listed(
+    client: flask.testing.FlaskClient, order_by: str
+) -> None:
+    page = _books(client, orderBy=order_by)
+    assert _listed(page) == set(FICTION + NONFICTION + UNPARSEABLE_BOOKS)
+
+    # Books with no author are listed by title alone
+    names = _entry_names(page)
+    for name in UNPARSEABLE_BOOKS:
+        assert f'<span class="book_title">{html.escape(name)}</span>' in names
+
+    assert (
+        '<span class="book_author">Bram Stoker</span> - '
+        '<span class="book_title">Dracula</span>'
+    ) in names
+
+
+@pytest.mark.parametrize("unparseable_books", [UNPARSEABLE_BOOKS])
+def test_books_unparseable_directory_author_filter(
+    client: flask.testing.FlaskClient,
+) -> None:
+    # A book with no author doesn't match an author filter, even if another
+    # book by that author has the same title.
+    assert _entry_names(_books(client, author="Stoker")) == {
+        '<span class="book_author">Bram Stoker</span> - '
+        '<span class="book_title">Dracula</span>'
+    }
+
+
+def _feed(client: flask.testing.FlaskClient, name: str) -> ElementTree.Element:
+    response = client.get(f"/rss/{_entry_id(name)}.xml")
+    assert response.status_code == 200
+    channel = ElementTree.fromstring(response.get_data(as_text=True)).find("channel")
+    assert channel is not None
+    return channel
+
+
+@pytest.mark.parametrize("unparseable_books", [UNPARSEABLE_BOOKS])
+@pytest.mark.parametrize("name", UNPARSEABLE_BOOKS)
+def test_rss_feed_unparseable_directory(
+    client: flask.testing.FlaskClient, name: str
+) -> None:
+    channel = _feed(client, name)
+    assert channel.findtext("title") == name
+    assert channel.find(f"{{{ITUNES_NS}}}author") is None
+    assert channel.find(f"{{{PODCAST_NS}}}person") is None
+    assert len(channel.findall("item")) == 2
+
+
+def test_rss_feed_author(client: flask.testing.FlaskClient) -> None:
+    channel = _feed(client, "Louisa May Alcott - [Little Women 01] - Little Women")
+    assert channel.findtext("title") == "Louisa May Alcott - Little Women"
+    assert channel.findtext(f"{{{ITUNES_NS}}}author") == "Louisa May Alcott"
+    assert channel.findtext(f"{{{PODCAST_NS}}}person") == "Louisa May Alcott"

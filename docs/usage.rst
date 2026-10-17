@@ -21,7 +21,7 @@ Creating the configuration directory
 
 ``audio-feeder install`` creates a configuration directory with a default
 ``config.yml``, the directories that the server needs and the static files that
-the web page uses (fonts, the default cover image and so on):
+the web page uses (its stylesheets, themes and images):
 
 .. code-block:: console
 
@@ -38,7 +38,6 @@ be created. With the default settings, the result looks like this:
     ├── config.yml
     ├── database/
     └── static/
-        ├── fonts/
         ├── images/
         │   ├── entry_cover_cache/
         │   ├── qr_cache/

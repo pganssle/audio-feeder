@@ -3,22 +3,30 @@ Browsing the library
 
 The book list at ``/books`` shows every book in the library, a page at a time,
 with its cover, description and links to its feeds. Two buttons at the top of
-the page control which books are shown and in what order: the menu button at
-the top left opens the browse drawer, for filtering the list, and the button at
-the top right opens the sort menu.
+the page control which books are shown and in what order: "Menu" at the top
+left opens the menu, for filtering the list, and "Sort" at the top right opens
+the sort menu.
 
 Every choice you make in either of them ends up in the page's URL, so you can
 bookmark a filtered view of the library or send a link to one, and the page
 navigation keeps the filters and the sort order as you move between pages.
 
-The browse drawer
------------------
+The menu
+--------
 
-The browse drawer has three sections: the folder tree, a few filters on the
-books' metadata, and the tags. Changes take effect when you click "Apply", and
-"Clear filters" goes back to showing every book. The menu button shows the
-number of filters that are active, counting each included or excluded folder
-or tag separately.
+.. image:: images/screenshots/menu_mobile.jpg
+    :width: 300px
+    :alt: The menu open on a phone
+    :align: right
+
+The menu has three sections for filtering the list: the folder tree, a few
+filters on the books' metadata, and the tags. Changes take effect when you
+click "Apply", and "Clear filters" goes back to showing every book. The menu
+button shows the number of filters that are active, counting each included or
+excluded folder or tag separately.
+
+Its last section, "Appearance", chooses the theme, which is described in
+:doc:`themes`.
 
 When no books match the filters, the page says so, with a link to clear them.
 
@@ -110,12 +118,17 @@ list the first and last three pages and the pages either side of the current
 one, with "…" in place of the rest, e.g. ``0 1 2 … 11 12 13 … 77 78 79``. On a
 phone, only the arrows and the current page are shown.
 
-To get to any other page, use the menu above the list, which lists every page
-with the range of the sort order that it covers. For example, when sorting by
+To get to any other page, use the button next to the page links, which shows
+the range of the current page and opens a list of every page with the range of
+the sort order that it covers. For example, when sorting by
 title, a page might cover "Little M → Little W", meaning its first book's title
 starts with "Little M" and its last book's with "Little W"; each end is just
 long enough to tell it apart from the pages around it. When sorting by date,
 the range leaves out what both ends have in common, e.g. "3 → 17 Mar 2023" or
 "Dec 2022 → Feb 2023".
+
+.. image:: images/screenshots/page_jump.jpg
+    :width: 800px
+    :alt: The list of pages, sorted by title
 
 Pages are numbered from 0.

@@ -1,8 +1,9 @@
 Feeds
 =====
 
-Every book has an RSS feed at ``/rss/<id>.xml``, linked from the book's title
-in the book list, which contains the book's audio files as they are on disk.
+Every book has an RSS feed at ``/rss/<id>.xml``, which contains the book's
+audio files as they are on disk; it's the "Original" button next to each book in
+the book list.
 You can subscribe to it in any podcast app that lets you add a feed by URL.
 
 Rendered feeds
@@ -10,8 +11,8 @@ Rendered feeds
 
 Depending on what metadata is available, ``audio-feeder`` can also generate
 "rendered" feeds for each book, at ``/rss/derived/<id>-<mode>.xml``, which
-contain files made from the originals with ``ffmpeg``. They are linked below
-each book's title in the book list:
+contain files made from the originals with ``ffmpeg``. They are the buttons
+after "Original" in the book list:
 
 Single file
     This feed consists of a single file. If the original directory contains
@@ -46,8 +47,8 @@ QR codes
 
 Each feed has an associated QR code, so that you can browse the list on a
 computer and scan the individual feeds from your phone. Click the QR code icon
-under a book's cover, or next to one of its rendered feeds, to show the code;
-clicking anywhere outside of it or pressing Escape closes it again:
+on a feed's button to show the code; clicking anywhere outside of it or pressing
+Escape closes it again:
 
 .. image:: images/screenshots/list_p0_qr.jpg
     :width: 800px

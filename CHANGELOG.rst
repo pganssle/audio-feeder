@@ -1,14 +1,18 @@
 .. scriv-insert-here
 
-Version 0.6.2
-=============
+.. _changelog-0.6.2:
+
+Version 0.6.2 (2022-12-03)
+==========================
 
 - Fixed an issue where some feeds would fail to merge files with an apostrophe in their paths.
 
 - Fixed an issue where chapters taken from the beginning of a file accidentally cause the entire file to be merged into a segment.
 
-Version 0.6.1
-=============
+.. _changelog-0.6.1:
+
+Version 0.6.1 (2022-11-28)
+==========================
 
 - Fixed an issue on Python 3.9 where the app would crash because ``audio_feeder.data.site.fonts`` did not have an ``__init__.py``.
 
@@ -16,8 +20,10 @@ Version 0.6.1
 
 - Adds a new ``/version`` endpoint, which displays the current version of ``audio-feeder`` that is running.
 
-Version 0.6.0
-=============
+.. _changelog-0.6.0:
+
+Version 0.6.0 (2022-11-27)
+==========================
 
 - Now available: rendered feeds! This adds alternate feeds for files generated from the files as they exist on disk using ``ffmpeg`` (the generated files go into a media cache on disk and are generated when the RSS feed is downloaded). The available types of feed are:
 

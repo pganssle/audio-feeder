@@ -100,6 +100,18 @@ def update_resource(resource: str | Traversable, target_dir: Path) -> None:
     _copy_resource(resource, target_dir, copy_if=_copy_if_hash_mismatch)
 
 
+def update_site_data(static_media_path: Path, site_images_loc: str) -> None:
+    """Update the static files used by the site itself.
+
+    The site images (e.g. ``default_cover.svg``) are copied into
+    ``site_images_loc``, relative to ``static_media_path``.
+    """
+    update_resource(
+        importlib.resources.files("audio_feeder.data.site") / "site-images",
+        static_media_path / site_images_loc,
+    )
+
+
 def get_text_resource(package: str, resource: str) -> str:
     """Retrieve the text of a given text resource."""
     return importlib.resources.read_text(package, resource)

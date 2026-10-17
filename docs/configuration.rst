@@ -185,7 +185,8 @@ The following locations are relative to ``static_media_path`` on disk and to
 
     The directory of images used by the site itself. The book list doesn't
     currently use any of them: books that don't have a cover get one drawn by
-    the page instead.
+    the page instead. The default images are copied here from the package by
+    ``audio-feeder install`` and whenever the server starts.
 
 ``css_loc``
     Default: ``css``

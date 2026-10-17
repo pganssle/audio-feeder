@@ -1,7 +1,7 @@
 Themes and appearance
 =====================
 
-The book list comes with five themes, which change how it looks without
+The book list comes with six themes, which change how it looks without
 changing what's on it. Each person picks their own in the "Appearance" section
 of the menu, and the choice is stored in a cookie, so it applies to that
 browser only: you can use one theme on your computer and another on your phone,
@@ -50,6 +50,16 @@ Tape deck
     .. image:: images/screenshots/themes/tape_deck.jpg
         :width: 800px
         :alt: The book list in the Tape deck theme
+
+Cyberpunk
+    A dark theme, laid out like a heads-up display: each book is a panel with
+    its record number in the corner, on a faint grid, with magenta for anything
+    that can be pressed, cyan for readouts and amber for the exclude toggles.
+    It's dark only, whatever the system is set to.
+
+    .. image:: images/screenshots/themes/cyberpunk.jpg
+        :width: 800px
+        :alt: The book list in the Cyberpunk theme
 
 Plain
     The browser's own look: serif text, blue links and feeds written as

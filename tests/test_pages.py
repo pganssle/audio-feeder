@@ -815,13 +815,16 @@ def test_theme_choices(client: flask.testing.FlaskClient) -> None:
     assert _theme_options(_books(client)) == {
         "default": "Classic",
         "card_catalog": "Card catalog",
+        "cyberpunk": "Cyberpunk",
         "plain": "Plain",
         "shelf": "Shelf",
         "tape_deck": "Tape deck",
     }
 
 
-@pytest.mark.parametrize("theme", ["card_catalog", "plain", "shelf", "tape_deck"])
+@pytest.mark.parametrize(
+    "theme", ["card_catalog", "cyberpunk", "plain", "shelf", "tape_deck"]
+)
 def test_choose_theme(
     client: flask.testing.FlaskClient, testgen_config: pathlib.Path, theme: str
 ) -> None:

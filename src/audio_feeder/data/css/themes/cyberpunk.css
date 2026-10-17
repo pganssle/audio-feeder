@@ -1,0 +1,219 @@
+/* Cyberpunk: a heads-up display over a city at night. Magenta for anything
+   you can press, cyan for readouts, amber for warnings, on a near-black grid.
+   Dark only. */
+
+:root {
+    color-scheme: dark;
+    --paper: #090b12;
+    --surface: #131726;
+    --ink: #e6ebf5;
+    --muted: #9aa3bf;
+    --rule: #263050;
+    --accent: #ff5fd6;
+    --accent-ink: #1a0714;
+    --exclude: #ffb13d;
+    --exclude-ink: #1f1200;
+    --bar: #04050a;
+    --bar-ink: #e6ebf5;
+    --qr-paper: #e6ebf5;
+    --cyan: #4de8ff;
+    --cyan-ink: #04161a;
+    --glow: rgb(77 232 255 / 0.35);
+    --cloth-saturation: 70%;
+    --cloth-lightness: 20%;
+    --cloth-ink: #eaf8ff;
+
+    --font-body: "Segoe UI", Roboto, "Noto Sans", Ubuntu, "Helvetica Neue",
+        "Liberation Sans", sans-serif;
+    --font-display: Bahnschrift, "DIN Alternate", "D-DIN", "Roboto Condensed",
+        "Arial Narrow", "Liberation Sans Narrow", "Noto Sans Display",
+        sans-serif;
+    --radius: 0;
+    --entry-background: var(--surface);
+    --entry-background-alt: var(--surface);
+    --entry-padding: 1.1rem 1.25rem 1.25rem;
+    /* The corner that's cut off buttons */
+    --chamfer: polygon(0 0, calc(100% - 0.55rem) 0, 100% 0.55rem, 100% 100%,
+        0.55rem 100%, 0 calc(100% - 0.55rem));
+}
+
+/* A faint grid on the city's blacks */
+body {
+    background-color: var(--paper);
+    background-image:
+        linear-gradient(rgb(77 232 255 / 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(77 232 255 / 0.045) 1px, transparent 1px);
+    background-size: 2.5rem 2.5rem;
+}
+
+/* The bar is a strip of screen: scanlines, with a magenta-to-cyan edge */
+.topnav, .drawer_header, .page_jump h2 {
+    background-image: repeating-linear-gradient(rgb(255 255 255 / 0.035) 0 1px,
+        transparent 1px 3px);
+}
+
+.topnav {
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, var(--accent), var(--cyan)) 1;
+}
+
+.wordmark, .drawer_header h2, .page_jump h2 {
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+/* The wordmark's colour channels have come apart a little */
+.wordmark {
+    font-size: 1.1rem;
+    letter-spacing: 0.22em;
+    text-shadow: -1px 0 var(--accent), 1px 0 var(--cyan);
+}
+
+.wordmark svg.logo {
+    color: var(--cyan);
+    filter: drop-shadow(0 0 4px var(--glow));
+}
+
+.filter_count {
+    border-radius: 0;
+}
+
+/* Readouts are in monospace */
+.book_meta, .row_count, .navbar, .breadcrumbs, .page_jump_button, .page_list,
+.entry_row::before, .site_footer {
+    font-family: var(--font-mono);
+}
+
+.book_meta, .row_count, .site_footer {
+    font-size: 0.8rem;
+}
+
+/* Each book is a panel, with a frame drawn at two corners and its record
+   number tucked into the first one */
+.entry_row {
+    position: relative;
+    margin: 0.9rem 0;
+    border: 1px solid var(--rule);
+}
+
+.entry_row::before, .entry_row::after {
+    content: "";
+    position: absolute;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--cyan);
+    pointer-events: none;
+}
+
+.entry_row::before {
+    content: attr(data-id);
+    top: -1px;
+    left: -1px;
+    width: auto;
+    min-width: 1.5rem;
+    padding: 0 0.45rem 0.2rem 0.35rem;
+    border-width: 2px 0 0 2px;
+    color: var(--cyan);
+    font-size: 0.7rem;
+    line-height: 1;
+    text-align: right;
+}
+
+.entry_row::after {
+    right: -1px;
+    bottom: -1px;
+    border-width: 0 2px 2px 0;
+}
+
+.entry_title {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.book_author {
+    color: var(--cyan);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-style: normal;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+.book_meta .series_data {
+    color: var(--ink);
+    font-style: normal;
+}
+
+/* The feeds are keys with a corner cut off */
+.feeds li {
+    border: 0;
+    background: var(--rule);
+    clip-path: var(--chamfer);
+}
+
+.feeds a {
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.feeds a:hover, .qr_button:hover {
+    color: var(--accent);
+}
+
+.qr_button {
+    border-left-color: var(--surface);
+    color: var(--ink);
+}
+
+button.primary, .nav_current {
+    clip-path: var(--chamfer);
+}
+
+button.primary {
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.nav_current, .page_list button[aria-current] {
+    background: var(--cyan);
+    color: var(--cyan-ink);
+    box-shadow: 0 0 10px var(--glow);
+}
+
+/* Generated covers are lit from inside, in the book's own colour */
+.cover_blank {
+    border: 1px solid hsl(calc(var(--n, 0) * 137deg) 90% 65%);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 3px rgb(0 0 0 / 0.35);
+    font-family: var(--font-mono);
+    font-size: clamp(0.4rem, 9cqi, 0.65rem);
+    text-transform: uppercase;
+}
+
+.cover_blank span {
+    border-color: hsl(calc(var(--n, 0) * 137deg) 90% 65%);
+}
+
+.cover_mark {
+    color: hsl(calc(var(--n, 0) * 137deg) 90% 65%);
+    opacity: 1;
+}
+
+.drawer_section > summary {
+    font-size: 0.9rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* The panels keep off the edges of a phone's screen */
+@media (max-width: 40rem) {
+    .entry_row {
+        margin-inline: 0.5rem;
+    }
+}

@@ -1,0 +1,3 @@
+furo
+sphinx>=8
+sphinx-click>=6
